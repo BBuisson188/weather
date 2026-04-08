@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Radar</title>
+  <meta name="theme-color" content="#08111f" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    :root {
+      --bg1: #050a13;
+      --bg2: #0b1526;
+      --card: rgba(10, 18, 31, 0.86);
+      --card-soft: rgba(15, 25, 43, 0.82);
+      --text: #eef4ff;
+      --muted: #a8bad8;
+      --line: rgba(184,205,255,0.18);
+      --shadow: 0 18px 40px rgba(0,0,0,0.35);
+      --accent: #78a9ff;
+      --danger: #ff8e8e;
+      --ok: #87dfaa;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: linear-gradient(180deg, var(--bg1), var(--bg2)); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { overflow: hidden; }
+    #map { position: fixed; inset: 0; background: #09111f; }
+    .shell { position: fixed; inset: 0; pointer-events: none; }
+    .topbar, .bottombar, .statuschip {
+      pointer-events: auto;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: var(--card);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .topbar {
+      position: absolute;
+      top: max(12px, env(safe-area-inset-top));
+      left: 12px;
+      right: 12px;
+      border-radius: 22px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .titleblock { min-width: 0; }
+    .eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 800; margin-bottom: 4px; }
+    .title { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .subtitle { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 4px; }
+    .btnrow { display: flex; gap: 8px; flex-shrink: 0; }
+    .btn {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border-radius: 999px;
+      height: 38px;
+      min-width: 38px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      font: inherit;
+      text-decoration: none;
+    }
+    .btn svg { width: 16px; height: 16px; }
+    .btn.icon-only { width: 38px; padding: 0; }
+    .bottombar {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      border-radius: 24px;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .frame-time { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; }
+    .timeline { width: 100%; }
+    input[type="range"] {
+      width: 100%;
+      appearance: none;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.14);
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 0;
+      box-shadow: 0 0 0 4px rgba(120,169,255,0.18);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 0;
+      box-shadow: 0 0 0 4px rgba(120,169,255,0.18);
+    }
+    .controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .controls-left, .controls-right { display: flex; gap: 8px; flex-wrap: wrap; }
+    .statuschip {
+      position: absolute;
+      top: calc(max(12px, env(safe-area-inset-top)) + 86px);
+      left: 12px;
+      border-radius: 999px;
+      padding: 9px 12px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .statuschip.error { color: var(--danger); }
+    .statuschip.ok { color: var(--ok); }
+    .credit {
+      position: absolute;
+      right: 14px;
+      bottom: calc(max(12px, env(safe-area-inset-bottom)) + 146px);
+      background: rgba(8, 14, 24, 0.72);
+      color: var(--muted);
+      border-radius: 999px;
+      border: 1px solid rgba(184,205,255,0.14);
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      pointer-events: auto;
+    }
+    .credit a { color: inherit; }
+    @media (max-width: 520px) {
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .btnrow { width: 100%; }
+      .controls { align-items: flex-start; flex-direction: column; }
+      .controls-left, .controls-right { width: 100%; }
+      .credit { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 190px); }
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="shell">
+    <div class="topbar">
+      <div class="titleblock">
+        <div class="eyebrow">Rain Radar</div>
+        <div class="title" id="radarPlace">Loading location…</div>
+        <div class="subtitle">Recent past radar loop</div>
+      </div>
+      <div class="btnrow">
+        <a class="btn" href="index.html" aria-label="Back to weather">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+          Back
+        </a>
+        <button class="btn icon-only" id="recenterBtn" type="button" aria-label="Recenter radar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg>
+        </button>
+        <button class="btn icon-only" id="refreshRadarBtn" type="button" aria-label="Refresh radar frames">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="statuschip" id="statusChip">Loading radar…</div>
+
+    <div class="credit">Radar data source: <a href="https://www.rainviewer.com/" target="_blank" rel="noreferrer">RainViewer</a></div>
+
+    <div class="bottombar">
+      <div class="frame-time" id="frameTime">Loading frames…</div>
+      <div class="timeline"><input id="timeline" type="range" min="0" max="0" value="0" step="1" /></div>
+      <div class="controls">
+        <div class="controls-left">
+          <button class="btn icon-only" id="prevBtn" type="button" aria-label="Previous radar frame">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20L9 12l10-8"/><path d="M5 19V5"/></svg>
+          </button>
+          <button class="btn icon-only" id="playBtn" type="button" aria-label="Play radar loop">
+            <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="btn icon-only" id="nextBtn" type="button" aria-label="Next radar frame">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4l10 8-10 8"/><path d="M19 5v14"/></svg>
+          </button>
+        </div>
+        <div class="controls-right">
+          <button class="btn" id="latestBtn" type="button">Latest</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const STORAGE_KEY = "weather-location-v3";
+    const DEFAULT_LOCATION = { lat: 33.95, lon: -84.55, label: "Marietta, GA" };
+    const PLACE = document.getElementById("radarPlace");
+    const STATUS = document.getElementById("statusChip");
+    const FRAME_TIME = document.getElementById("frameTime");
+    const TIMELINE = document.getElementById("timeline");
+    const PLAY_ICON = document.getElementById("playIcon");
+    const PLAY_BTN = document.getElementById("playBtn");
+    const PREV_BTN = document.getElementById("prevBtn");
+    const NEXT_BTN = document.getElementById("nextBtn");
+    const LATEST_BTN = document.getElementById("latestBtn");
+    const REFRESH_BTN = document.getElementById("refreshRadarBtn");
+    const RECENTER_BTN = document.getElementById("recenterBtn");
+
+    const params = new URLSearchParams(window.location.search);
+    function loadSavedLocation() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; }
+    }
+    function getLocation() {
+      const qLat = Number(params.get("lat"));
+      const qLon = Number(params.get("lon"));
+      const qLabel = params.get("label");
+      if (Number.isFinite(qLat) && Number.isFinite(qLon)) return { lat: qLat, lon: qLon, label: qLabel || "Saved location" };
+      const saved = loadSavedLocation();
+      if (saved?.lat && saved?.lon) return saved;
+      return DEFAULT_LOCATION;
+    }
+    const locationData = getLocation();
+    PLACE.textContent = locationData.label || "Saved location";
+
+    const map = L.map("map", { zoomControl: false, attributionControl: false }).setView([locationData.lat, locationData.lon], 7);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      subdomains: "abc"
+    }).addTo(map);
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+
+    let frames = [];
+    let radarHost = "https://tilecache.rainviewer.com";
+    let radarLayer = null;
+    let animationIndex = 0;
+    let playing = false;
+    let timer = null;
+
+    function setStatus(message, type = "") {
+      STATUS.textContent = message;
+      STATUS.className = "statuschip" + (type ? ` ${type}` : "");
+    }
+
+    function frameLabel(frame) {
+      if (!frame?.time) return "No frame loaded";
+      const d = new Date(frame.time * 1000);
+      return d.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+    }
+
+    function tileUrl(frame) {
+      return `${radarHost}${frame.path}/512/{z}/{x}/{y}/8/1_1.png`;
+    }
+
+    function renderFrame(index) {
+      if (!frames.length) return;
+      animationIndex = (index + frames.length) % frames.length;
+      const frame = frames[animationIndex];
+      TIMELINE.value = String(animationIndex);
+      FRAME_TIME.textContent = frameLabel(frame);
+      if (radarLayer) map.removeLayer(radarLayer);
+      radarLayer = L.tileLayer(tileUrl(frame), {
+        tileSize: 256,
+        opacity: 0.72,
+        updateWhenIdle: false,
+        zIndex: 5,
+        maxNativeZoom: 7,
+        maxZoom: 12,
+        attribution: '&copy; RainViewer'
+      }).addTo(map);
+    }
+
+    function stopLoop() {
+      playing = false;
+      clearInterval(timer);
+      timer = null;
+      PLAY_ICON.innerHTML = '<path d="M8 5v14l11-7z"/>';
+    }
+
+    function startLoop() {
+      if (!frames.length) return;
+      playing = true;
+      PLAY_ICON.innerHTML = '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';
+      clearInterval(timer);
+      timer = setInterval(() => renderFrame(animationIndex + 1), 550);
+    }
+
+    function toggleLoop() {
+      if (playing) stopLoop(); else startLoop();
+    }
+
+    async function loadRadarFrames() {
+      stopLoop();
+      setStatus("Loading radar…");
+      try {
+        const res = await fetch("https://api.rainviewer.com/public/weather-maps.json", { cache: "no-store" });
+        if (!res.ok) throw new Error("Radar API unavailable");
+        const data = await res.json();
+        radarHost = data.host || "https://tilecache.rainviewer.com";
+        frames = Array.isArray(data.radar?.past) ? data.radar.past : [];
+        if (!frames.length) throw new Error("No radar frames available");
+        TIMELINE.max = String(frames.length - 1);
+        renderFrame(frames.length - 1);
+        setStatus(`Radar ready • ${frames.length} frames`, "ok");
+      } catch (error) {
+        console.error(error);
+        FRAME_TIME.textContent = "Radar unavailable";
+        setStatus("Could not load radar right now.", "error");
+      }
+    }
+
+    TIMELINE.addEventListener("input", () => {
+      stopLoop();
+      renderFrame(Number(TIMELINE.value));
+    });
+    PLAY_BTN.addEventListener("click", toggleLoop);
+    PREV_BTN.addEventListener("click", () => { stopLoop(); renderFrame(animationIndex - 1); });
+    NEXT_BTN.addEventListener("click", () => { stopLoop(); renderFrame(animationIndex + 1); });
+    LATEST_BTN.addEventListener("click", () => { stopLoop(); renderFrame(frames.length - 1); });
+    REFRESH_BTN.addEventListener("click", loadRadarFrames);
+    RECENTER_BTN.addEventListener("click", () => map.setView([locationData.lat, locationData.lon], Math.max(map.getZoom(), 7)));
+
+    loadRadarFrames();
+  </script>
+</body>
+</html>
