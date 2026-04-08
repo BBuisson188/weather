@@ -36,11 +36,11 @@
     }
     .topbar {
       position: absolute;
-      top: max(12px, env(safe-area-inset-top));
-      left: 12px;
-      right: 12px;
-      border-radius: 22px;
-      padding: 12px;
+      top: max(10px, env(safe-area-inset-top));
+      left: 10px;
+      right: 10px;
+      border-radius: 20px;
+      padding: 10px 11px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -48,8 +48,8 @@
     }
     .titleblock { min-width: 0; }
     .eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 800; margin-bottom: 4px; }
-    .title { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .subtitle { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 4px; }
+    .title { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .subtitle { font-size: 11px; color: var(--muted); font-weight: 700; margin-top: 3px; }
     .btnrow { display: flex; gap: 8px; flex-shrink: 0; }
     .btn {
       appearance: none;
@@ -57,9 +57,9 @@
       background: rgba(255,255,255,0.06);
       color: var(--text);
       border-radius: 999px;
-      height: 38px;
-      min-width: 38px;
-      padding: 0 14px;
+      height: 34px;
+      min-width: 34px;
+      padding: 0 12px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -69,18 +69,18 @@
       text-decoration: none;
     }
     .btn svg { width: 16px; height: 16px; }
-    .btn.icon-only { width: 38px; padding: 0; }
+    .btn.icon-only { width: 34px; padding: 0; }
     .bottombar {
       position: absolute;
-      left: 12px;
-      right: 12px;
-      bottom: max(12px, env(safe-area-inset-bottom));
-      border-radius: 24px;
-      padding: 12px;
+      left: 10px;
+      right: 10px;
+      bottom: max(10px, env(safe-area-inset-bottom));
+      border-radius: 20px;
+      padding: 10px 11px;
       display: grid;
-      gap: 10px;
+      gap: 8px;
     }
-    .frame-time { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; }
+    .frame-time { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; }
     .timeline { width: 100%; }
     input[type="range"] {
       width: 100%;
@@ -107,24 +107,12 @@
       border: 0;
       box-shadow: 0 0 0 4px rgba(120,169,255,0.18);
     }
-    .controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .controls-left, .controls-right { display: flex; gap: 8px; flex-wrap: wrap; }
-    .statuschip {
-      position: absolute;
-      top: calc(max(12px, env(safe-area-inset-top)) + 86px);
-      left: 12px;
-      border-radius: 999px;
-      padding: 9px 12px;
-      font-size: 12px;
-      color: var(--muted);
-      font-weight: 700;
-    }
-    .statuschip.error { color: var(--danger); }
-    .statuschip.ok { color: var(--ok); }
+    .controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .controls-left, .controls-right { display: flex; gap: 6px; flex-wrap: wrap; }
     .credit {
       position: absolute;
-      right: 14px;
-      bottom: calc(max(12px, env(safe-area-inset-bottom)) + 146px);
+      right: 12px;
+      bottom: calc(max(10px, env(safe-area-inset-bottom)) + 120px);
       background: rgba(8, 14, 24, 0.72);
       color: var(--muted);
       border-radius: 999px;
@@ -140,7 +128,7 @@
       .btnrow { width: 100%; }
       .controls { align-items: flex-start; flex-direction: column; }
       .controls-left, .controls-right { width: 100%; }
-      .credit { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 190px); }
+      .credit { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 162px); }
     }
   </style>
 </head>
@@ -167,7 +155,6 @@
       </div>
     </div>
 
-    <div class="statuschip" id="statusChip">Loading radar…</div>
 
     <div class="credit">Radar data source: <a href="https://www.rainviewer.com/" target="_blank" rel="noreferrer">RainViewer</a></div>
 
@@ -198,7 +185,6 @@
     const STORAGE_KEY = "weather-location-v3";
     const DEFAULT_LOCATION = { lat: 33.95, lon: -84.55, label: "Marietta, GA" };
     const PLACE = document.getElementById("radarPlace");
-    const STATUS = document.getElementById("statusChip");
     const FRAME_TIME = document.getElementById("frameTime");
     const TIMELINE = document.getElementById("timeline");
     const PLAY_ICON = document.getElementById("playIcon");
@@ -239,10 +225,7 @@
     let playing = false;
     let timer = null;
 
-    function setStatus(message, type = "") {
-      STATUS.textContent = message;
-      STATUS.className = "statuschip" + (type ? ` ${type}` : "");
-    }
+    function setStatus() {}
 
     function frameLabel(frame) {
       if (!frame?.time) return "No frame loaded";
@@ -303,11 +286,9 @@
         if (!frames.length) throw new Error("No radar frames available");
         TIMELINE.max = String(frames.length - 1);
         renderFrame(frames.length - 1);
-        setStatus(`Radar ready • ${frames.length} frames`, "ok");
       } catch (error) {
         console.error(error);
         FRAME_TIME.textContent = "Radar unavailable";
-        setStatus("Could not load radar right now.", "error");
       }
     }
 
