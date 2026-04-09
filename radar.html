@@ -25,6 +25,7 @@
     html, body { margin: 0; height: 100%; background: linear-gradient(180deg, var(--bg1), var(--bg2)); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     body { overflow: hidden; }
     #map { position: fixed; inset: 0; background: #09111f; }
+    .leaflet-radar-layer { transition: opacity 180ms linear; }
     .shell { position: fixed; inset: 0; pointer-events: none; }
     .topbar, .bottombar, .statuschip {
       pointer-events: auto;
@@ -174,6 +175,7 @@
           </button>
         </div>
         <div class="controls-right">
+          <button class="btn" id="alertsBtn" type="button">Watch boxes</button>
           <button class="btn" id="latestBtn" type="button">Latest</button>
         </div>
       </div>
@@ -192,6 +194,7 @@
     const PREV_BTN = document.getElementById("prevBtn");
     const NEXT_BTN = document.getElementById("nextBtn");
     const LATEST_BTN = document.getElementById("latestBtn");
+    const ALERTS_BTN = document.getElementById("alertsBtn");
     const REFRESH_BTN = document.getElementById("refreshRadarBtn");
     const RECENTER_BTN = document.getElementById("recenterBtn");
 
@@ -216,14 +219,22 @@
       maxZoom: 19,
       subdomains: "abc"
     }).addTo(map);
+    map.createPane('radarPane');
+    map.getPane('radarPane').style.zIndex = 450;
+    map.createPane('alertsPane');
+    map.getPane('alertsPane').style.zIndex = 470;
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
+    const RADAR_OPACITY = 0.72;
     let frames = [];
     let radarHost = "https://tilecache.rainviewer.com";
     let radarLayer = null;
     let animationIndex = 0;
     let playing = false;
     let timer = null;
+    let swapToken = 0;
+    let alertsVisible = false;
+    let alertsLayer = null;
 
     function setStatus() {}
 
@@ -237,22 +248,59 @@
       return `${radarHost}${frame.path}/512/{z}/{x}/{y}/8/1_1.png`;
     }
 
+    function buildRadarLayer(frame, initialOpacity) {
+      const layer = L.tileLayer(tileUrl(frame), {
+        pane: 'radarPane',
+        tileSize: 256,
+        opacity: initialOpacity,
+        updateWhenIdle: false,
+        keepBuffer: 2,
+        maxNativeZoom: 7,
+        maxZoom: 12,
+        attribution: '&copy; RainViewer'
+      });
+      layer.once('add', () => {
+        const container = layer.getContainer();
+        if (container) container.classList.add('leaflet-radar-layer');
+      });
+      return layer;
+    }
+
     function renderFrame(index) {
       if (!frames.length) return;
       animationIndex = (index + frames.length) % frames.length;
       const frame = frames[animationIndex];
       TIMELINE.value = String(animationIndex);
       FRAME_TIME.textContent = frameLabel(frame);
-      if (radarLayer) map.removeLayer(radarLayer);
-      radarLayer = L.tileLayer(tileUrl(frame), {
-        tileSize: 256,
-        opacity: 0.72,
-        updateWhenIdle: false,
-        zIndex: 5,
-        maxNativeZoom: 7,
-        maxZoom: 12,
-        attribution: '&copy; RainViewer'
-      }).addTo(map);
+      const oldLayer = radarLayer;
+      const token = ++swapToken;
+      const nextLayer = buildRadarLayer(frame, 0).addTo(map);
+
+      const finalizeSwap = () => {
+        if (token !== swapToken) return;
+        const nextContainer = nextLayer.getContainer();
+        const oldContainer = oldLayer?.getContainer?.();
+        if (nextContainer) nextContainer.style.transition = 'opacity 220ms linear';
+        if (oldContainer) oldContainer.style.transition = 'opacity 220ms linear';
+        nextLayer.setOpacity(0);
+        window.requestAnimationFrame(() => {
+          nextLayer.setOpacity(RADAR_OPACITY);
+          window.setTimeout(() => {
+            if (token !== swapToken || !oldLayer) {
+              radarLayer = nextLayer;
+              return;
+            }
+            oldLayer.setOpacity(0);
+            window.setTimeout(() => {
+              if (map.hasLayer(oldLayer)) map.removeLayer(oldLayer);
+            }, 280);
+            radarLayer = nextLayer;
+          }, 140);
+        });
+      };
+
+      nextLayer.once('load', finalizeSwap);
+      window.setTimeout(finalizeSwap, 1000);
     }
 
     function stopLoop() {
@@ -260,6 +308,67 @@
       clearInterval(timer);
       timer = null;
       PLAY_ICON.innerHTML = '<path d="M8 5v14l11-7z"/>';
+    }
+
+    function styleAlertsButton() {
+      if (!ALERTS_BTN) return;
+      ALERTS_BTN.style.background = alertsVisible ? 'rgba(255,172,94,0.18)' : 'rgba(255,255,255,0.06)';
+      ALERTS_BTN.style.borderColor = alertsVisible ? 'rgba(255,172,94,0.45)' : 'var(--line)';
+      ALERTS_BTN.style.color = alertsVisible ? '#ffd7aa' : 'var(--text)';
+    }
+
+    async function loadWatchBoxes() {
+      try {
+        const point = `${locationData.lat},${locationData.lon}`;
+        const res = await fetch(`https://api.weather.gov/alerts/active?status=actual&message_type=alert&point=${encodeURIComponent(point)}`, {
+          headers: { 'Accept': 'application/geo+json' },
+          cache: 'no-store'
+        });
+        if (!res.ok) throw new Error('Alerts API unavailable');
+        const data = await res.json();
+        const features = (data.features || []).filter((feature) => {
+          const event = feature?.properties?.event || '';
+          return /watch/i.test(event) && feature?.geometry;
+        });
+        if (alertsLayer) {
+          map.removeLayer(alertsLayer);
+          alertsLayer = null;
+        }
+        alertsLayer = L.geoJSON({ type: 'FeatureCollection', features }, {
+          pane: 'alertsPane',
+          style: () => ({
+            color: '#ffb45e',
+            weight: 2,
+            opacity: 0.95,
+            fillColor: '#ffb45e',
+            fillOpacity: 0.08
+          }),
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            const title = props.event || 'Watch';
+            const headline = props.headline || '';
+            const ends = props.ends ? new Date(props.ends).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : '';
+            layer.bindPopup(`<strong>${title}</strong>${headline ? `<br>${headline}` : ''}${ends ? `<br>Ends ${ends}` : ''}`);
+          }
+        });
+        if (alertsVisible && features.length) alertsLayer.addTo(map);
+        ALERTS_BTN.textContent = features.length ? `Watch boxes (${features.length})` : 'Watch boxes';
+      } catch (error) {
+        console.error(error);
+        ALERTS_BTN.textContent = 'Watch boxes';
+      }
+      styleAlertsButton();
+    }
+
+    function toggleWatchBoxes() {
+      alertsVisible = !alertsVisible;
+      if (alertsVisible) {
+        if (alertsLayer && alertsLayer.getLayers().length) alertsLayer.addTo(map);
+        else loadWatchBoxes();
+      } else if (alertsLayer && map.hasLayer(alertsLayer)) {
+        map.removeLayer(alertsLayer);
+      }
+      styleAlertsButton();
     }
 
     function startLoop() {
@@ -300,10 +409,13 @@
     PREV_BTN.addEventListener("click", () => { stopLoop(); renderFrame(animationIndex - 1); });
     NEXT_BTN.addEventListener("click", () => { stopLoop(); renderFrame(animationIndex + 1); });
     LATEST_BTN.addEventListener("click", () => { stopLoop(); renderFrame(frames.length - 1); });
-    REFRESH_BTN.addEventListener("click", loadRadarFrames);
+    ALERTS_BTN.addEventListener("click", toggleWatchBoxes);
+    REFRESH_BTN.addEventListener("click", async () => { await loadRadarFrames(); if (alertsVisible) await loadWatchBoxes(); });
     RECENTER_BTN.addEventListener("click", () => map.setView([locationData.lat, locationData.lon], Math.max(map.getZoom(), 7)));
 
+    styleAlertsButton();
     loadRadarFrames();
+    loadWatchBoxes();
   </script>
 </body>
 </html>
