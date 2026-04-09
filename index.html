@@ -16,7 +16,6 @@
       --bg2: #0b1526;
       --bg3: #101f36;
       --card: rgba(13, 22, 39, 0.78);
-      --card-strong: rgba(17, 28, 48, 0.92);
       --text: #eef4ff;
       --muted: #9fb1cf;
       --line: rgba(184, 205, 255, 0.14);
@@ -25,7 +24,6 @@
       --shadow-soft: 0 12px 28px rgba(0, 0, 0, 0.28);
       --success: #82e0a8;
       --rain: #73a7ff;
-      --warm: #ffbe66;
       --radius-xl: 28px;
       --radius-lg: 22px;
       --maxw: 460px;
@@ -99,19 +97,13 @@
       justify-content: center;
       gap: 8px;
       cursor: pointer;
-      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
       text-decoration: none;
       white-space: nowrap;
     }
     .icon-btn:hover, .input-btn:hover, .link-btn:hover { background: rgba(255,255,255,0.10); border-color: rgba(184,205,255,0.30); }
     .icon-btn:active, .input-btn:active, .link-btn:active { transform: scale(0.98); }
     .icon-btn svg, .link-btn svg { width: 16px; height: 16px; opacity: 0.9; }
-    .icon-btn.icon-only {
-      width: 38px;
-      min-width: 38px;
-      padding: 0;
-      gap: 0;
-    }
+    .icon-btn.icon-only { width: 38px; min-width: 38px; padding: 0; gap: 0; }
     .temp-block { position: relative; z-index: 1; text-align: center; padding: 6px 8px 2px; }
     .current-row { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 6px; }
     .weather-glyph { width: 32px; height: 32px; flex-shrink: 0; }
@@ -119,12 +111,7 @@
     .current-tools { display: inline-flex; align-items: center; gap: 10px; }
     .condition { font-size: 16px; color: var(--muted); font-weight: 600; }
     .trend-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; position: relative; z-index: 1; }
-    .mini-stat, .recap-card {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-soft);
-    }
+    .mini-stat, .recap-card { background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); }
     .mini-stat { padding: 12px 12px 10px; text-align: center; }
     .mini-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.10em; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
     .mini-value { font-size: 22px; letter-spacing: -0.04em; font-weight: 800; white-space: nowrap; }
@@ -137,51 +124,34 @@
     .section-title { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; }
     .section-note { font-size: 12px; color: var(--muted); font-weight: 700; }
     .hourly-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(66px, 72px); gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 2px 2px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; touch-action: pan-x; }
-    .hourly-strip:active { cursor: grabbing; }
-    .hourly-strip::-webkit-scrollbar { display: none; }
-    .hour-card {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow-soft);
-      border-radius: 20px;
-      padding: 10px 8px 12px;
-      text-align: center;
-    }
-    .hour-card.is-wet {
-      background: linear-gradient(180deg, rgba(58, 95, 176, 0.22), rgba(22, 40, 76, 0.52));
-      border-color: rgba(115, 167, 255, 0.26);
-    }
-    .hour-time { font-size: 12px; font-weight: 800; color: var(--muted); margin-bottom: 8px; }
+    .hourly-strip:active, .outlook-scroll:active { cursor: grabbing; }
+    .hourly-strip::-webkit-scrollbar, .outlook-scroll::-webkit-scrollbar { display: none; }
+    .hour-card { background: rgba(255,255,255,0.06); border: 1px solid var(--line); box-shadow: var(--shadow-soft); border-radius: 20px; padding: 10px 8px 12px; text-align: center; }
+    .hour-card.is-wet { background: linear-gradient(180deg, rgba(58, 95, 176, 0.22), rgba(22, 40, 76, 0.52)); border-color: rgba(115, 167, 255, 0.26); }
+    .hour-time { font-size: 12px; font-weight: 800; color: var(--muted); margin-bottom: 4px; }
     .hour-icon { width: 24px; height: 24px; display: block; margin: 0 auto 8px; }
     .hour-temp { font-size: 22px; font-weight: 800; letter-spacing: -0.05em; margin-bottom: 3px; }
     .hour-rain { font-size: 12px; color: var(--rain); font-weight: 800; }
+    .outlook-scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 2px 2px 4px; cursor: grab; touch-action: pan-x; }
+    .outlook-chart-shell { min-width: 980px; height: 226px; position: relative; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015)); border: 1px solid var(--line); overflow: hidden; }
+    .outlook-chart { display: block; width: 100%; height: 100%; }
+    .outlook-axis-label { position: absolute; left: 10px; font-size: 11px; color: rgba(220,232,255,0.72); font-weight: 700; letter-spacing: 0.02em; }
+    .outlook-axis-label.right { left: auto; right: 10px; text-align: right; }
+    .outlook-day-overlay { position: absolute; top: 50%; transform: translate(-50%, -50%); font-size: 13px; color: rgba(220,232,255,0.18); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; pointer-events: none; }
+    .outlook-legend { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-line { width: 18px; height: 0; border-top: 3px solid #ff5d5d; border-radius: 999px; box-shadow: 0 0 8px rgba(255,93,93,0.22); }
+    .legend-bar { width: 18px; height: 0; border-top: 3px solid #5fa2ff; border-radius: 999px; box-shadow: 0 0 8px rgba(95,162,255,0.18); }
+    .chart-hint { text-align: center; color: var(--muted); font-size: 12px; font-weight: 700; margin-top: 8px; }
+    .outlook-readout { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); padding: 6px 10px; border-radius: 999px; background: rgba(7, 13, 24, 0.82); border: 1px solid rgba(184,205,255,0.18); box-shadow: var(--shadow-soft); font-size: 12px; color: var(--text); font-weight: 700; white-space: nowrap; pointer-events: none; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .recap-card { padding: 14px; }
-    .recap-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.11em; font-weight: 800; color: var(--muted); margin-bottom: 8px; }
+    .recap-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.11em; font-weight: 800; color: var(--muted); margin-bottom: 4px; }
     .recap-value { font-size: 28px; letter-spacing: -0.05em; font-weight: 800; margin-bottom: 4px; }
     .recap-sub { font-size: 13px; color: var(--muted); font-weight: 600; }
-    .controls {
-      display: grid;
-      gap: 12px;
-      padding: 14px;
-      border-radius: var(--radius-xl);
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow-soft);
-    }
+    .controls { display: grid; gap: 12px; padding: 14px; border-radius: var(--radius-xl); background: rgba(255,255,255,0.05); border: 1px solid var(--line); box-shadow: var(--shadow-soft); }
     .input-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
-    input {
-      width: 100%;
-      border: 1px solid var(--line-strong);
-      outline: none;
-      height: 42px;
-      border-radius: 16px;
-      padding: 0 14px;
-      font: inherit;
-      color: var(--text);
-      background: rgba(255,255,255,0.06);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
-    }
+    input { width: 100%; border: 1px solid var(--line-strong); outline: none; height: 42px; border-radius: 16px; padding: 0 14px; font: inherit; color: var(--text); background: rgba(255,255,255,0.06); }
     input::placeholder { color: #8ea2c2; }
     .helper { font-size: 12px; color: var(--muted); line-height: 1.45; font-weight: 600; }
     .status { font-size: 13px; color: var(--muted); font-weight: 700; min-height: 20px; padding: 0 2px; }
@@ -191,8 +161,8 @@
     @media (max-width: 390px) {
       .trend-row, .grid-2 { grid-template-columns: 1fr; }
       .toolbar { flex-wrap: wrap; justify-content: flex-end; }
-      .topline { align-items: flex-start; }
-      .section-head { align-items: flex-start; flex-direction: column; }
+      .topline, .section-head { align-items: flex-start; }
+      .section-head { flex-direction: column; }
     }
   </style>
 </head>
@@ -207,12 +177,10 @@
           </div>
           <div class="toolbar">
             <button class="icon-btn" id="locateBtn" type="button" aria-label="Use my location">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg>
-              Locate
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg>Locate
             </button>
             <button class="icon-btn" id="toggleControls" type="button" aria-label="Change location">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
-              ZIP
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>ZIP
             </button>
           </div>
         </div>
@@ -228,29 +196,13 @@
           </div>
           <div class="condition" id="currentCondition">Fetching forecast</div>
           <div class="trend-row">
-            <div class="mini-stat">
-              <div class="mini-label">Now</div>
-              <div class="mini-value" id="nowValue">--°</div>
-              <div class="mini-sub" id="nowSub">Current</div>
-            </div>
-            <div class="mini-stat">
-              <div class="mini-label">High</div>
-              <div class="mini-value" id="highValue">--°</div>
-              <div class="mini-sub" id="highSub">Later</div>
-            </div>
-            <div class="mini-stat">
-              <div class="mini-label">Low</div>
-              <div class="mini-value" id="lowValue">--°</div>
-              <div class="mini-sub" id="lowSub">Later</div>
-            </div>
+            <div class="mini-stat"><div class="mini-label">Now</div><div class="mini-value" id="nowValue">--°</div><div class="mini-sub" id="nowSub">Current</div></div>
+            <div class="mini-stat"><div class="mini-label">High</div><div class="mini-value" id="highValue">--°</div><div class="mini-sub" id="highSub">Today</div></div>
+            <div class="mini-stat"><div class="mini-label">Low</div><div class="mini-value" id="lowValue">--°</div><div class="mini-sub" id="lowSub">Next low</div></div>
           </div>
           <div class="meta-line">
-            <span id="rainLine">Rain --</span>
-            <span class="dot"></span>
-            <span id="lightLine" class="light-line">
-              <span>First light --&nbsp;&nbsp;Rise --</span>
-              <span>Last light --&nbsp;&nbsp;Set --</span>
-            </span>
+            <span id="rainLine">Rain --</span><span class="dot"></span>
+            <span id="lightLine" class="light-line"><span>First light --  Rise --</span><span>Last light --  Set --</span></span>
           </div>
         </div>
       </section>
@@ -261,37 +213,32 @@
           <input id="zipInput" inputmode="numeric" pattern="[0-9]*" maxlength="5" placeholder="Enter ZIP code" />
           <button class="input-btn" id="zipBtn" type="button">Save ZIP</button>
         </div>
-        <div class="helper">
-          The page stores only a rounded version of your last chosen coordinates in your browser, so it can reopen to your general area without saving your exact spot.
-        </div>
+        <div class="helper">The page stores only a rounded version of your last chosen coordinates in your browser, so it can reopen to your general area without saving your exact spot.</div>
       </section>
 
       <section class="card section-card">
-        <div class="section-head">
-          <div class="section-title">Next 12 hours</div>
-          <div class="section-note" id="hoursNote">Swipe or drag</div>
-        </div>
+        <div class="section-head"><div class="section-title">Next 12 hours</div></div>
         <div class="hourly-strip" id="hourlyStrip"></div>
       </section>
 
       <section class="card section-card">
         <div class="section-head">
-          <div>
-            <div class="section-title">Radar</div>
-            <div class="section-note">Full screen rain radar</div>
-          </div>
-          <a class="link-btn" id="radarLink" href="radar.html" aria-label="Open radar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7a5 5 0 0 1 5 5"/><path d="M12 12l4 4"/></svg>
-            Open Radar
-          </a>
+          <div><div class="section-title">10-day outlook</div><div class="section-note">Hourly temperature + precip chance</div></div>
+          <div class="outlook-legend"><span class="legend-item"><span class="legend-line"></span>Temp</span><span class="legend-item"><span class="legend-bar"></span>Precip</span></div>
         </div>
+        <div class="outlook-scroll"><div class="outlook-chart-shell" id="outlookShell"><svg class="outlook-chart" id="outlookChart" viewBox="0 0 980 226" preserveAspectRatio="none"></svg></div></div>
+        <div class="chart-hint">Swipe or drag sideways to move through the full outlook.</div>
       </section>
 
       <section class="card section-card">
         <div class="section-head">
-          <div class="section-title">Quick recap</div>
-          <div class="section-note">Recent conditions</div>
+          <div><div class="section-title">Radar</div><div class="section-note">Full screen rain radar</div></div>
+          <a class="link-btn" id="radarLink" href="radar.html" aria-label="Open radar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7a5 5 0 0 1 5 5"/><path d="M12 12l4 4"/></svg>Open Radar</a>
         </div>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-head"><div class="section-title">Quick recap</div><div class="section-note">Recent conditions</div></div>
         <div class="grid-2">
           <div class="recap-card"><div class="recap-label">Rain 24h</div><div class="recap-value" id="rain24">--</div><div class="recap-sub">Accumulated precipitation</div></div>
           <div class="recap-card"><div class="recap-label">Rain 3d</div><div class="recap-value" id="rain3d">--</div><div class="recap-sub">Accumulated precipitation</div></div>
@@ -305,23 +252,17 @@
   <script>
     const $ = (id) => document.getElementById(id);
     const els = {
-      placeName: $("placeName"), currentTemp: $("currentTemp"), currentGlyph: $("currentGlyph"),
-      currentCondition: $("currentCondition"), nowValue: $("nowValue"), nowSub: $("nowSub"),
-      highValue: $("highValue"), highSub: $("highSub"), lowValue: $("lowValue"), lowSub: $("lowSub"),
-      rainLine: $("rainLine"), lightLine: $("lightLine"), hourlyStrip: $("hourlyStrip"),
-      hoursNote: $("hoursNote"), rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"),
-      freezeHours: $("freezeHours"), statusLine: $("statusLine"), controlsPanel: $("controlsPanel"),
-      toggleControls: $("toggleControls"), locateBtn: $("locateBtn"), zipInput: $("zipInput"), zipBtn: $("zipBtn"),
-      refreshBtn: $("refreshBtn"), radarLink: $("radarLink")
+      placeName: $("placeName"), currentTemp: $("currentTemp"), currentGlyph: $("currentGlyph"), currentCondition: $("currentCondition"),
+      nowValue: $("nowValue"), nowSub: $("nowSub"), highValue: $("highValue"), highSub: $("highSub"), lowValue: $("lowValue"), lowSub: $("lowSub"),
+      rainLine: $("rainLine"), lightLine: $("lightLine"), hourlyStrip: $("hourlyStrip"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"),
+      rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"), statusLine: $("statusLine"), controlsPanel: $("controlsPanel"),
+      toggleControls: $("toggleControls"), locateBtn: $("locateBtn"), zipInput: $("zipInput"), zipBtn: $("zipBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink")
     };
-
     const STORAGE_KEY = "weather-location-v3";
     let activeLocation = null;
+    let outlookInteraction = null;
 
-    function setStatus(message, type = "") {
-      els.statusLine.textContent = message || "";
-      els.statusLine.className = "status" + (type ? ` ${type}` : "");
-    }
+    function setStatus(message, type = "") { els.statusLine.textContent = message || ""; els.statusLine.className = "status" + (type ? ` ${type}` : ""); }
     function roundCoord(value) { return Math.round(value * 500) / 500; }
     function saveLocation(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); activeLocation = data; updateRadarLink(data); }
     function loadSavedLocation() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; } }
@@ -340,19 +281,14 @@
       if (isDay) return `<svg viewBox="0 0 48 48" width="${size}" height="${size}" aria-hidden="true"><circle cx="24" cy="24" r="9" fill="${sun}" /><g stroke="${sun}" stroke-width="3" stroke-linecap="round"><path d="M24 5v6M24 37v6M5 24h6M37 24h6M11 11l4 4M33 33l4 4M11 37l4-4M33 15l4-4" /></g></svg>`;
       return `<svg viewBox="0 0 48 48" width="${size}" height="${size}" aria-hidden="true"><path d="M30 10a12 12 0 1 0 10 19 14 14 0 1 1-10-19Z" fill="${moon}" /></svg>`;
     }
-
     function updateRadarLink(location) {
-      if (!location?.lat || !location?.lon) {
-        els.radarLink.href = "radar.html";
-        return;
-      }
+      if (!location?.lat || !location?.lon) { els.radarLink.href = "radar.html"; return; }
       const url = new URL("radar.html", window.location.href);
       url.searchParams.set("lat", location.lat);
       url.searchParams.set("lon", location.lon);
       if (location.label) url.searchParams.set("label", location.label);
       els.radarLink.href = url.toString();
     }
-
     async function getLocationNameFromZip(zip) {
       const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
       if (!res.ok) throw new Error("ZIP lookup failed");
@@ -361,7 +297,6 @@
       if (!place) throw new Error("ZIP not found");
       return { lat: Number(place.latitude), lon: Number(place.longitude), label: `${place['place name']}, ${place['state abbreviation']}`, source: "zip" };
     }
-
     async function getLocationNameFromCoords(lat, lon) {
       try {
         const url = new URL("https://nominatim.openstreetmap.org/reverse");
@@ -379,7 +314,6 @@
       }
       return `Near ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
     }
-
     async function getForecast(lat, lon) {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "auto";
       const params = new URLSearchParams({
@@ -391,13 +325,13 @@
         wind_speed_unit: "mph",
         current: "temperature_2m,weather_code,is_day",
         hourly: "temperature_2m,precipitation_probability,precipitation,weather_code",
-        daily: "sunrise,sunset,daylight_duration"
+        daily: "sunrise,sunset,daylight_duration",
+        forecast_days: "10"
       });
-      const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);
+      const res = await fetch(`https://api.open-meteo.com/v1/gfs?${params.toString()}`);
       if (!res.ok) throw new Error("Forecast request failed");
       return res.json();
     }
-
     async function getHistory(lat, lon) {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "auto";
       const today = new Date();
@@ -418,7 +352,6 @@
       if (!res.ok) throw new Error("History request failed");
       return res.json();
     }
-
     function buildRainLine(times, probs, now) {
       const future = times.map((t, i) => ({ time: new Date(t), prob: Number(probs[i]) || 0 })).filter((x) => x.time >= now);
       if (!future.length) return "Rain --";
@@ -433,27 +366,177 @@
       }
       return `Rain ${Math.round(max.prob)}% today`;
     }
-
     function renderHourly(times, temps, probs, codes, now) {
-      const items = times.map((time, i) => ({ time, date: new Date(time), temp: temps[i], prob: Number(probs[i]) || 0, code: Number(codes[i]) || 0 })).filter((x) => x.date >= now).slice(0, 12);
+      const items = times.map((time, i) => ({ time, date: new Date(time), temp: temps[i], prob: Number(probs[i]) || 0, code: Number(codes[i]) || 0 }))
+        .filter((x) => x.date >= now)
+        .slice(0, 12);
       els.hourlyStrip.innerHTML = items.map((item) => {
         const isDay = item.date.getHours() >= 7 && item.date.getHours() <= 19;
         return `<div class="hour-card ${item.prob >= 40 ? 'is-wet' : ''}"><div class="hour-time">${formatHour(item.time)}</div><div class="hour-icon">${glyph(item.code, isDay, 24)}</div><div class="hour-temp">${Math.round(item.temp)}°</div><div class="hour-rain">${Math.round(item.prob)}%</div></div>`;
       }).join("");
     }
+    function renderOutlookChart(hourly, daily) {
+      const now = new Date();
+      const startIndex = hourly.time.findIndex((t) => new Date(t) >= now);
+      const safeStart = startIndex >= 0 ? startIndex : 0;
+      const hours = Math.min(hourly.time.length - safeStart, 24 * 10);
+      const times = hourly.time.slice(safeStart, safeStart + hours).map((t) => new Date(t));
+      const temps = hourly.temperature_2m.slice(safeStart, safeStart + hours).map(Number);
+      const probs = hourly.precipitation_probability.slice(safeStart, safeStart + hours).map((v) => Number(v) || 0);
+      const shell = els.outlookShell;
+      const svg = els.outlookChart;
+      if (!shell || !svg || !hours) return;
 
+      const dayCount = Math.max(1, Math.ceil(hours / 24));
+      const width = Math.max(980, dayCount * 140);
+      const height = 226;
+      const left = 28, right = 28, top = 14, bottom = 4;
+      shell.style.minWidth = `${width}px`;
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      const plotW = width - left - right;
+      const plotH = height - top - bottom;
+      const ns = 'http://www.w3.org/2000/svg';
+      const minTemp = Math.min(...temps);
+      const maxTemp = Math.max(...temps);
+
+      shell.querySelectorAll('.outlook-axis-label,.outlook-day-overlay,.outlook-readout').forEach((el) => el.remove());
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const el = (name, attrs = {}) => {
+        const node = document.createElementNS(ns, name);
+        Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, String(v)));
+        return node;
+      };
+      const x = (i) => left + (i / Math.max(hours - 1, 1)) * plotW;
+      const yTemp = (v) => maxTemp === minTemp ? top + plotH / 2 : top + (1 - (v - minTemp) / (maxTemp - minTemp)) * plotH;
+      const yProb = (v) => top + (1 - v / 100) * plotH;
+
+      const defs = el('defs');
+      const tempGrad = el('linearGradient', { id: 'tempFill', x1: '0', y1: '0', x2: '0', y2: '1' });
+      tempGrad.appendChild(el('stop', { offset: '0%', 'stop-color': 'rgba(255,93,93,0.16)' }));
+      tempGrad.appendChild(el('stop', { offset: '100%', 'stop-color': 'rgba(255,93,93,0)' }));
+      defs.appendChild(tempGrad);
+      svg.appendChild(defs);
+
+      if (daily?.sunrise?.length && daily?.sunset?.length && times.length > 1) {
+        const totalSpan = times[times.length - 1].getTime() - times[0].getTime() || 1;
+        for (let d = 0; d < daily.sunrise.length; d++) {
+          const sunrise = new Date(daily.sunrise[d]);
+          const sunset = new Date(daily.sunset[d]);
+          const dayStart = new Date(sunrise); dayStart.setHours(0, 0, 0, 0);
+          const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+          const visibleStart = new Date(Math.max(dayStart.getTime(), times[0].getTime()));
+          const visibleEnd = new Date(Math.min(dayEnd.getTime(), times[times.length - 1].getTime()));
+          if (visibleEnd <= visibleStart) continue;
+          const sunriseClamped = new Date(Math.max(sunrise.getTime(), visibleStart.getTime()));
+          const sunsetClamped = new Date(Math.min(sunset.getTime(), visibleEnd.getTime()));
+          if (sunsetClamped <= sunriseClamped) continue;
+          const startFrac = (sunriseClamped.getTime() - times[0].getTime()) / totalSpan;
+          const endFrac = (sunsetClamped.getTime() - times[0].getTime()) / totalSpan;
+          const dayX = left + startFrac * plotW;
+          const dayW = Math.max(0, (endFrac - startFrac) * plotW);
+          svg.appendChild(el('rect', { x: dayX, y: top, width: dayW, height: plotH, fill: 'rgba(255,255,255,0.035)' }));
+          const label = document.createElement('div');
+          label.className = 'outlook-day-overlay';
+          label.style.left = `${Math.round(dayX + dayW / 2)}px`;
+          label.textContent = sunrise.toLocaleDateString([], { weekday: 'short' });
+          shell.appendChild(label);
+        }
+      }
+
+      for (let t = 0; t <= 3; t++) {
+        const y = top + (plotH / 3) * t;
+        svg.appendChild(el('line', { x1: left, y1: y, x2: width - right, y2: y, stroke: 'rgba(255,255,255,0.08)', 'stroke-width': 1 }));
+      }
+
+      const leftTop = document.createElement('div');
+      leftTop.className = 'outlook-axis-label';
+      leftTop.style.top = `${top - 1}px`;
+      leftTop.textContent = `${Math.round(maxTemp)}°`;
+      shell.appendChild(leftTop);
+      const leftBottom = document.createElement('div');
+      leftBottom.className = 'outlook-axis-label';
+      leftBottom.style.top = `${top + plotH - 11}px`;
+      leftBottom.textContent = `${Math.round(minTemp)}°`;
+      shell.appendChild(leftBottom);
+      const rightTop = document.createElement('div');
+      rightTop.className = 'outlook-axis-label right';
+      rightTop.style.top = `${top - 1}px`;
+      rightTop.textContent = '100%';
+      shell.appendChild(rightTop);
+      const rightBottom = document.createElement('div');
+      rightBottom.className = 'outlook-axis-label right';
+      rightBottom.style.top = `${top + plotH - 11}px`;
+      rightBottom.textContent = '0%';
+      shell.appendChild(rightBottom);
+
+      let tempFillPath = `M ${x(0)} ${top + plotH}`;
+      let tempLinePath = `M ${x(0)} ${yTemp(temps[0])}`;
+      let precipLinePath = `M ${x(0)} ${yProb(probs[0])}`;
+      for (let i = 0; i < hours; i++) {
+        const xi = x(i), yt = yTemp(temps[i]), yp = yProb(probs[i]);
+        tempLinePath += ` L ${xi} ${yt}`;
+        precipLinePath += ` L ${xi} ${yp}`;
+        tempFillPath += ` L ${xi} ${yt}`;
+      }
+      tempFillPath += ` L ${x(hours - 1)} ${top + plotH} Z`;
+
+      svg.appendChild(el('path', { d: tempFillPath, fill: 'url(#tempFill)' }));
+      svg.appendChild(el('path', { d: precipLinePath, fill: 'none', stroke: 'rgba(95,162,255,0.22)', 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+      svg.appendChild(el('path', { d: precipLinePath, fill: 'none', stroke: '#5fa2ff', 'stroke-width': 2.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+      svg.appendChild(el('path', { d: tempLinePath, fill: 'none', stroke: 'rgba(255,93,93,0.24)', 'stroke-width': 8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+      svg.appendChild(el('path', { d: tempLinePath, fill: 'none', stroke: '#ff5d5d', 'stroke-width': 3.1, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+
+      const crosshair = el('line', { x1: x(0), y1: top, x2: x(0), y2: top + plotH, stroke: 'rgba(255,255,255,0.55)', 'stroke-width': 1.2, 'stroke-dasharray': '4 4' });
+      svg.appendChild(crosshair);
+      const tempDot = el('circle', { cx: x(0), cy: yTemp(temps[0]), r: 3.4, fill: '#ff5d5d', stroke: '#ffd4d4', 'stroke-width': 1.2 });
+      const precipDot = el('circle', { cx: x(0), cy: yProb(probs[0]), r: 3.2, fill: '#5fa2ff', stroke: '#d7e7ff', 'stroke-width': 1.1 });
+      svg.appendChild(tempDot);
+      svg.appendChild(precipDot);
+
+      const readout = document.createElement('div');
+      readout.className = 'outlook-readout';
+      shell.appendChild(readout);
+
+      const updateSelection = (idx) => {
+        const safe = Math.max(0, Math.min(hours - 1, idx));
+        const xx = x(safe), yt = yTemp(temps[safe]), yp = yProb(probs[safe]);
+        crosshair.setAttribute('x1', xx); crosshair.setAttribute('x2', xx);
+        tempDot.setAttribute('cx', xx); tempDot.setAttribute('cy', yt);
+        precipDot.setAttribute('cx', xx); precipDot.setAttribute('cy', yp);
+        readout.textContent = `${times[safe].toLocaleString([], { weekday: 'short', hour: 'numeric' })} • ${Math.round(temps[safe])}° • ${Math.round(probs[safe])}%`;
+        const minLeft = 74;
+        const maxLeft = width - 74;
+        const labelX = Math.max(minLeft, Math.min(maxLeft, xx));
+        readout.style.left = `${labelX}px`;
+        readout.style.transform = 'translateX(-50%)';
+      };
+      updateSelection(0);
+
+      outlookInteraction = { shell, svg, hours, width, left, right, updateSelection };
+    }
     function renderForecast(data, placeLabel) {
       const now = new Date();
       const current = data.current, hourly = data.hourly, daily = data.daily;
-      const hourlyItems = hourly.time.map((time, i) => ({ date: new Date(time), temp: Number(hourly.temperature_2m[i]), prob: Number(hourly.precipitation_probability[i]) || 0, code: Number(hourly.weather_code[i]) || 0 }));
-      const endOfToday = new Date(now); endOfToday.setHours(23, 59, 59, 999);
-      const remainingToday = hourlyItems.filter((x) => x.date >= now && x.date <= endOfToday);
-      const tempsRemaining = remainingToday.map((x) => x.temp);
-      const maxRemaining = tempsRemaining.length ? Math.max(...tempsRemaining) : current.temperature_2m;
-      const minRemaining = tempsRemaining.length ? Math.min(...tempsRemaining) : current.temperature_2m;
-      const roundedCurrent = Math.round(current.temperature_2m), roundedMax = Math.round(maxRemaining), roundedMin = Math.round(minRemaining);
-      const maxPoint = remainingToday.find((x) => Math.round(x.temp) === roundedMax) || remainingToday[0];
-      const minPoint = remainingToday.find((x) => Math.round(x.temp) === roundedMin) || remainingToday[0];
+      const hourlyItems = hourly.time.map((time, i) => ({
+        date: new Date(time),
+        temp: Number(hourly.temperature_2m[i]),
+        prob: Number(hourly.precipitation_probability[i]) || 0,
+        code: Number(hourly.weather_code[i]) || 0
+      }));
+
+      const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
+      const todayWindow = hourlyItems.filter((x) => x.date >= todayStart && x.date <= todayEnd);
+      const nextNoon = new Date(now);
+      if (now.getHours() >= 12) nextNoon.setDate(nextNoon.getDate() + 1);
+      nextNoon.setHours(12, 0, 0, 0);
+      const lowWindow = hourlyItems.filter((x) => x.date >= now && x.date <= nextNoon);
+
+      const maxRemaining = todayWindow.length ? Math.max(...todayWindow.map((x) => x.temp)) : current.temperature_2m;
+      const minRemaining = lowWindow.length ? Math.min(...lowWindow.map((x) => x.temp)) : current.temperature_2m;
+      const maxPoint = todayWindow.find((x) => x.temp === maxRemaining) || todayWindow[0];
+      const minPoint = lowWindow.find((x) => x.temp === minRemaining) || lowWindow[0];
 
       els.placeName.textContent = placeLabel;
       els.currentTemp.textContent = formatTemp(current.temperature_2m);
@@ -461,19 +544,20 @@
       els.currentCondition.textContent = codeToLabel(Number(current.weather_code));
       els.nowValue.textContent = formatTemp(current.temperature_2m);
       els.nowSub.textContent = "Current";
-      if (roundedCurrent >= roundedMax) { els.highValue.textContent = "Now"; els.highSub.textContent = "Peak now"; }
-      else { els.highValue.textContent = formatTemp(maxRemaining); els.highSub.textContent = maxPoint ? formatShortTime(maxPoint.date) : "Later"; }
-      if (roundedCurrent <= roundedMin) { els.lowValue.textContent = "Now"; els.lowSub.textContent = "Low now"; }
-      else { els.lowValue.textContent = formatTemp(minRemaining); els.lowSub.textContent = minPoint ? formatShortTime(minPoint.date) : "Later"; }
+      els.highValue.textContent = formatTemp(maxRemaining);
+      els.highSub.textContent = maxPoint ? formatShortTime(maxPoint.date) : "Today";
+      els.lowValue.textContent = formatTemp(minRemaining);
+      els.lowSub.textContent = minPoint ? formatShortTime(minPoint.date) : "By noon";
       els.rainLine.textContent = buildRainLine(hourly.time, hourly.precipitation_probability, now);
+
       const sunrise = daily.sunrise?.[0], sunset = daily.sunset?.[0];
       const firstLight = sunrise ? new Date(new Date(sunrise).getTime() - 30 * 60 * 1000) : null;
       const lastLight = sunset ? new Date(new Date(sunset).getTime() + 30 * 60 * 1000) : null;
       els.lightLine.innerHTML = `<span>First light ${firstLight ? formatShortTime(firstLight) : '--'}&nbsp;&nbsp;Rise ${sunrise ? formatShortTime(sunrise) : '--'}</span><span>Last light ${lastLight ? formatShortTime(lastLight) : '--'}&nbsp;&nbsp;Set ${sunset ? formatShortTime(sunset) : '--'}</span>`;
-      els.hoursNote.textContent = `Through ${remainingToday.length ? formatHour(remainingToday[Math.min(11, remainingToday.length - 1)].date) : 'later'}`;
-      renderHourly(hourly.time, hourly.temperature_2m, hourly.precipitation_probability, hourly.weather_code, now);
-    }
 
+      renderHourly(hourly.time, hourly.temperature_2m, hourly.precipitation_probability, hourly.weather_code, now);
+      renderOutlookChart(hourly, daily);
+    }
     function renderHistory(data) {
       const times = data.hourly.time.map((t) => new Date(t));
       const rain = data.hourly.precipitation.map(Number), temp = data.hourly.temperature_2m.map(Number);
@@ -485,7 +569,7 @@
         if (times[i] >= last3Start) sum3 += rain[i] || 0;
         if (times[i] >= last7Start) sum7 += rain[i] || 0;
       }
-      const midnight = new Date(now); midnight.setHours(0,0,0,0);
+      const midnight = new Date(now); midnight.setHours(0, 0, 0, 0);
       const overnightStart = new Date(midnight.getTime() - 8 * 60 * 60 * 1000);
       const overnightTemps = times.map((t, i) => ({ t, temp: temp[i] })).filter(x => x.t >= overnightStart && x.t < midnight);
       const freezeCount = overnightTemps.filter(x => x.temp < 32).length;
@@ -494,37 +578,20 @@
       els.rain7d.textContent = `${sum7.toFixed(2)} in`;
       els.freezeHours.textContent = `${freezeCount.toFixed(1)} h`;
     }
-
-    async function loadWeather(location, forceFresh = false) {
+    async function loadWeather(location) {
       try {
-        if (!location?.lat || !location?.lon) {
-          setStatus("Use your location or enter a ZIP to get started.");
-          return;
-        }
-        activeLocation = location;
-        updateRadarLink(location);
-        setStatus(forceFresh ? "Refreshing weather…" : "Updating weather…");
+        setStatus("Updating weather…");
         els.placeName.textContent = location.label || "Loading…";
         const [forecast, history] = await Promise.all([getForecast(location.lat, location.lon), getHistory(location.lat, location.lon)]);
         renderForecast(forecast, location.label || `Near ${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}`);
         renderHistory(history);
-        setStatus(forceFresh ? "Refreshed" : "Updated", "ok");
+        setStatus("Updated", "ok");
       } catch (error) {
         console.error(error);
         setStatus("Could not load weather data.", "error");
         els.currentCondition.textContent = "Weather unavailable";
       }
     }
-
-    async function refreshCurrentWeather() {
-      const saved = activeLocation || loadSavedLocation();
-      if (!saved?.lat || !saved?.lon) {
-        setStatus("No saved location yet.", "error");
-        return;
-      }
-      await loadWeather(saved, true);
-    }
-
     async function useBrowserLocation() {
       if (!navigator.geolocation) { setStatus("Location is not available in this browser.", "error"); return; }
       setStatus("Getting your current location…");
@@ -534,11 +601,8 @@
         const saved = { lat, lon, label, source: "geolocation" };
         saveLocation(saved);
         await loadWeather(saved);
-      }, () => {
-        setStatus("Location permission was denied.", "error");
-      }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+      }, () => { setStatus("Location permission was denied.", "error"); }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
     }
-
     async function useZip() {
       const zip = els.zipInput.value.trim();
       if (!/^\d{5}$/.test(zip)) { setStatus("Please enter a valid 5-digit ZIP.", "error"); return; }
@@ -553,7 +617,16 @@
         setStatus("Could not find that ZIP code.", "error");
       }
     }
-
+    async function refreshCurrentWeather() {
+      const saved = activeLocation || loadSavedLocation();
+      if (!saved?.lat || !saved?.lon) {
+        setStatus("Use your location or enter a ZIP to get started.", "error");
+        return;
+      }
+      activeLocation = saved;
+      updateRadarLink(saved);
+      await loadWeather(saved);
+    }
     function seedDemo() {
       els.placeName.textContent = "Set a ZIP or use location";
       els.currentTemp.textContent = "--°";
@@ -562,7 +635,7 @@
       els.highValue.textContent = "--°";
       els.lowValue.textContent = "--°";
       els.rainLine.textContent = "Rain --";
-      els.lightLine.innerHTML = `<span>First light --&nbsp;&nbsp;Rise --</span><span>Last light --&nbsp;&nbsp;Set --</span>`;
+      els.lightLine.innerHTML = `<span>First light --  Rise --</span><span>Last light --  Set --</span>`;
       els.hourlyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="hour-card"><div class="hour-time">--</div><div class="hour-icon">${glyph(1, false, 24)}</div><div class="hour-temp">--°</div><div class="hour-rain">--%</div></div>`).join("");
       [els.rain24, els.rain3d, els.rain7d, els.freezeHours].forEach(el => el.textContent = "--");
       updateRadarLink(loadSavedLocation());
@@ -573,10 +646,8 @@
     els.zipBtn.addEventListener("click", useZip);
     els.refreshBtn.addEventListener("click", refreshCurrentWeather);
     els.zipInput.addEventListener("keydown", (e) => { if (e.key === "Enter") useZip(); });
-    els.hourlyStrip.addEventListener("wheel", (e) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { els.hourlyStrip.scrollLeft += e.deltaY; e.preventDefault(); }
-    }, { passive: false });
 
+    els.hourlyStrip.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { els.hourlyStrip.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
     let isDown = false, startX = 0, startScroll = 0;
     els.hourlyStrip.addEventListener("pointerdown", (e) => { isDown = true; startX = e.clientX; startScroll = els.hourlyStrip.scrollLeft; els.hourlyStrip.setPointerCapture(e.pointerId); });
     els.hourlyStrip.addEventListener("pointermove", (e) => { if (!isDown) return; const dx = e.clientX - startX; els.hourlyStrip.scrollLeft = startScroll - dx; });
@@ -584,6 +655,47 @@
     els.hourlyStrip.addEventListener("pointerup", stopDragging);
     els.hourlyStrip.addEventListener("pointercancel", stopDragging);
     els.hourlyStrip.addEventListener("lostpointercapture", stopDragging);
+
+    const outlookScroll = document.querySelector('.outlook-scroll');
+    if (outlookScroll) {
+      outlookScroll.addEventListener("wheel", (e) => {
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+          outlookScroll.scrollLeft += e.deltaY;
+          e.preventDefault();
+        }
+      }, { passive: false });
+
+      let chartDown = false, chartMoved = false, chartStartX = 0, chartStartScroll = 0;
+      outlookScroll.addEventListener("pointerdown", (e) => {
+        chartDown = true;
+        chartMoved = false;
+        chartStartX = e.clientX;
+        chartStartScroll = outlookScroll.scrollLeft;
+        outlookScroll.setPointerCapture(e.pointerId);
+      });
+      outlookScroll.addEventListener("pointermove", (e) => {
+        if (!chartDown) return;
+        const dx = e.clientX - chartStartX;
+        if (Math.abs(dx) > 6) chartMoved = true;
+        outlookScroll.scrollLeft = chartStartScroll - dx;
+      });
+      outlookScroll.addEventListener("pointerup", (e) => {
+        if (!chartDown) return;
+        const moved = chartMoved;
+        chartDown = false;
+        if (!moved && outlookInteraction?.shell) {
+          const rect = outlookInteraction.shell.getBoundingClientRect();
+          const shellX = e.clientX - rect.left;
+          const usableWidth = outlookInteraction.width - outlookInteraction.left - outlookInteraction.right;
+          const frac = Math.max(0, Math.min(1, (shellX - outlookInteraction.left) / usableWidth));
+          const idx = Math.round(frac * Math.max(outlookInteraction.hours - 1, 1));
+          outlookInteraction.updateSelection(idx);
+        }
+      });
+      const stopChartDragging = () => { chartDown = false; };
+      outlookScroll.addEventListener("pointercancel", stopChartDragging);
+      outlookScroll.addEventListener("lostpointercapture", stopChartDragging);
+    }
 
     async function init() {
       seedDemo();
@@ -597,7 +709,6 @@
         setStatus("Use your location or enter a ZIP to get started.");
       }
     }
-
     init();
   </script>
 </body>
