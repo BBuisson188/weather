@@ -15,13 +15,13 @@
       --bg1: #050a13;
       --bg2: #0b1526;
       --bg3: #101f36;
-      --card: rgba(13, 22, 39, 0.78);
+      --card: rgba(12, 21, 38, 0.82);
       --text: #eef4ff;
       --muted: #9fb1cf;
-      --line: rgba(184, 205, 255, 0.14);
-      --line-strong: rgba(184, 205, 255, 0.20);
-      --shadow: 0 22px 50px rgba(0, 0, 0, 0.38);
-      --shadow-soft: 0 12px 28px rgba(0, 0, 0, 0.28);
+      --line: rgba(184, 205, 255, 0.16);
+      --line-strong: rgba(184, 205, 255, 0.28);
+      --shadow: 0 26px 60px rgba(0, 0, 0, 0.42);
+      --shadow-soft: 0 14px 32px rgba(0, 0, 0, 0.30);
       --success: #82e0a8;
       --rain: #73a7ff;
       --radius-xl: 28px;
@@ -35,8 +35,9 @@
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at 18% 10%, rgba(90, 132, 255, 0.16), transparent 22%),
-        radial-gradient(circle at 88% 0%, rgba(93, 184, 255, 0.10), transparent 20%),
+        radial-gradient(circle at 18% 10%, rgba(90, 132, 255, 0.22), transparent 24%),
+        radial-gradient(circle at 88% 0%, rgba(93, 184, 255, 0.14), transparent 24%),
+        radial-gradient(circle at 50% 38%, rgba(81, 119, 255, 0.08), transparent 28%),
         radial-gradient(circle at 70% 28%, rgba(255, 255, 255, 0.05), transparent 16%),
         linear-gradient(180deg, var(--bg1), var(--bg2) 42%, var(--bg3));
       -webkit-font-smoothing: antialiased;
@@ -64,17 +65,35 @@
       border: 1px solid var(--line);
       box-shadow: var(--shadow);
       border-radius: var(--radius-xl);
+      position: relative;
+      overflow: hidden;
+    }
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0));
+      opacity: 0.7;
     }
     .hero { padding: 18px 18px 16px; position: relative; overflow: hidden; }
     .hero::before {
       content: "";
       position: absolute;
-      top: -32px;
-      right: -22px;
-      width: 150px;
-      height: 150px;
+      top: -38px;
+      right: -28px;
+      width: 180px;
+      height: 180px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(135, 181, 255, 0.16), rgba(135, 181, 255, 0));
+      background: radial-gradient(circle, rgba(135, 181, 255, 0.24), rgba(135, 181, 255, 0));
+      pointer-events: none;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -12% -50% -12%;
+      height: 140px;
+      background: radial-gradient(circle at 50% 0%, rgba(109, 156, 255, 0.14), rgba(109, 156, 255, 0));
       pointer-events: none;
     }
     .topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; position: relative; z-index: 1; }
@@ -83,21 +102,82 @@
     .place { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .toolbar { display: flex; gap: 8px; flex-shrink: 0; }
     .icon-btn, .input-btn, .link-btn {
-      appearance: none; border: 1px solid var(--line-strong); color: var(--text); background: rgba(255,255,255,0.06); box-shadow: var(--shadow-soft); border-radius: 999px; font: inherit; height: 38px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; text-decoration: none; white-space: nowrap;
+      appearance: none; border: 1px solid var(--line-strong); color: var(--text); background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04)); box-shadow: var(--shadow-soft); border-radius: 999px; font: inherit; height: 38px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; text-decoration: none; white-space: nowrap; transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
     }
-    .icon-btn:hover, .input-btn:hover, .link-btn:hover { background: rgba(255,255,255,0.10); border-color: rgba(184,205,255,0.30); }
+    .icon-btn:hover, .input-btn:hover, .link-btn:hover { background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06)); border-color: rgba(184,205,255,0.38); box-shadow: 0 0 0 1px rgba(184,205,255,0.08), var(--shadow-soft); }
     .icon-btn:active, .input-btn:active, .link-btn:active { transform: scale(0.98); }
     .icon-btn svg, .link-btn svg { width: 16px; height: 16px; opacity: 0.9; }
     .icon-btn.icon-only { width: 38px; min-width: 38px; padding: 0; gap: 0; }
+    .action-btn {
+      height: 42px;
+      padding: 0 16px 0 10px;
+      gap: 10px;
+      border-color: rgba(166, 197, 255, 0.28);
+      background: linear-gradient(180deg, rgba(90, 129, 214, 0.20), rgba(26, 42, 79, 0.34));
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255,255,255,0.06);
+      position: relative;
+      overflow: hidden;
+    }
+    .action-btn::before {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0));
+      pointer-events: none;
+    }
+    .action-btn:hover {
+      border-color: rgba(182, 210, 255, 0.42);
+      background: linear-gradient(180deg, rgba(102, 146, 236, 0.24), rgba(28, 48, 87, 0.40));
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(180,210,255,0.10);
+    }
+    .action-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: radial-gradient(circle at 30% 30%, rgba(159, 199, 255, 0.30), rgba(71, 103, 176, 0.18));
+      border: 1px solid rgba(184,205,255,0.24);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+      position: relative;
+      z-index: 1;
+    }
+    .action-label {
+      position: relative;
+      z-index: 1;
+      letter-spacing: -0.01em;
+      font-weight: 700;
+    }
+    .radar-btn {
+      padding-right: 18px;
+    }
+    .radar-btn .action-badge {
+      background:
+        radial-gradient(circle at center, rgba(126, 180, 255, 0.24) 0 22%, transparent 23% 34%, rgba(126, 180, 255, 0.16) 35% 39%, transparent 40% 52%, rgba(126, 180, 255, 0.12) 53% 57%, transparent 58%),
+        radial-gradient(circle at 30% 30%, rgba(170, 210, 255, 0.28), rgba(66, 98, 168, 0.20));
+    }
+    .radar-btn .action-badge::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 1.5px;
+      background: rgba(196, 225, 255, 0.88);
+      border-radius: 999px;
+      transform-origin: left center;
+      transform: translateX(1px) rotate(34deg);
+    }
     .temp-block { position: relative; z-index: 1; text-align: center; padding: 6px 8px 2px; }
-    .current-row { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .current-row { display: inline-flex; align-items: center; gap: 12px; margin-bottom: 8px; }
     .weather-glyph { width: 32px; height: 32px; flex-shrink: 0; }
-    .current-temp { font-size: clamp(64px, 18vw, 84px); line-height: 0.92; letter-spacing: -0.065em; font-weight: 800; }
-    .current-tools { display: inline-flex; align-items: center; gap: 10px; }
-    .condition { font-size: 16px; color: var(--muted); font-weight: 600; }
+    .current-temp { font-size: clamp(64px, 18vw, 84px); line-height: 0.9; letter-spacing: -0.07em; font-weight: 800; text-shadow: 0 0 22px rgba(125, 174, 255, 0.08); }
+    .current-tools { display: inline-flex; align-items: center; gap: 10px; padding: 2px 0; }
+    .condition { font-size: 16px; color: var(--muted); font-weight: 600; letter-spacing: -0.01em; }
     .trend-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px; position: relative; z-index: 1; }
     .mini-stat, .recap-card { background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); }
-    .mini-stat { padding: 12px 12px 10px; text-align: center; }
+    .mini-stat { padding: 12px 12px 10px; text-align: center; background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04)); }
     .mini-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.10em; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
     .mini-value { font-size: 22px; letter-spacing: -0.04em; font-weight: 800; white-space: nowrap; }
     .mini-sub { font-size: 12px; color: var(--muted); margin-top: 2px; font-weight: 600; line-height: 1.2; min-height: 28px; }
@@ -105,20 +185,21 @@
     .light-line { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; line-height: 1.1; text-align: left; }
     .dot { width: 4px; height: 4px; border-radius: 50%; background: rgba(159, 177, 207, 0.45); }
     .section-card { padding: 14px; border-radius: var(--radius-xl); }
+    .section-card.outlook-card::after { display: none; }
     .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding: 2px 4px 0; }
     .section-title { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; }
-    .section-note { font-size: 12px; color: var(--muted); font-weight: 700; }
+    .section-note { font-size: 12px; color: var(--muted); font-weight: 700; opacity: 0.9; }
     .hourly-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(66px, 72px); gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 2px 2px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; touch-action: pan-x; }
     .hourly-strip:active, .outlook-scroll:active { cursor: grabbing; }
     .hourly-strip::-webkit-scrollbar, .outlook-scroll::-webkit-scrollbar { display: none; }
-    .hour-card { background: rgba(255,255,255,0.06); border: 1px solid var(--line); box-shadow: var(--shadow-soft); border-radius: 20px; padding: 10px 8px 12px; text-align: center; }
+    .hour-card { background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04)); border: 1px solid var(--line); box-shadow: var(--shadow-soft); border-radius: 20px; padding: 10px 8px 12px; text-align: center; }
     .hour-card.is-wet { background: linear-gradient(180deg, rgba(58, 95, 176, 0.22), rgba(22, 40, 76, 0.52)); border-color: rgba(115, 167, 255, 0.26); }
     .hour-time { font-size: 12px; font-weight: 800; color: var(--muted); margin-bottom: 4px; }
     .hour-icon { width: 24px; height: 24px; display: block; margin: 0 auto 8px; }
     .hour-temp { font-size: 22px; font-weight: 800; letter-spacing: -0.05em; margin-bottom: 3px; }
     .hour-rain { font-size: 12px; color: var(--rain); font-weight: 800; }
     .outlook-scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 2px 2px 4px; cursor: grab; touch-action: pan-x; }
-    .outlook-chart-shell { min-width: 980px; height: 210px; position: relative; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015)); border: 1px solid var(--line); overflow: hidden; }
+    .outlook-chart-shell { min-width: 980px; height: 210px; position: relative; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.012)); border: 1px solid rgba(184,205,255,0.12); overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.03); }
     .outlook-chart { display: block; width: 100%; height: 100%; }
     .outlook-axis-label { position: absolute; left: 10px; font-size: 11px; color: rgba(220,232,255,0.72); font-weight: 700; letter-spacing: 0.02em; }
     .outlook-axis-label.right { left: auto; right: 10px; text-align: right; }
@@ -130,12 +211,10 @@
     .chart-hint { text-align: center; color: var(--muted); font-size: 12px; font-weight: 700; margin-top: 8px; }
     .outlook-readout { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); padding: 6px 10px; border-radius: 999px; background: rgba(7, 13, 24, 0.82); border: 1px solid rgba(184,205,255,0.18); box-shadow: var(--shadow-soft); font-size: 12px; color: var(--text); font-weight: 700; white-space: nowrap; pointer-events: none; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .recap-card { padding: 14px; }
+    .recap-card { padding: 14px; background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04)); }
     .recap-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.11em; font-weight: 800; color: var(--muted); margin-bottom: 4px; }
     .recap-value { font-size: 28px; letter-spacing: -0.05em; font-weight: 800; margin-bottom: 4px; }
     .recap-sub { font-size: 13px; color: var(--muted); font-weight: 600; }
-    .controls { display: grid; gap: 12px; padding: 14px; border-radius: var(--radius-xl); background: rgba(255,255,255,0.05); border: 1px solid var(--line); box-shadow: var(--shadow-soft); }
-    .input-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
     input { width: 100%; border: 1px solid var(--line-strong); outline: none; height: 42px; border-radius: 16px; padding: 0 14px; font: inherit; color: var(--text); background: rgba(255,255,255,0.06); }
     input::placeholder { color: #8ea2c2; }
     .helper { font-size: 12px; color: var(--muted); line-height: 1.45; font-weight: 600; }
@@ -144,12 +223,37 @@
     .status.ok { color: var(--success); }
     .hidden { display: none !important; }
     .onboarding-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(3, 7, 14, 0.62); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 40; }
-    .onboarding-card { width: min(100%, 360px); background: rgba(10, 18, 31, 0.94); border: 1px solid var(--line); border-radius: 26px; box-shadow: var(--shadow); padding: 18px; text-align: center; }
+    .onboarding-card { width: min(100%, 360px); background: linear-gradient(180deg, rgba(12, 22, 37, 0.98), rgba(9, 17, 30, 0.96)); border: 1px solid var(--line); border-radius: 26px; box-shadow: var(--shadow); padding: 18px; text-align: center; }
+    .onboarding-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+    .onboarding-heading { flex: 1; min-width: 0; }
     .onboarding-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
     .onboarding-copy { color: var(--muted); font-size: 13px; line-height: 1.45; font-weight: 600; margin-bottom: 14px; }
     .onboarding-actions { display: grid; gap: 10px; }
     .onboarding-input { text-align: center; }
     .onboarding-note { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 8px; min-height: 16px; }
+    .onboarding-close { width: 32px; min-width: 32px; height: 32px; padding: 0; border-radius: 999px; flex-shrink: 0; }
+    .recent-wrap { margin-top: 14px; text-align: left; }
+    .recent-title { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 800; margin-bottom: 8px; }
+    .recent-list { display: grid; gap: 8px; }
+    .recent-btn { width: 100%; justify-content: flex-start; min-height: 44px; height: auto; padding: 10px 12px; border-radius: 16px; white-space: normal; text-align: left; line-height: 1.25; }
+    .recent-btn strong { display: block; font-size: 13px; font-weight: 800; color: var(--text); }
+    .recent-btn span { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); font-weight: 700; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .stack > * {
+      animation: fadeUp 420ms ease both;
+    }
+    .stack > *:nth-child(2) { animation-delay: 40ms; }
+    .stack > *:nth-child(3) { animation-delay: 80ms; }
+    .stack > *:nth-child(4) { animation-delay: 120ms; }
+    .stack > *:nth-child(5) { animation-delay: 160ms; }
+    .stack > *:nth-child(6) { animation-delay: 200ms; }
+    @media (prefers-reduced-motion: reduce) {
+      .stack > * { animation: none; }
+      .icon-btn, .input-btn, .link-btn { transition: none; }
+    }
     @media (max-width: 390px) {
       .trend-row, .grid-2 { grid-template-columns: 1fr; }
       .toolbar { flex-wrap: wrap; justify-content: flex-end; }
@@ -165,14 +269,14 @@
         <div class="topline">
           <div class="place-wrap">
             <div class="eyebrow">Weather</div>
-            <div class="place" id="placeName">Loading…</div>
+            <div class="place" id="placeName">Loading&hellip;</div>
           </div>
           <div class="toolbar">
-            <button class="icon-btn" id="locateBtn" type="button" aria-label="Use my location">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg>Locate
-            </button>
-            <button class="icon-btn" id="toggleControls" type="button" aria-label="Change location">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>ZIP
+            <button class="icon-btn action-btn" id="locateBtn" type="button" aria-label="Open location picker">
+              <span class="action-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2"/></svg>
+              </span>
+              <span class="action-label">Location</span>
             </button>
           </div>
         </div>
@@ -180,7 +284,7 @@
           <div class="current-row">
             <div id="currentGlyph" class="weather-glyph"></div>
             <div class="current-tools">
-              <div class="current-temp" id="currentTemp">--°</div>
+              <div class="current-temp" id="currentTemp">--&deg;</div>
               <button class="icon-btn icon-only" id="refreshBtn" type="button" aria-label="Refresh weather">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
               </button>
@@ -188,8 +292,8 @@
           </div>
           <div class="condition" id="currentCondition">Fetching forecast</div>
           <div class="trend-row">
-            <div class="mini-stat"><div class="mini-label">High</div><div class="mini-value" id="highValue">--°</div><div class="mini-sub" id="highSub">Later</div></div>
-            <div class="mini-stat"><div class="mini-label">Low</div><div class="mini-value" id="lowValue">--°</div><div class="mini-sub" id="lowSub">Later</div></div>
+            <div class="mini-stat"><div class="mini-label">High</div><div class="mini-value" id="highValue">--&deg;</div><div class="mini-sub" id="highSub">Later</div></div>
+            <div class="mini-stat"><div class="mini-label">Low</div><div class="mini-value" id="lowValue">--&deg;</div><div class="mini-sub" id="lowSub">Later</div></div>
           </div>
           <div class="meta-line">
             <span id="rainLine">Rain --</span><span class="dot"></span>
@@ -198,21 +302,12 @@
         </div>
       </section>
 
-      <section class="controls hidden" id="controlsPanel">
-        <div class="status" id="statusLine"></div>
-        <div class="input-row">
-          <input id="zipInput" inputmode="numeric" pattern="[0-9]*" maxlength="5" placeholder="Enter ZIP code" />
-          <button class="input-btn" id="zipBtn" type="button">Save ZIP</button>
-        </div>
-        <div class="helper">The page stores only a rounded version of your last chosen coordinates in your browser, so it can reopen to your general area without saving your exact spot.</div>
-      </section>
-
       <section class="card section-card">
         <div class="section-head"><div class="section-title">Next 12 hours</div></div>
         <div class="hourly-strip" id="hourlyStrip"></div>
       </section>
 
-      <section class="card section-card">
+      <section class="card section-card outlook-card">
         <div class="section-head">
           <div><div class="section-title">10-day outlook</div><div class="section-note">Hourly temperature + precip chance</div></div>
           <div class="outlook-legend"><span class="legend-item"><span class="legend-line"></span>Temp</span><span class="legend-item"><span class="legend-bar"></span>Precip</span></div>
@@ -224,7 +319,12 @@
       <section class="card section-card">
         <div class="section-head">
           <div><div class="section-title">Radar</div><div class="section-note">Full screen rain radar</div></div>
-          <a class="link-btn" id="radarLink" href="radar.html" aria-label="Open radar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7a5 5 0 0 1 5 5"/><path d="M12 12l4 4"/></svg>Open Radar</a>
+          <a class="link-btn action-btn radar-btn" id="radarLink" href="radar.html" aria-label="Open radar">
+            <span class="action-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12l4 4"/><circle cx="12" cy="12" r="8"/><path d="M12 7a5 5 0 0 1 5 5"/></svg>
+            </span>
+            <span class="action-label">Open Radar</span>
+          </a>
         </div>
       </section>
 
@@ -242,13 +342,24 @@
 
   <div class="onboarding-overlay hidden" id="onboardingOverlay">
     <div class="onboarding-card">
-      <div class="onboarding-title">Set your weather location</div>
-      <div class="onboarding-copy">Choose your current location or enter a ZIP code to load weather, radar, and forecast details.</div>
+      <div class="onboarding-top">
+        <div class="onboarding-heading">
+          <div class="onboarding-title">Set your weather location</div>
+          <div class="onboarding-copy">Choose your current location or enter a ZIP code to load weather, radar, and forecast details.</div>
+        </div>
+        <button class="icon-btn onboarding-close hidden" id="closeOnboardingBtn" type="button" aria-label="Close location picker">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
       <div class="onboarding-actions">
         <button class="input-btn" id="startLocateBtn" type="button">Use My Location</button>
         <input class="onboarding-input" id="startZipInput" inputmode="numeric" pattern="[0-9]*" maxlength="5" placeholder="Enter ZIP code" />
       </div>
       <div class="onboarding-note" id="onboardingNote"></div>
+      <div class="recent-wrap hidden" id="recentWrap">
+        <div class="recent-title">Recent Locations</div>
+        <div class="recent-list" id="recentList"></div>
+      </div>
     </div>
   </div>
 
@@ -258,25 +369,57 @@
       placeName: $("placeName"), currentTemp: $("currentTemp"), currentGlyph: $("currentGlyph"), currentCondition: $("currentCondition"),
       highValue: $("highValue"), highSub: $("highSub"), lowValue: $("lowValue"), lowSub: $("lowSub"),
       rainLine: $("rainLine"), lightLine: $("lightLine"), hourlyStrip: $("hourlyStrip"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"),
-      rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"), statusLine: $("statusLine"), controlsPanel: $("controlsPanel"),
-      toggleControls: $("toggleControls"), locateBtn: $("locateBtn"), zipInput: $("zipInput"), zipBtn: $("zipBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink"),
-      onboardingOverlay: $("onboardingOverlay"), startLocateBtn: $("startLocateBtn"), startZipInput: $("startZipInput"), onboardingNote: $("onboardingNote")
+      rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"),
+      locateBtn: $("locateBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink"),
+      onboardingOverlay: $("onboardingOverlay"), startLocateBtn: $("startLocateBtn"), startZipInput: $("startZipInput"), onboardingNote: $("onboardingNote"),
+      closeOnboardingBtn: $("closeOnboardingBtn"), recentWrap: $("recentWrap"), recentList: $("recentList")
     };
     const STORAGE_KEY = "weather-location-v3";
+    const RECENT_STORAGE_KEY = "weather-recent-locations-v1";
     let activeLocation = null;
     let outlookInteraction = null;
 
-    function setStatus(message, type = "") { els.statusLine.textContent = message || ""; els.statusLine.className = "status" + (type ? ` ${type}` : ""); }
+    function hasSavedLocation() { const saved = loadSavedLocation(); return Boolean(saved?.lat && saved?.lon); }
+    function setStatus(message, type = "") {
+      if (els.onboardingOverlay && !els.onboardingOverlay.classList.contains("hidden")) {
+        els.onboardingNote.textContent = message || "";
+        if (type === "error") els.onboardingNote.style.color = "#ff8e8e";
+        else if (type === "ok") els.onboardingNote.style.color = "var(--success)";
+        else els.onboardingNote.style.color = "";
+      }
+    }
     function roundCoord(value) { return Math.round(value * 500) / 500; }
-    function saveLocation(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); activeLocation = data; updateRadarLink(data); hideOnboarding(); }
+    function loadRecentLocations() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(RECENT_STORAGE_KEY) || "[]");
+        return Array.isArray(parsed) ? parsed.filter((item) => item?.lat && item?.lon && item?.label) : [];
+      } catch {
+        return [];
+      }
+    }
+    function recentKey(location) {
+      return location.zip ? `zip:${location.zip}` : `${Number(location.lat).toFixed(3)},${Number(location.lon).toFixed(3)}`;
+    }
+    function saveRecentLocation(location) {
+      const recent = [location, ...loadRecentLocations().filter((item) => recentKey(item) !== recentKey(location))].slice(0, 5);
+      localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(recent));
+    }
+    function renderRecentLocations() {
+      const recent = loadRecentLocations();
+      els.closeOnboardingBtn.classList.toggle("hidden", !hasSavedLocation());
+      els.recentWrap.classList.toggle("hidden", recent.length === 0);
+      els.recentList.innerHTML = recent.map((item, index) => {
+        const detail = item.source === "zip" && item.zip ? `ZIP ${item.zip}` : (item.source === "geolocation" ? "Current location" : "Saved location");
+        return `<button class="input-btn recent-btn" type="button" data-recent-index="${index}"><strong>${item.label}</strong><span>${detail}</span></button>`;
+      }).join("");
+    }
+    function saveLocation(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); saveRecentLocation(data); activeLocation = data; updateRadarLink(data); hideOnboarding(); }
     function loadSavedLocation() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; } }
-    function showOnboarding(message = "") { if (!els.onboardingOverlay) return; els.onboardingOverlay.classList.remove("hidden"); els.onboardingNote.textContent = message; }
-    function hideOnboarding() { if (!els.onboardingOverlay) return; els.onboardingOverlay.classList.add("hidden"); els.onboardingNote.textContent = ""; }
-    function formatTemp(n) { return `${Math.round(n)}°`; }
+    function showOnboarding(message = "") { if (!els.onboardingOverlay) return; renderRecentLocations(); els.onboardingOverlay.classList.remove("hidden"); els.onboardingNote.textContent = message; }
+    function hideOnboarding() { if (!els.onboardingOverlay) return; els.onboardingOverlay.classList.add("hidden"); els.onboardingNote.textContent = ""; els.onboardingNote.style.color = ""; }
+    function formatTemp(n) { return `${Math.round(n)}\u00B0`; }
     function formatHour(dateStr) { return new Date(dateStr).toLocaleTimeString([], { hour: "numeric" }); }
     function formatShortTime(dateLike) { return new Date(dateLike).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
-    function tomorrowLabel(dateLike, now = new Date()) { const d = new Date(dateLike); const tomorrowStart = new Date(now); tomorrowStart.setHours(24,0,0,0); return d >= tomorrowStart ? "Tomorrow" : ""; }
-    function resetPanels() { els.hourlyStrip.scrollLeft = 0; const outlookScrollEl = document.querySelector('.outlook-scroll'); if (outlookScrollEl) outlookScrollEl.scrollLeft = 0; }
     function tomorrowLabel(dateLike, now = new Date()) { const d = new Date(dateLike); const tomorrowStart = new Date(now); tomorrowStart.setHours(24,0,0,0); return d >= tomorrowStart ? "Tomorrow" : ""; }
     function resetPanels() { els.hourlyStrip.scrollLeft = 0; const outlookScroll = document.querySelector('.outlook-scroll'); if (outlookScroll) outlookScroll.scrollLeft = 0; }
     function codeToLabel(code) {
@@ -340,7 +483,7 @@
     }
     function renderHourly(times, temps, probs, codes, now) {
       const items = times.map((time, i) => ({ time, date: new Date(time), temp: temps[i], prob: Number(probs[i]) || 0, code: Number(codes[i]) || 0 })).filter((x) => x.date >= now).slice(0, 12);
-      els.hourlyStrip.innerHTML = items.map((item) => { const isDay = item.date.getHours() >= 7 && item.date.getHours() <= 19; return `<div class="hour-card ${item.prob >= 40 ? 'is-wet' : ''}"><div class="hour-time">${formatHour(item.time)}</div><div class="hour-icon">${glyph(item.code, isDay, 24)}</div><div class="hour-temp">${Math.round(item.temp)}°</div><div class="hour-rain">${Math.round(item.prob)}%</div></div>`; }).join("");
+      els.hourlyStrip.innerHTML = items.map((item) => { const isDay = item.date.getHours() >= 7 && item.date.getHours() <= 19; return `<div class="hour-card ${item.prob >= 40 ? 'is-wet' : ''}"><div class="hour-time">${formatHour(item.time)}</div><div class="hour-icon">${glyph(item.code, isDay, 24)}</div><div class="hour-temp">${Math.round(item.temp)}\u00B0</div><div class="hour-rain">${Math.round(item.prob)}%</div></div>`; }).join("");
     }
     function renderOutlookChart(hourly, daily) {
       const now = new Date();
@@ -392,8 +535,8 @@
         }
       }
       for (let t = 0; t <= 3; t++) { const y = top + (plotH / 3) * t; svg.appendChild(el('line', { x1: left, y1: y, x2: width - right, y2: y, stroke: 'rgba(255,255,255,0.08)', 'stroke-width': 1 })); }
-      const leftTop = document.createElement('div'); leftTop.className = 'outlook-axis-label'; leftTop.style.top = `${top - 1}px`; leftTop.textContent = `${Math.round(maxTemp)}°`; shell.appendChild(leftTop);
-      const leftBottom = document.createElement('div'); leftBottom.className = 'outlook-axis-label'; leftBottom.style.top = `${top + plotH - 11}px`; leftBottom.textContent = `${Math.round(minTemp)}°`; shell.appendChild(leftBottom);
+      const leftTop = document.createElement('div'); leftTop.className = 'outlook-axis-label'; leftTop.style.top = `${top - 1}px`; leftTop.textContent = `${Math.round(maxTemp)}\u00B0`; shell.appendChild(leftTop);
+      const leftBottom = document.createElement('div'); leftBottom.className = 'outlook-axis-label'; leftBottom.style.top = `${top + plotH - 11}px`; leftBottom.textContent = `${Math.round(minTemp)}\u00B0`; shell.appendChild(leftBottom);
       const rightTop = document.createElement('div'); rightTop.className = 'outlook-axis-label right'; rightTop.style.top = `${top - 1}px`; rightTop.textContent = '100%'; shell.appendChild(rightTop);
       const rightBottom = document.createElement('div'); rightBottom.className = 'outlook-axis-label right'; rightBottom.style.top = `${top + plotH - 11}px`; rightBottom.textContent = '0%'; shell.appendChild(rightBottom);
       let tempFillPath = `M ${x(0)} ${top + plotH}`;
@@ -411,7 +554,7 @@
       const precipDot = el('circle', { cx: x(0), cy: yProb(probs[0]), r: 3.2, fill: '#5fa2ff', stroke: '#d7e7ff', 'stroke-width': 1.1 });
       svg.appendChild(tempDot); svg.appendChild(precipDot);
       const readout = document.createElement('div'); readout.className = 'outlook-readout'; shell.appendChild(readout);
-      const updateSelection = (idx) => { const safe = Math.max(0, Math.min(hours - 1, idx)); const xx = x(safe), yt = yTemp(temps[safe]), yp = yProb(probs[safe]); crosshair.setAttribute('x1', xx); crosshair.setAttribute('x2', xx); tempDot.setAttribute('cx', xx); tempDot.setAttribute('cy', yt); precipDot.setAttribute('cx', xx); precipDot.setAttribute('cy', yp); readout.textContent = `${times[safe].toLocaleString([], { weekday: 'short', hour: 'numeric' })} • ${Math.round(temps[safe])}° • ${Math.round(probs[safe])}%`; const minLeft = 74; const maxLeft = width - 74; const labelX = Math.max(minLeft, Math.min(maxLeft, xx)); readout.style.left = `${labelX}px`; readout.style.transform = 'translateX(-50%)'; };
+      const updateSelection = (idx) => { const safe = Math.max(0, Math.min(hours - 1, idx)); const xx = x(safe), yt = yTemp(temps[safe]), yp = yProb(probs[safe]); crosshair.setAttribute('x1', xx); crosshair.setAttribute('x2', xx); tempDot.setAttribute('cx', xx); tempDot.setAttribute('cy', yt); precipDot.setAttribute('cx', xx); precipDot.setAttribute('cy', yp); readout.textContent = `${times[safe].toLocaleString([], { weekday: 'short', hour: 'numeric' })} \u2022 ${Math.round(temps[safe])}\u00B0 \u2022 ${Math.round(probs[safe])}%`; const minLeft = 74; const maxLeft = width - 74; const labelX = Math.max(minLeft, Math.min(maxLeft, xx)); readout.style.left = `${labelX}px`; readout.style.transform = 'translateX(-50%)'; };
       updateSelection(0);
       outlookInteraction = { shell, svg, hours, width, left, right, updateSelection };
     }
@@ -459,32 +602,31 @@
     async function loadWeather(location, forceFresh = false) {
       try {
         if (!location?.lat || !location?.lon) { setStatus("Use your location or enter a ZIP to get started."); showOnboarding(); return; }
-        activeLocation = location; updateRadarLink(location); setStatus(forceFresh ? "Refreshing weather…" : "Updating weather…"); els.placeName.textContent = location.label || "Loading…";
+        activeLocation = location; updateRadarLink(location); setStatus(forceFresh ? "Refreshing weather\u2026" : "Updating weather\u2026"); els.placeName.textContent = location.label || "Loading\u2026";
         const [forecast, history] = await Promise.all([getForecast(location.lat, location.lon), getHistory(location.lat, location.lon)]); renderForecast(forecast, location.label || `Near ${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}`); renderHistory(history); setStatus(forceFresh ? "Refreshed" : "Updated", "ok");
       } catch (error) { console.error(error); setStatus("Could not load weather data.", "error"); els.currentCondition.textContent = "Weather unavailable"; }
     }
     async function refreshCurrentWeather() { const saved = activeLocation || loadSavedLocation(); if (!saved?.lat || !saved?.lon) { setStatus("No saved location yet.", "error"); showOnboarding(); return; } resetPanels(); await loadWeather(saved, true); }
     async function useBrowserLocation() {
       if (!navigator.geolocation) { setStatus("Location is not available in this browser.", "error"); return; }
-      setStatus("Getting your current location…"); showOnboarding("Getting your current location…");
+      setStatus("Getting your current location\u2026"); showOnboarding("Getting your current location\u2026");
       navigator.geolocation.getCurrentPosition(async (pos) => { const lat = roundCoord(pos.coords.latitude), lon = roundCoord(pos.coords.longitude), label = await getLocationNameFromCoords(lat, lon), saved = { lat, lon, label, source: "geolocation" }; saveLocation(saved); await loadWeather(saved); }, () => setStatus("Location permission was denied.", "error"), { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
     }
     async function useZip(zipOverride = null) {
-      const zip = (zipOverride ?? els.zipInput.value).trim();
+      const zip = (zipOverride ?? els.startZipInput.value).trim();
       if (!/^\d{5}$/.test(zip)) { setStatus("Please enter a valid 5-digit ZIP.", "error"); showOnboarding("Please enter a valid 5-digit ZIP."); return; }
       try {
-        setStatus("Looking up ZIP code…"); showOnboarding("Looking up ZIP code…");
+        setStatus("Looking up ZIP code\u2026"); showOnboarding("Looking up ZIP code\u2026");
         const result = await getLocationNameFromZip(zip); const saved = { lat: roundCoord(result.lat), lon: roundCoord(result.lon), label: result.label, source: "zip", zip };
-        els.zipInput.value = zip;
         saveLocation(saved); await loadWeather(saved);
       } catch (error) {
         console.error(error); setStatus("Could not find that ZIP code.", "error"); showOnboarding("Could not find that ZIP code.");
       }
     }
     function seedDemo() {
-      els.placeName.textContent = "Set a ZIP or use location"; els.currentTemp.textContent = "--°"; els.currentCondition.textContent = "Waiting for location"; els.highValue.textContent = "--°"; els.lowValue.textContent = "--°"; els.rainLine.textContent = "Rain --"; els.lightLine.innerHTML = `<span>First light --  Rise --</span><span>Last light --  Set --</span>`; els.hourlyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="hour-card"><div class="hour-time">--</div><div class="hour-icon">${glyph(1, false, 24)}</div><div class="hour-temp">--°</div><div class="hour-rain">--%</div></div>`).join(""); [els.rain24, els.rain3d, els.rain7d, els.freezeHours].forEach(el => el.textContent = "--"); updateRadarLink(loadSavedLocation());
+      els.placeName.textContent = "Set a ZIP or use location"; els.currentTemp.textContent = "--\u00B0"; els.currentCondition.textContent = "Waiting for location"; els.highValue.textContent = "--\u00B0"; els.lowValue.textContent = "--\u00B0"; els.rainLine.textContent = "Rain --"; els.lightLine.innerHTML = `<span>First light --  Rise --</span><span>Last light --  Set --</span>`; els.hourlyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="hour-card"><div class="hour-time">--</div><div class="hour-icon">${glyph(1, false, 24)}</div><div class="hour-temp">--\u00B0</div><div class="hour-rain">--%</div></div>`).join(""); [els.rain24, els.rain3d, els.rain7d, els.freezeHours].forEach(el => el.textContent = "--"); updateRadarLink(loadSavedLocation());
     }
-    els.toggleControls.addEventListener("click", () => els.controlsPanel.classList.toggle("hidden")); els.locateBtn.addEventListener("click", useBrowserLocation); els.zipBtn.addEventListener("click", useZip); els.refreshBtn.addEventListener("click", refreshCurrentWeather); els.zipInput.addEventListener("keydown", (e) => { if (e.key === "Enter") useZip(); }); els.startLocateBtn.addEventListener("click", useBrowserLocation); els.startZipInput.addEventListener("keydown", (e) => { if (e.key === "Enter") useZip(els.startZipInput.value); });
+    els.locateBtn.addEventListener("click", () => showOnboarding()); els.refreshBtn.addEventListener("click", refreshCurrentWeather); els.startLocateBtn.addEventListener("click", useBrowserLocation); els.startZipInput.addEventListener("keydown", (e) => { if (e.key === "Enter") useZip(els.startZipInput.value); }); els.closeOnboardingBtn.addEventListener("click", () => { if (hasSavedLocation()) hideOnboarding(); }); els.recentList.addEventListener("click", async (e) => { const btn = e.target.closest("[data-recent-index]"); if (!btn) return; const recent = loadRecentLocations(); const item = recent[Number(btn.dataset.recentIndex)]; if (!item) return; saveLocation(item); await loadWeather(item, true); });
     els.hourlyStrip.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { els.hourlyStrip.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
     let isDown = false, startX = 0, startScroll = 0; els.hourlyStrip.addEventListener("pointerdown", (e) => { isDown = true; startX = e.clientX; startScroll = els.hourlyStrip.scrollLeft; els.hourlyStrip.setPointerCapture(e.pointerId); }); els.hourlyStrip.addEventListener("pointermove", (e) => { if (!isDown) return; const dx = e.clientX - startX; els.hourlyStrip.scrollLeft = startScroll - dx; }); const stopDragging = () => { isDown = false; }; els.hourlyStrip.addEventListener("pointerup", stopDragging); els.hourlyStrip.addEventListener("pointercancel", stopDragging); els.hourlyStrip.addEventListener("lostpointercapture", stopDragging);
     const outlookScroll = document.querySelector('.outlook-scroll');
@@ -511,7 +653,7 @@
     async function init() {
       seedDemo();
       const saved = loadSavedLocation();
-      if (saved?.lat && saved?.lon) { activeLocation = saved; els.zipInput.value = saved.zip || ""; updateRadarLink(saved); hideOnboarding(); await loadWeather(saved); }
+      if (saved?.lat && saved?.lon) { activeLocation = saved; updateRadarLink(saved); hideOnboarding(); await loadWeather(saved); }
       else { setStatus("Use your location or enter a ZIP to get started."); showOnboarding(); }
     }
     init();
