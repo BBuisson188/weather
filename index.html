@@ -154,6 +154,21 @@
     .radar-btn {
       padding-right: 18px;
     }
+    .ocean-btn .action-badge {
+      background:
+        linear-gradient(180deg, rgba(118, 230, 214, 0.24), rgba(51, 102, 180, 0.16)),
+        radial-gradient(circle at 30% 30%, rgba(170, 244, 232, 0.30), rgba(66, 128, 184, 0.20));
+    }
+    .ocean-btn .action-badge::after {
+      content: "";
+      position: absolute;
+      width: 12px;
+      height: 6px;
+      border: 1.7px solid rgba(204, 255, 246, 0.88);
+      border-top: 0;
+      border-radius: 0 0 999px 999px;
+      transform: translateY(1px);
+    }
     .radar-btn .action-badge {
       background:
         radial-gradient(circle at center, rgba(126, 180, 255, 0.24) 0 22%, transparent 23% 34%, rgba(126, 180, 255, 0.16) 35% 39%, transparent 40% 52%, rgba(126, 180, 255, 0.12) 53% 57%, transparent 58%),
@@ -204,10 +219,14 @@
     .outlook-axis-label { position: absolute; left: 10px; font-size: 11px; color: rgba(220,232,255,0.72); font-weight: 700; letter-spacing: 0.02em; }
     .outlook-axis-label.right { left: auto; right: 10px; text-align: right; }
     .outlook-day-overlay { position: absolute; top: 50%; transform: translate(-50%, -50%); font-size: 13px; color: rgba(220,232,255,0.18); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; pointer-events: none; }
-    .outlook-legend { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; color: var(--muted); font-size: 12px; font-weight: 700; }
-    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .outlook-legend { display: grid; grid-template-columns: repeat(2, auto); gap: 7px 12px; align-items: center; justify-content: end; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; appearance: none; border: 0; padding: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+    .legend-item[aria-pressed="false"] { color: rgba(159,177,207,0.52); }
+    .legend-item[aria-pressed="false"] .legend-line, .legend-item[aria-pressed="false"] .legend-bar { border-top-color: rgba(159,177,207,0.46); box-shadow: none; }
     .legend-line { width: 18px; height: 0; border-top: 3px solid #ff5d5d; border-radius: 999px; box-shadow: 0 0 8px rgba(255,93,93,0.22); }
+    .legend-line.feels { border-top-color: #ffd166; box-shadow: 0 0 8px rgba(255,209,102,0.20); }
     .legend-bar { width: 18px; height: 0; border-top: 3px solid #5fa2ff; border-radius: 999px; box-shadow: 0 0 8px rgba(95,162,255,0.18); }
+    .legend-bar.humidity { border-top-color: #72e2ff; border-top-style: dotted; box-shadow: 0 0 8px rgba(114,226,255,0.16); }
     .chart-hint { text-align: center; color: var(--muted); font-size: 12px; font-weight: 700; margin-top: 8px; }
     .outlook-readout { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); padding: 6px 10px; border-radius: 999px; background: rgba(7, 13, 24, 0.82); border: 1px solid rgba(184,205,255,0.18); box-shadow: var(--shadow-soft); font-size: 12px; color: var(--text); font-weight: 700; white-space: nowrap; pointer-events: none; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -309,8 +328,8 @@
 
       <section class="card section-card outlook-card">
         <div class="section-head">
-          <div><div class="section-title">10-day outlook</div><div class="section-note">Hourly temperature + precip chance</div></div>
-          <div class="outlook-legend"><span class="legend-item"><span class="legend-line"></span>Temp</span><span class="legend-item"><span class="legend-bar"></span>Precip</span></div>
+          <div><div class="section-title">10-day outlook</div><div class="section-note">Temp + precip</div></div>
+          <div class="outlook-legend" id="outlookLegend"><button class="legend-item" type="button" data-series="temp" aria-pressed="true"><span class="legend-line"></span>Temp</button><button class="legend-item" type="button" data-series="feels" aria-pressed="true"><span class="legend-line feels"></span>Feels</button><button class="legend-item" type="button" data-series="precip" aria-pressed="true"><span class="legend-bar"></span>Precip</button><button class="legend-item" type="button" data-series="humidity" aria-pressed="true"><span class="legend-bar humidity"></span>Humidity</button></div>
         </div>
         <div class="outlook-scroll"><div class="outlook-chart-shell" id="outlookShell"><svg class="outlook-chart" id="outlookChart" viewBox="0 0 980 210" preserveAspectRatio="none"></svg></div></div>
         <div class="chart-hint">Swipe or drag sideways to move through the full outlook.</div>
@@ -324,6 +343,18 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12l4 4"/><circle cx="12" cy="12" r="8"/><path d="M12 7a5 5 0 0 1 5 5"/></svg>
             </span>
             <span class="action-label">Open Radar</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-head">
+          <div><div class="section-title">Ocean</div><div class="section-note">Beach water, surf + tides</div></div>
+          <a class="link-btn action-btn ocean-btn" href="ocean.html" aria-label="Open ocean">
+            <span class="action-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2"/><path d="M3 19c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2"/></svg>
+            </span>
+            <span class="action-label">Ocean</span>
           </a>
         </div>
       </section>
@@ -368,7 +399,7 @@
     const els = {
       placeName: $("placeName"), currentTemp: $("currentTemp"), currentGlyph: $("currentGlyph"), currentCondition: $("currentCondition"),
       highValue: $("highValue"), highSub: $("highSub"), lowValue: $("lowValue"), lowSub: $("lowSub"),
-      rainLine: $("rainLine"), lightLine: $("lightLine"), hourlyStrip: $("hourlyStrip"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"),
+      rainLine: $("rainLine"), lightLine: $("lightLine"), hourlyStrip: $("hourlyStrip"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"), outlookLegend: $("outlookLegend"),
       rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"),
       locateBtn: $("locateBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink"),
       onboardingOverlay: $("onboardingOverlay"), startLocateBtn: $("startLocateBtn"), startZipInput: $("startZipInput"), onboardingNote: $("onboardingNote"),
@@ -376,10 +407,30 @@
     };
     const STORAGE_KEY = "weather-location-v3";
     const RECENT_STORAGE_KEY = "weather-recent-locations-v1";
+    const OUTLOOK_SERIES_KEY = "weather-outlook-series-v1";
     let activeLocation = null;
     let outlookInteraction = null;
+    let latestOutlookData = null;
+    const outlookSeries = loadOutlookSeries();
 
     function hasSavedLocation() { const saved = loadSavedLocation(); return Boolean(saved?.lat && saved?.lon); }
+    function loadOutlookSeries() {
+      const defaults = { temp: true, feels: true, precip: true, humidity: true };
+      try {
+        const parsed = JSON.parse(localStorage.getItem(OUTLOOK_SERIES_KEY) || "null");
+        return { ...defaults, ...(parsed && typeof parsed === "object" ? parsed : {}) };
+      } catch {
+        return defaults;
+      }
+    }
+    function saveOutlookSeries() {
+      localStorage.setItem(OUTLOOK_SERIES_KEY, JSON.stringify(outlookSeries));
+    }
+    function syncOutlookLegend() {
+      els.outlookLegend.querySelectorAll("[data-series]").forEach((btn) => {
+        btn.setAttribute("aria-pressed", String(Boolean(outlookSeries[btn.dataset.series])));
+      });
+    }
     function setStatus(message, type = "") {
       if (els.onboardingOverlay && !els.onboardingOverlay.classList.contains("hidden")) {
         els.onboardingNote.textContent = message || "";
@@ -457,7 +508,7 @@
     }
     async function getForecast(lat, lon) {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "auto";
-      const params = new URLSearchParams({ latitude: lat, longitude: lon, timezone: tz, temperature_unit: "fahrenheit", precipitation_unit: "inch", wind_speed_unit: "mph", current: "temperature_2m,weather_code,is_day", hourly: "temperature_2m,precipitation_probability,precipitation,weather_code", daily: "sunrise,sunset,daylight_duration", forecast_days: "10" });
+      const params = new URLSearchParams({ latitude: lat, longitude: lon, timezone: tz, temperature_unit: "fahrenheit", precipitation_unit: "inch", wind_speed_unit: "mph", current: "temperature_2m,weather_code,is_day", hourly: "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,precipitation,weather_code", daily: "sunrise,sunset,daylight_duration", forecast_days: "10" });
       const res = await fetch(`https://api.open-meteo.com/v1/gfs?${params.toString()}`); if (!res.ok) throw new Error("Forecast request failed");
       return res.json();
     }
@@ -492,7 +543,9 @@
       const hours = Math.min(hourly.time.length - safeStart, 24 * 10);
       const times = hourly.time.slice(safeStart, safeStart + hours).map((t) => new Date(t));
       const temps = hourly.temperature_2m.slice(safeStart, safeStart + hours).map(Number);
+      const feels = (hourly.apparent_temperature || hourly.temperature_2m).slice(safeStart, safeStart + hours).map(Number);
       const probs = hourly.precipitation_probability.slice(safeStart, safeStart + hours).map((v) => Number(v) || 0);
+      const humidities = (hourly.relative_humidity_2m || Array.from({ length: hourly.time.length }, () => 0)).slice(safeStart, safeStart + hours).map((v) => Number(v) || 0);
       const shell = els.outlookShell;
       const svg = els.outlookChart;
       if (!shell || !svg || !hours) return;
@@ -501,7 +554,11 @@
       shell.style.minWidth = `${width}px`;
       svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
       const plotW = width - left - right, plotH = height - top - bottom, ns = 'http://www.w3.org/2000/svg';
-      const minTemp = Math.min(...temps), maxTemp = Math.max(...temps);
+      const tempScaleValues = [];
+      if (outlookSeries.temp) tempScaleValues.push(...temps);
+      if (outlookSeries.feels) tempScaleValues.push(...feels);
+      if (!tempScaleValues.length) tempScaleValues.push(...temps, ...feels);
+      const minTemp = Math.min(...tempScaleValues), maxTemp = Math.max(...tempScaleValues);
       shell.querySelectorAll('.outlook-axis-label,.outlook-day-overlay,.outlook-readout').forEach((el) => el.remove());
       while (svg.firstChild) svg.removeChild(svg.firstChild);
       const el = (name, attrs = {}) => { const node = document.createElementNS(ns, name); Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, String(v))); return node; };
@@ -541,20 +598,54 @@
       const rightBottom = document.createElement('div'); rightBottom.className = 'outlook-axis-label right'; rightBottom.style.top = `${top + plotH - 11}px`; rightBottom.textContent = '0%'; shell.appendChild(rightBottom);
       let tempFillPath = `M ${x(0)} ${top + plotH}`;
       let tempLinePath = `M ${x(0)} ${yTemp(temps[0])}`;
+      let feelsLinePath = `M ${x(0)} ${yTemp(feels[0])}`;
       let precipLinePath = `M ${x(0)} ${yProb(probs[0])}`;
-      for (let i = 0; i < hours; i++) { const xi = x(i), yt = yTemp(temps[i]), yp = yProb(probs[i]); tempLinePath += ` L ${xi} ${yt}`; precipLinePath += ` L ${xi} ${yp}`; tempFillPath += ` L ${xi} ${yt}`; }
+      let humidityLinePath = `M ${x(0)} ${yProb(humidities[0])}`;
+      for (let i = 0; i < hours; i++) { const xi = x(i), yt = yTemp(temps[i]), yf = yTemp(feels[i]), yp = yProb(probs[i]), yh = yProb(humidities[i]); tempLinePath += ` L ${xi} ${yt}`; feelsLinePath += ` L ${xi} ${yf}`; precipLinePath += ` L ${xi} ${yp}`; humidityLinePath += ` L ${xi} ${yh}`; tempFillPath += ` L ${xi} ${yt}`; }
       tempFillPath += ` L ${x(hours - 1)} ${top + plotH} Z`;
-      svg.appendChild(el('path', { d: tempFillPath, fill: 'url(#tempFill)' }));
-      svg.appendChild(el('path', { d: precipLinePath, fill: 'none', stroke: 'rgba(95,162,255,0.22)', 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
-      svg.appendChild(el('path', { d: precipLinePath, fill: 'none', stroke: '#5fa2ff', 'stroke-width': 2.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
-      svg.appendChild(el('path', { d: tempLinePath, fill: 'none', stroke: 'rgba(255,93,93,0.24)', 'stroke-width': 8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
-      svg.appendChild(el('path', { d: tempLinePath, fill: 'none', stroke: '#ff5d5d', 'stroke-width': 3.1, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+      if (outlookSeries.temp) svg.appendChild(el('path', { d: tempFillPath, fill: 'url(#tempFill)' }));
+      if (outlookSeries.precip) {
+        svg.appendChild(el('path', { d: precipLinePath, fill: 'none', stroke: 'rgba(95,162,255,0.22)', 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+        svg.appendChild(el('path', { d: precipLinePath, fill: 'none', stroke: '#5fa2ff', 'stroke-width': 2.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+      }
+      if (outlookSeries.humidity) {
+        svg.appendChild(el('path', { d: humidityLinePath, fill: 'none', stroke: 'rgba(114,226,255,0.18)', 'stroke-width': 6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+        svg.appendChild(el('path', { d: humidityLinePath, fill: 'none', stroke: '#72e2ff', 'stroke-width': 2.1, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-dasharray': '1 7' }));
+      }
+      if (outlookSeries.feels) {
+        svg.appendChild(el('path', { d: feelsLinePath, fill: 'none', stroke: 'rgba(255,209,102,0.18)', 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+        svg.appendChild(el('path', { d: feelsLinePath, fill: 'none', stroke: '#ffd166', 'stroke-width': 2.3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-dasharray': '5 6' }));
+      }
+      if (outlookSeries.temp) {
+        svg.appendChild(el('path', { d: tempLinePath, fill: 'none', stroke: 'rgba(255,93,93,0.24)', 'stroke-width': 8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+        svg.appendChild(el('path', { d: tempLinePath, fill: 'none', stroke: '#ff5d5d', 'stroke-width': 3.1, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+      }
       const crosshair = el('line', { x1: x(0), y1: top, x2: x(0), y2: top + plotH, stroke: 'rgba(255,255,255,0.55)', 'stroke-width': 1.2, 'stroke-dasharray': '4 4' }); svg.appendChild(crosshair);
       const tempDot = el('circle', { cx: x(0), cy: yTemp(temps[0]), r: 3.4, fill: '#ff5d5d', stroke: '#ffd4d4', 'stroke-width': 1.2 });
+      const feelsDot = el('circle', { cx: x(0), cy: yTemp(feels[0]), r: 3.1, fill: '#ffd166', stroke: '#fff0bd', 'stroke-width': 1.1 });
       const precipDot = el('circle', { cx: x(0), cy: yProb(probs[0]), r: 3.2, fill: '#5fa2ff', stroke: '#d7e7ff', 'stroke-width': 1.1 });
-      svg.appendChild(tempDot); svg.appendChild(precipDot);
+      const humidityDot = el('circle', { cx: x(0), cy: yProb(humidities[0]), r: 3, fill: '#72e2ff', stroke: '#d9f8ff', 'stroke-width': 1.1 });
+      if (outlookSeries.temp) svg.appendChild(tempDot);
+      if (outlookSeries.feels) svg.appendChild(feelsDot);
+      if (outlookSeries.precip) svg.appendChild(precipDot);
+      if (outlookSeries.humidity) svg.appendChild(humidityDot);
       const readout = document.createElement('div'); readout.className = 'outlook-readout'; shell.appendChild(readout);
-      const updateSelection = (idx) => { const safe = Math.max(0, Math.min(hours - 1, idx)); const xx = x(safe), yt = yTemp(temps[safe]), yp = yProb(probs[safe]); crosshair.setAttribute('x1', xx); crosshair.setAttribute('x2', xx); tempDot.setAttribute('cx', xx); tempDot.setAttribute('cy', yt); precipDot.setAttribute('cx', xx); precipDot.setAttribute('cy', yp); readout.textContent = `${times[safe].toLocaleString([], { weekday: 'short', hour: 'numeric' })} \u2022 ${Math.round(temps[safe])}\u00B0 \u2022 ${Math.round(probs[safe])}%`; const minLeft = 74; const maxLeft = width - 74; const labelX = Math.max(minLeft, Math.min(maxLeft, xx)); readout.style.left = `${labelX}px`; readout.style.transform = 'translateX(-50%)'; };
+      const updateSelection = (idx) => {
+        const safe = Math.max(0, Math.min(hours - 1, idx)), xx = x(safe), yt = yTemp(temps[safe]), yf = yTemp(feels[safe]), yp = yProb(probs[safe]), yh = yProb(humidities[safe]);
+        crosshair.setAttribute('x1', xx); crosshair.setAttribute('x2', xx);
+        if (outlookSeries.temp) { tempDot.setAttribute('cx', xx); tempDot.setAttribute('cy', yt); }
+        if (outlookSeries.feels) { feelsDot.setAttribute('cx', xx); feelsDot.setAttribute('cy', yf); }
+        if (outlookSeries.precip) { precipDot.setAttribute('cx', xx); precipDot.setAttribute('cy', yp); }
+        if (outlookSeries.humidity) { humidityDot.setAttribute('cx', xx); humidityDot.setAttribute('cy', yh); }
+        const parts = [times[safe].toLocaleString([], { weekday: 'short', hour: 'numeric' })];
+        if (outlookSeries.temp) parts.push(`${Math.round(temps[safe])}\u00B0`);
+        if (outlookSeries.feels) parts.push(`Feels ${Math.round(feels[safe])}\u00B0`);
+        if (outlookSeries.precip) parts.push(`Rain ${Math.round(probs[safe])}%`);
+        if (outlookSeries.humidity) parts.push(`Humidity ${Math.round(humidities[safe])}%`);
+        readout.textContent = parts.join(' \u2022 ');
+        const minLeft = 136, maxLeft = width - 136, labelX = Math.max(minLeft, Math.min(maxLeft, xx));
+        readout.style.left = `${labelX}px`; readout.style.transform = 'translateX(-50%)';
+      };
       updateSelection(0);
       outlookInteraction = { shell, svg, hours, width, left, right, updateSelection };
     }
@@ -590,6 +681,7 @@
       const sunrise = daily.sunrise?.[0], sunset = daily.sunset?.[0], firstLight = sunrise ? new Date(new Date(sunrise).getTime() - 30 * 60 * 1000) : null, lastLight = sunset ? new Date(new Date(sunset).getTime() + 30 * 60 * 1000) : null;
       els.lightLine.innerHTML = `<span>First light ${firstLight ? formatShortTime(firstLight) : '--'}&nbsp;&nbsp;Rise ${sunrise ? formatShortTime(sunrise) : '--'}</span><span>Last light ${lastLight ? formatShortTime(lastLight) : '--'}&nbsp;&nbsp;Set ${sunset ? formatShortTime(sunset) : '--'}</span>`;
       renderHourly(hourly.time, hourly.temperature_2m, hourly.precipitation_probability, hourly.weather_code, now);
+      latestOutlookData = { hourly, daily };
       renderOutlookChart(hourly, daily);
     }
     function renderHistory(data) {
@@ -627,6 +719,17 @@
       els.placeName.textContent = "Set a ZIP or use location"; els.currentTemp.textContent = "--\u00B0"; els.currentCondition.textContent = "Waiting for location"; els.highValue.textContent = "--\u00B0"; els.lowValue.textContent = "--\u00B0"; els.rainLine.textContent = "Rain --"; els.lightLine.innerHTML = `<span>First light --  Rise --</span><span>Last light --  Set --</span>`; els.hourlyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="hour-card"><div class="hour-time">--</div><div class="hour-icon">${glyph(1, false, 24)}</div><div class="hour-temp">--\u00B0</div><div class="hour-rain">--%</div></div>`).join(""); [els.rain24, els.rain3d, els.rain7d, els.freezeHours].forEach(el => el.textContent = "--"); updateRadarLink(loadSavedLocation());
     }
     els.locateBtn.addEventListener("click", () => showOnboarding()); els.refreshBtn.addEventListener("click", refreshCurrentWeather); els.startLocateBtn.addEventListener("click", useBrowserLocation); els.startZipInput.addEventListener("keydown", (e) => { if (e.key === "Enter") useZip(els.startZipInput.value); }); els.closeOnboardingBtn.addEventListener("click", () => { if (hasSavedLocation()) hideOnboarding(); }); els.recentList.addEventListener("click", async (e) => { const btn = e.target.closest("[data-recent-index]"); if (!btn) return; const recent = loadRecentLocations(); const item = recent[Number(btn.dataset.recentIndex)]; if (!item) return; saveLocation(item); await loadWeather(item, true); });
+    els.outlookLegend.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-series]");
+      if (!btn) return;
+      const key = btn.dataset.series;
+      const activeCount = Object.values(outlookSeries).filter(Boolean).length;
+      if (outlookSeries[key] && activeCount <= 1) return;
+      outlookSeries[key] = !outlookSeries[key];
+      saveOutlookSeries();
+      syncOutlookLegend();
+      if (latestOutlookData) renderOutlookChart(latestOutlookData.hourly, latestOutlookData.daily);
+    });
     els.hourlyStrip.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { els.hourlyStrip.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
     let isDown = false, startX = 0, startScroll = 0; els.hourlyStrip.addEventListener("pointerdown", (e) => { isDown = true; startX = e.clientX; startScroll = els.hourlyStrip.scrollLeft; els.hourlyStrip.setPointerCapture(e.pointerId); }); els.hourlyStrip.addEventListener("pointermove", (e) => { if (!isDown) return; const dx = e.clientX - startX; els.hourlyStrip.scrollLeft = startScroll - dx; }); const stopDragging = () => { isDown = false; }; els.hourlyStrip.addEventListener("pointerup", stopDragging); els.hourlyStrip.addEventListener("pointercancel", stopDragging); els.hourlyStrip.addEventListener("lostpointercapture", stopDragging);
     const outlookScroll = document.querySelector('.outlook-scroll');
@@ -652,6 +755,7 @@
     }
     async function init() {
       seedDemo();
+      syncOutlookLegend();
       const saved = loadSavedLocation();
       if (saved?.lat && saved?.lon) { activeLocation = saved; updateRadarLink(saved); hideOnboarding(); await loadWeather(saved); }
       else { setStatus("Use your location or enter a ZIP to get started."); showOnboarding(); }

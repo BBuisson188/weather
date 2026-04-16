@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Ocean</title>
+  <meta name="theme-color" content="#06131f" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="manifest" href="site.webmanifest" />
+  <style>
+    :root {
+      --bg1: #041018;
+      --bg2: #092033;
+      --bg3: #103148;
+      --card: rgba(10, 24, 38, 0.84);
+      --text: #eefbff;
+      --muted: #a5bdca;
+      --line: rgba(181, 226, 240, 0.17);
+      --line-strong: rgba(181, 226, 240, 0.30);
+      --shadow: 0 26px 60px rgba(0, 0, 0, 0.42);
+      --shadow-soft: 0 14px 32px rgba(0, 0, 0, 0.30);
+      --success: #8ff0c1;
+      --tide: #67e8dc;
+      --surf: #c7f46a;
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --maxw: 460px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 8%, rgba(72, 214, 218, 0.20), transparent 24%),
+        radial-gradient(circle at 86% 2%, rgba(125, 184, 255, 0.16), transparent 26%),
+        linear-gradient(180deg, var(--bg1), var(--bg2) 44%, var(--bg3));
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 14% 16%, rgba(255,255,255,0.72) 0 1px, transparent 2px),
+        radial-gradient(circle at 74% 12%, rgba(255,255,255,0.70) 0 1px, transparent 2px),
+        radial-gradient(circle at 88% 24%, rgba(255,255,255,0.52) 0 1px, transparent 2px);
+      opacity: 0.55;
+    }
+    .app { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: max(18px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom)); }
+    .stack { display: flex; flex-direction: column; gap: 14px; }
+    .card {
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius-xl);
+      position: relative;
+      overflow: hidden;
+    }
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0));
+      opacity: 0.7;
+    }
+    .hero { padding: 18px; }
+    .topline, .section-head, .beach-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+    .place-wrap, .beach-copy { min-width: 0; }
+    .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .place { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+    .toolbar { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-btn, .input-btn, .link-btn {
+      appearance: none;
+      border: 1px solid var(--line-strong);
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+      box-shadow: var(--shadow-soft);
+      border-radius: 999px;
+      font: inherit;
+      height: 38px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+    .icon-btn:hover, .input-btn:hover, .link-btn:hover { background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06)); border-color: rgba(184,235,245,0.40); box-shadow: 0 0 0 1px rgba(184,235,245,0.08), var(--shadow-soft); }
+    .icon-btn:active, .input-btn:active, .link-btn:active { transform: scale(0.98); }
+    .icon-btn svg, .link-btn svg { width: 16px; height: 16px; opacity: 0.9; }
+    .icon-btn.icon-only { width: 38px; min-width: 38px; padding: 0; gap: 0; }
+    .action-btn {
+      height: 42px;
+      padding: 0 16px 0 10px;
+      gap: 10px;
+      border-color: rgba(174, 230, 238, 0.32);
+      background: linear-gradient(180deg, rgba(66, 188, 199, 0.22), rgba(21, 67, 98, 0.36));
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255,255,255,0.06);
+      position: relative;
+      overflow: hidden;
+    }
+    .action-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: radial-gradient(circle at 30% 30%, rgba(150, 246, 229, 0.30), rgba(58, 114, 170, 0.20));
+      border: 1px solid rgba(184,235,245,0.26);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+      position: relative;
+      z-index: 1;
+    }
+    .action-label { position: relative; z-index: 1; font-weight: 800; }
+    .section-card { padding: 14px; border-radius: var(--radius-xl); }
+    .section-title { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; }
+    .section-note { font-size: 12px; color: var(--muted); font-weight: 700; opacity: 0.9; }
+    .beach-list { display: grid; gap: 14px; }
+    .beach-card { padding: 14px; }
+    .beach-name { font-size: 18px; font-weight: 850; letter-spacing: -0.03em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .beach-source { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .beach-summary { position: relative; z-index: 1; margin-top: 12px; font-size: 13px; color: #d9faff; font-weight: 800; line-height: 1.35; }
+    .beach-top { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+    .beach-top * { user-select: none; -webkit-user-select: none; }
+    .beach-top:active { cursor: grabbing; }
+    .beach-card.dragging { opacity: 0.96; transform: scale(1.018); z-index: 5; border-color: rgba(184,235,245,0.42); box-shadow: 0 30px 70px rgba(0,0,0,0.52), 0 0 0 1px rgba(184,235,245,0.14); }
+    body.reordering { user-select: none; -webkit-user-select: none; cursor: grabbing; }
+    .beach-status-row { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
+    .beach-status { font-size: 12px; color: var(--muted); font-weight: 700; min-height: 16px; min-width: 0; }
+    .collapse-btn { width: 30px; min-width: 30px; height: 30px; padding: 0; box-shadow: none; }
+    .collapse-btn svg { transition: transform 160ms ease; }
+    .beach-card.collapsed .collapse-btn svg { transform: rotate(180deg); }
+    .delete-btn { width: 34px; min-width: 34px; height: 34px; padding: 0; color: #ffc1c1; }
+    .chart-wrap.hidden-chart { display: none; }
+    .chart-scroll { position: relative; z-index: 1; margin-top: 12px; overflow: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .chart-scroll::-webkit-scrollbar { display: none; }
+    .ocean-chart-shell {
+      width: 100%;
+      min-width: 0;
+      height: 188px;
+      position: relative;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.012));
+      border: 1px solid rgba(184,235,245,0.13);
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .ocean-chart { display: block; width: 100%; height: 100%; }
+    .axis-label { position: absolute; left: 10px; font-size: 11px; color: rgba(226,250,255,0.76); font-weight: 800; }
+    .axis-label.right { left: auto; right: 10px; text-align: right; color: rgba(235,255,178,0.76); }
+    .day-overlay { position: absolute; top: 50%; transform: translate(-50%, -50%); font-size: 13px; color: rgba(226,250,255,0.16); font-weight: 850; letter-spacing: 0.12em; text-transform: uppercase; pointer-events: none; }
+    .chart-readout { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); padding: 6px 10px; border-radius: 999px; background: rgba(4, 14, 23, 0.84); border: 1px solid rgba(184,235,245,0.18); box-shadow: var(--shadow-soft); font-size: 12px; color: var(--text); font-weight: 800; white-space: nowrap; pointer-events: none; }
+    .legend { display: flex; gap: 12px; align-items: center; color: var(--muted); font-size: 12px; font-weight: 800; position: relative; z-index: 1; margin-top: 8px; padding: 0 3px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-line { width: 18px; height: 0; border-top: 3px solid var(--tide); border-radius: 999px; box-shadow: 0 0 8px rgba(103,232,220,0.18); }
+    .legend-line.surf { border-top-color: var(--surf); box-shadow: 0 0 8px rgba(199,244,106,0.18); }
+    .empty-state { color: var(--muted); font-size: 13px; font-weight: 700; line-height: 1.45; padding: 2px 3px 0; position: relative; z-index: 1; }
+    input {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      outline: none;
+      height: 42px;
+      border-radius: 16px;
+      padding: 0 14px;
+      font: inherit;
+      color: var(--text);
+      background: rgba(255,255,255,0.06);
+    }
+    input::placeholder { color: #8badbc; }
+    .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(3, 9, 14, 0.64); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 40; }
+    .modal { width: min(100%, 390px); max-height: min(82vh, 720px); overflow-y: auto; background: linear-gradient(180deg, rgba(10, 27, 40, 0.98), rgba(7, 19, 31, 0.96)); border: 1px solid var(--line); border-radius: 26px; box-shadow: var(--shadow); padding: 18px; text-align: left; }
+    .modal-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .modal-title { font-size: 20px; font-weight: 850; letter-spacing: -0.02em; margin-bottom: 5px; }
+    .modal-copy { color: var(--muted); font-size: 13px; line-height: 1.45; font-weight: 650; }
+    .modal-close { width: 32px; min-width: 32px; height: 32px; padding: 0; }
+    .search-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .modal-actions { display: grid; gap: 10px; margin-top: 10px; }
+    .results { display: grid; gap: 8px; margin-top: 12px; }
+    .result-btn { width: 100%; justify-content: flex-start; height: auto; min-height: 44px; padding: 10px 12px; border-radius: 16px; white-space: normal; text-align: left; line-height: 1.25; }
+    .result-btn strong { display: block; font-size: 13px; color: var(--text); }
+    .result-btn span { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); font-weight: 750; }
+    .name-area { display: grid; gap: 8px; margin-top: 12px; }
+    .label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 850; }
+    .source-preview { font-size: 12px; color: var(--muted); font-weight: 750; line-height: 1.35; padding: 0 2px; }
+    .status { font-size: 12px; color: var(--muted); font-weight: 750; margin-top: 8px; min-height: 16px; }
+    .status.error { color: #ff9a9a; }
+    .status.ok { color: var(--success); }
+    .hidden { display: none !important; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .stack > * { animation: fadeUp 420ms ease both; }
+    .stack > *:nth-child(2) { animation-delay: 50ms; }
+    .stack > *:nth-child(3) { animation-delay: 100ms; }
+    @media (prefers-reduced-motion: reduce) {
+      .stack > * { animation: none; }
+      .icon-btn, .input-btn, .link-btn { transition: none; }
+    }
+    @media (max-width: 390px) {
+      .topline, .section-head { align-items: flex-start; }
+      .section-head { flex-direction: column; }
+      .toolbar { flex-wrap: wrap; justify-content: flex-end; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="stack">
+      <section class="card hero">
+        <div class="topline">
+          <div class="place-wrap">
+            <div class="eyebrow">Ocean</div>
+            <div class="place">Beach outlook</div>
+          </div>
+          <div class="toolbar">
+            <a class="link-btn icon-only" href="index.html" aria-label="Back to weather">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+            </a>
+            <button class="icon-btn action-btn" id="addBeachBtn" type="button" aria-label="Add beach">
+              <span class="action-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              </span>
+              <span class="action-label">Beach</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Saved beaches</div>
+            <div class="section-note">Water temp, surf + 3-day tide chart</div>
+          </div>
+        </div>
+        <div class="beach-list" id="beachList"></div>
+      </section>
+    </div>
+  </main>
+
+  <div class="overlay hidden" id="beachOverlay">
+    <div class="modal">
+      <div class="modal-top">
+        <div>
+          <div class="modal-title">Add a beach</div>
+          <div class="modal-copy">Search a beach town, resort, ZIP, or nearby place. Pick the closest match, then give it your own short name.</div>
+        </div>
+        <button class="icon-btn modal-close" id="closeBeachBtn" type="button" aria-label="Close add beach">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="search-row">
+        <input id="beachSearchInput" placeholder="Search beach or place" />
+        <button class="input-btn" id="searchBeachBtn" type="button">Search</button>
+      </div>
+      <div class="modal-actions">
+        <button class="input-btn" id="useCurrentBeachBtn" type="button">Use Current Location</button>
+      </div>
+      <div class="results" id="beachResults"></div>
+      <div class="name-area hidden" id="nameArea">
+        <div class="label">Display name</div>
+        <input id="beachNameInput" maxlength="36" placeholder="My beach" />
+        <div class="source-preview" id="sourcePreview"></div>
+        <button class="input-btn" id="saveBeachBtn" type="button">Save Beach</button>
+      </div>
+      <div class="status" id="modalStatus"></div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      addBeachBtn: $("addBeachBtn"), beachList: $("beachList"), beachOverlay: $("beachOverlay"),
+      closeBeachBtn: $("closeBeachBtn"), beachSearchInput: $("beachSearchInput"), searchBeachBtn: $("searchBeachBtn"),
+      useCurrentBeachBtn: $("useCurrentBeachBtn"), beachResults: $("beachResults"), nameArea: $("nameArea"),
+      beachNameInput: $("beachNameInput"), sourcePreview: $("sourcePreview"), saveBeachBtn: $("saveBeachBtn"), modalStatus: $("modalStatus")
+    };
+    const BEACH_STORAGE_KEY = "weather-ocean-locations-v1";
+    let selectedBeach = null;
+
+    function loadBeaches() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(BEACH_STORAGE_KEY) || "[]");
+        return Array.isArray(parsed) ? parsed.filter((item) => item && Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lon))) : [];
+      } catch {
+        return [];
+      }
+    }
+    function saveBeaches(beaches) {
+      localStorage.setItem(BEACH_STORAGE_KEY, JSON.stringify(beaches.slice(0, 12)));
+    }
+    function beachKey(beach) {
+      return `${Number(beach.lat).toFixed(4)},${Number(beach.lon).toFixed(4)}`;
+    }
+    function addBeach(beach) {
+      const next = [beach, ...loadBeaches().filter((item) => beachKey(item) !== beachKey(beach))];
+      saveBeaches(next);
+    }
+    function setModalStatus(message, type = "") {
+      els.modalStatus.textContent = message || "";
+      els.modalStatus.className = `status ${type}`.trim();
+    }
+    function showOverlay(message = "") {
+      selectedBeach = null;
+      els.beachSearchInput.value = "";
+      els.beachResults.innerHTML = "";
+      els.nameArea.classList.add("hidden");
+      els.beachNameInput.value = "";
+      els.sourcePreview.textContent = "";
+      setModalStatus(message);
+      els.beachOverlay.classList.remove("hidden");
+      setTimeout(() => els.beachSearchInput.focus(), 40);
+    }
+    function hideOverlay() {
+      els.beachOverlay.classList.add("hidden");
+    }
+    function placeLabel(item) {
+      return [item.admin1, item.country].filter(Boolean).join(", ");
+    }
+    function simplifyPlaceName(value) {
+      return String(value || "Nearby place").replace(/\s+/g, " ").trim();
+    }
+    function simplifyRoadName(value) {
+      return simplifyPlaceName(value).replace(/\b(County Road|County Route|State Road|State Route|Florida State Road|Road|Rd\.?|Highway|Hwy\.?|Route|Rte\.?)\b/gi, "").replace(/\s+/g, " ").trim();
+    }
+    function roundCoord(value) {
+      return Math.round(Number(value) * 10000) / 10000;
+    }
+    function formatTemp(value) {
+      const n = Number(value);
+      return Number.isFinite(n) ? `${Math.round(n)}\u00B0` : "--\u00B0";
+    }
+    function formatFeet(value, digits = 1) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return "--";
+      if (Math.abs(n) >= 10) return `${Math.round(n)} ft`;
+      return `${n.toFixed(digits)} ft`;
+    }
+    function parseApiTime(value, utcOffsetSeconds = 0) {
+      if (!value) return new Date(NaN);
+      const [datePart, timePart = "00:00"] = String(value).split("T");
+      const [year, month, day] = datePart.split("-").map(Number);
+      const [hour = 0, minute = 0, second = 0] = timePart.split(":").map(Number);
+      if (![year, month, day].every(Number.isFinite)) return new Date(value);
+      return new Date(Date.UTC(year, month - 1, day, hour, minute, second) - Number(utcOffsetSeconds || 0) * 1000);
+    }
+    function localParts(date, timezone) {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      }).formatToParts(date).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+      }, {});
+      return {
+        year: Number(parts.year),
+        month: Number(parts.month),
+        day: Number(parts.day),
+        hour: Number(parts.hour),
+        minute: Number(parts.minute),
+        second: Number(parts.second)
+      };
+    }
+    function localMidnightInstant(date, timezone, utcOffsetSeconds = 0, addDays = 0) {
+      const parts = localParts(date, timezone);
+      return new Date(Date.UTC(parts.year, parts.month - 1, parts.day + addDays, 0, 0, 0) - Number(utcOffsetSeconds || 0) * 1000);
+    }
+    function formatHour(value, timezone) {
+      return new Date(value).toLocaleTimeString([], { hour: "numeric", timeZone: timezone });
+    }
+    function surfLabel(height, period) {
+      const h = Number(height);
+      const p = Number(period);
+      if (!Number.isFinite(h)) return "surf unavailable";
+      if (h < 0.75) return "flat";
+      if (h < 2) {
+        if (!Number.isFinite(p) || p < 8) return "small choppy";
+        if (p < 12) return "small playful";
+        return "small clean";
+      }
+      if (h < 4) {
+        if (!Number.isFinite(p) || p < 8) return "choppy surf";
+        if (p < 12) return "fun surf";
+        return "strong sets";
+      }
+      if (!Number.isFinite(p) || p < 8) return "rough";
+      if (p < 12) return "bigger surf";
+      return "powerful surf";
+    }
+    function cleanSeries(values) {
+      return values.map((value) => {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : null;
+      });
+    }
+    function paddedRange(values) {
+      const valid = values.filter((value) => Number.isFinite(value));
+      if (!valid.length) return { min: 0, max: 1 };
+      let min = Math.min(...valid);
+      let max = Math.max(...valid);
+      if (min === max) {
+        const pad = Math.max(0.5, Math.abs(min) * 0.15);
+        min -= pad;
+        max += pad;
+      }
+      return { min, max };
+    }
+    function tideDirection(tides, idx) {
+      const now = Number(tides[idx]);
+      const next = Number(tides[Math.min(tides.length - 1, idx + 1)]);
+      if (!Number.isFinite(now) || !Number.isFinite(next)) return "Tide --";
+      if (Math.abs(next - now) < 0.03) return "Tide steady";
+      return next > now ? "Tide rising" : "Tide falling";
+    }
+    function nextTideTurn(times, tides, idx, kind, timezone) {
+      for (let i = Math.max(1, idx + 1); i < tides.length - 1; i++) {
+        const prev = tides[i - 1], cur = tides[i], next = tides[i + 1];
+        if (![prev, cur, next].every(Number.isFinite)) continue;
+        if (kind === "high" && cur >= prev && cur > next) return formatHour(times[i], timezone);
+        if (kind === "low" && cur <= prev && cur < next) return formatHour(times[i], timezone);
+      }
+      return "--";
+    }
+    async function getMarine(beach) {
+      const params = new URLSearchParams({
+        latitude: beach.lat,
+        longitude: beach.lon,
+        timezone: "auto",
+        forecast_days: "4",
+        length_unit: "imperial",
+        temperature_unit: "fahrenheit",
+        cell_selection: "sea",
+        hourly: "sea_surface_temperature,sea_level_height_msl,wave_height,wave_period"
+      });
+      const res = await fetch(`https://marine-api.open-meteo.com/v1/marine?${params.toString()}`);
+      if (!res.ok) throw new Error("Marine request failed");
+      return res.json();
+    }
+    async function getSunForecast(beach) {
+      const params = new URLSearchParams({
+        latitude: beach.lat,
+        longitude: beach.lon,
+        timezone: "auto",
+        forecast_days: "4",
+        daily: "sunrise,sunset"
+      });
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);
+      if (!res.ok) throw new Error("Sun request failed");
+      return res.json();
+    }
+    function normalizeSearchResult(item, source) {
+      if (source === "osm") {
+        const addr = item.address || {};
+        const name = item.name || addr.town || addr.city || addr.village || addr.hamlet || item.display_name?.split(",")[0] || "Nearby place";
+        const region = addr.state || addr.region || addr.county || "";
+        const country = addr.country || "";
+        const locality = addr.town || addr.city || addr.village || addr.hamlet || addr.county || "";
+        return {
+          id: `osm-${item.place_id}`,
+          name: simplifyPlaceName(name),
+          latitude: Number(item.lat),
+          longitude: Number(item.lon),
+          admin1: region,
+          country,
+          locality: simplifyPlaceName(locality),
+          source,
+          sourceLabel: [name, region, country].filter(Boolean).join(", ") || item.display_name
+        };
+      }
+      return {
+        id: `om-${item.id || `${item.latitude},${item.longitude}`}`,
+        name: simplifyPlaceName(item.name || "Nearby place"),
+        latitude: Number(item.latitude),
+        longitude: Number(item.longitude),
+        admin1: item.admin1 || "",
+        country: item.country || "",
+        locality: simplifyPlaceName(item.name || item.admin2 || item.admin1 || ""),
+        source,
+        sourceLabel: [item.name, item.admin1, item.country].filter(Boolean).join(", ")
+      };
+    }
+    async function searchOpenMeteoPlaces(query) {
+      const params = new URLSearchParams({ name: query, count: "8", language: "en", format: "json" });
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params.toString()}`);
+      if (!res.ok) throw new Error("Search request failed");
+      const data = await res.json();
+      return (data.results || []).map((item) => normalizeSearchResult(item, "open-meteo"));
+    }
+    async function searchOsmPlaces(query) {
+      const params = new URLSearchParams({ q: query, format: "jsonv2", addressdetails: "1", limit: "8" });
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, { headers: { "Accept": "application/json" } });
+      if (!res.ok) throw new Error("OSM search request failed");
+      const data = await res.json();
+      return data.map((item) => normalizeSearchResult(item, "osm"));
+    }
+    async function searchPlaces(query) {
+      const settled = await Promise.allSettled([searchOpenMeteoPlaces(query), searchOsmPlaces(query)]);
+      const combined = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+      const seen = new Set();
+      return combined.filter((item) => {
+        if (!Number.isFinite(item.latitude) || !Number.isFinite(item.longitude)) return false;
+        const lowerName = item.name.toLowerCase();
+        const roadFolded = simplifyRoadName(item.name).toLowerCase();
+        const keyName = roadFolded || lowerName;
+        const key = `${keyName}|${(item.locality || "").toLowerCase()}|${(item.admin1 || "").toLowerCase()}|${(item.country || "").toLowerCase()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).slice(0, 10);
+    }
+    function renderBeachData(card, beach, marine, sun) {
+      const hourly = marine.hourly || {};
+      const timezone = marine.timezone || sun.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const utcOffsetSeconds = Number(marine.utc_offset_seconds ?? sun.utc_offset_seconds ?? 0);
+      const times = (hourly.time || []).map((time) => parseApiTime(time, utcOffsetSeconds));
+      const now = new Date();
+      const foundIdx = times.findIndex((time) => time >= now);
+      const safeIdx = foundIdx >= 0 ? foundIdx : 0;
+      const water = Number(hourly.sea_surface_temperature?.[safeIdx]);
+      const wave = Number(hourly.wave_height?.[safeIdx]);
+      const period = Number(hourly.wave_period?.[safeIdx]);
+      const tides = cleanSeries(hourly.sea_level_height_msl || []);
+      const direction = tideDirection(tides, safeIdx);
+      const nextHigh = nextTideTurn(times, tides, safeIdx, "high", timezone);
+      const nextLow = nextTideTurn(times, tides, safeIdx, "low", timezone);
+      card.querySelector(".beach-summary").textContent = `Water ${formatTemp(water)} \u2022 Surf ${formatFeet(wave, 0)}, ${surfLabel(wave, period)} \u2022 ${direction}`;
+      card.querySelector(".beach-status").textContent = `Next high ${nextHigh} \u2022 Next low ${nextLow}`;
+      renderChart(card, hourly, sun.daily || {}, timezone, utcOffsetSeconds);
+    }
+    function beachCard(beach, index) {
+      const section = document.createElement("section");
+      section.className = `card beach-card ${beach.collapsed ? "collapsed" : ""}`.trim();
+      section.dataset.beachIndex = String(index);
+      section.innerHTML = `
+        <div class="beach-top" data-drag-handle="true">
+          <div class="beach-copy">
+            <div class="beach-name"></div>
+            <div class="beach-source"></div>
+          </div>
+          <button class="icon-btn delete-btn" type="button" aria-label="Remove beach" data-delete-index="${index}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="beach-summary">Loading ocean data...</div>
+        <div class="beach-status-row">
+          <div class="beach-status">Checking marine forecast...</div>
+          <button class="icon-btn collapse-btn" type="button" aria-label="Show or hide tide chart" data-toggle-index="${index}" aria-expanded="${beach.collapsed ? "false" : "true"}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg>
+          </button>
+        </div>
+        <div class="chart-wrap ${beach.collapsed ? "hidden-chart" : ""}">
+          <div class="chart-scroll">
+            <div class="ocean-chart-shell"><svg class="ocean-chart" viewBox="0 0 680 188" preserveAspectRatio="none"></svg></div>
+          </div>
+          <div class="legend"><span class="legend-item"><span class="legend-line"></span>Tide</span><span class="legend-item"><span class="legend-line surf"></span>Surf</span></div>
+        </div>
+      `;
+      section.querySelector(".beach-name").textContent = beach.name || "Beach";
+      section.querySelector(".beach-source").textContent = beach.sourceLabel || `Near ${Number(beach.lat).toFixed(2)}, ${Number(beach.lon).toFixed(2)}`;
+      return section;
+    }
+    function renderChart(card, hourly, daily = {}, timezone = Intl.DateTimeFormat().resolvedOptions().timeZone, utcOffsetSeconds = 0) {
+      const shell = card.querySelector(".ocean-chart-shell");
+      const svg = card.querySelector(".ocean-chart");
+      if (!shell || !svg || !hourly?.time?.length) return;
+      const rawTimes = hourly.time.map((time) => parseApiTime(time, utcOffsetSeconds));
+      const now = new Date();
+      const end = new Date(now.getTime() + 72 * 60 * 60 * 1000);
+      let rows = rawTimes.map((time, i) => ({
+        time,
+        tide: Number(hourly.sea_level_height_msl?.[i]),
+        wave: Number(hourly.wave_height?.[i])
+      })).filter((row) => row.time >= now && row.time <= end);
+      if (rows.length < 2) rows = rawTimes.slice(0, 72).map((time, i) => ({
+        time,
+        tide: Number(hourly.sea_level_height_msl?.[i]),
+        wave: Number(hourly.wave_height?.[i])
+      }));
+      const times = rows.map((row) => row.time);
+      const tides = rows.map((row) => Number.isFinite(row.tide) ? row.tide : null);
+      const waves = rows.map((row) => Number.isFinite(row.wave) ? row.wave : null);
+      const hours = times.length;
+      const width = 680, height = 188, left = 34, right = 34, top = 36, bottom = 8;
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      shell.querySelectorAll(".axis-label,.day-overlay,.chart-readout").forEach((node) => node.remove());
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+      const ns = "http://www.w3.org/2000/svg";
+      const el = (name, attrs = {}) => {
+        const node = document.createElementNS(ns, name);
+        Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, String(value)));
+        return node;
+      };
+      const tideRange = paddedRange(tides.slice(0, hours));
+      const waveRange = paddedRange(waves.slice(0, hours));
+      const plotW = width - left - right, plotH = height - top - bottom;
+      const x = (i) => left + (i / Math.max(hours - 1, 1)) * plotW;
+      const yTide = (v) => top + (1 - (v - tideRange.min) / (tideRange.max - tideRange.min || 1)) * plotH;
+      const yWave = (v) => top + (1 - (v - waveRange.min) / (waveRange.max - waveRange.min || 1)) * plotH;
+      const totalSpan = times[times.length - 1].getTime() - times[0].getTime() || 1;
+      if (daily?.sunrise?.length && daily?.sunset?.length) {
+        daily.sunrise.forEach((rise, i) => {
+          const sunrise = parseApiTime(rise, utcOffsetSeconds);
+          const sunset = parseApiTime(daily.sunset[i], utcOffsetSeconds);
+          if (!Number.isFinite(sunrise.getTime()) || !Number.isFinite(sunset.getTime())) return;
+          const visibleStart = new Date(Math.max(sunrise.getTime(), times[0].getTime()));
+          const visibleEnd = new Date(Math.min(sunset.getTime(), times[times.length - 1].getTime()));
+          if (visibleEnd <= visibleStart) return;
+          const dayX = left + ((visibleStart.getTime() - times[0].getTime()) / totalSpan) * plotW;
+          const dayW = ((visibleEnd.getTime() - visibleStart.getTime()) / totalSpan) * plotW;
+          svg.appendChild(el("rect", { x: dayX, y: top, width: dayW, height: plotH, fill: "rgba(255,255,255,0.04)" }));
+        });
+      }
+      const firstDay = localMidnightInstant(times[0], timezone, utcOffsetSeconds);
+      for (let dayStart = firstDay; dayStart <= times[times.length - 1]; dayStart = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)) {
+        const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+        const visibleStart = new Date(Math.max(dayStart.getTime(), times[0].getTime()));
+        const visibleEnd = new Date(Math.min(dayEnd.getTime(), times[times.length - 1].getTime()));
+        if (visibleEnd <= visibleStart) continue;
+        const startX = left + ((visibleStart.getTime() - times[0].getTime()) / totalSpan) * plotW;
+        const endX = left + ((visibleEnd.getTime() - times[0].getTime()) / totalSpan) * plotW;
+        if (visibleStart.getTime() > times[0].getTime()) svg.appendChild(el("line", { x1: startX, y1: top, x2: startX, y2: top + plotH, stroke: "rgba(255,255,255,0.08)", "stroke-width": 1 }));
+        const label = document.createElement("div");
+        label.className = "day-overlay";
+        label.style.left = `${(((startX + endX) / 2) / width) * 100}%`;
+        label.textContent = dayStart.toLocaleDateString([], { weekday: "short", timeZone: timezone });
+        shell.appendChild(label);
+      }
+      for (let tick = 0; tick <= 3; tick++) {
+        const y = top + (plotH / 3) * tick;
+        svg.appendChild(el("line", { x1: left, y1: y, x2: width - right, y2: y, stroke: "rgba(255,255,255,0.08)", "stroke-width": 1 }));
+      }
+      const addAxis = (className, topText, bottomText) => {
+        const topLabel = document.createElement("div");
+        topLabel.className = className;
+        topLabel.style.top = `${top - 1}px`;
+        topLabel.textContent = topText;
+        shell.appendChild(topLabel);
+        const bottomLabel = document.createElement("div");
+        bottomLabel.className = className;
+        bottomLabel.style.top = `${top + plotH - 11}px`;
+        bottomLabel.textContent = bottomText;
+        shell.appendChild(bottomLabel);
+      };
+      addAxis("axis-label", formatFeet(tideRange.max), formatFeet(tideRange.min));
+      addAxis("axis-label right", formatFeet(waveRange.max), formatFeet(waveRange.min));
+      const buildPath = (values, yFn) => {
+        let path = "";
+        for (let i = 0; i < hours; i++) {
+          const value = values[i];
+          if (!Number.isFinite(value)) continue;
+          path += `${path ? " L" : "M"} ${x(i)} ${yFn(value)}`;
+        }
+        return path;
+      };
+      const tidePath = buildPath(tides, yTide);
+      const wavePath = buildPath(waves, yWave);
+      svg.appendChild(el("path", { d: tidePath, fill: "none", stroke: "rgba(103,232,220,0.22)", "stroke-width": 8, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+      svg.appendChild(el("path", { d: tidePath, fill: "none", stroke: "#67e8dc", "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+      svg.appendChild(el("path", { d: wavePath, fill: "none", stroke: "rgba(199,244,106,0.20)", "stroke-width": 7, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+      svg.appendChild(el("path", { d: wavePath, fill: "none", stroke: "#c7f46a", "stroke-width": 2.4, "stroke-linecap": "round", "stroke-linejoin": "round", "stroke-dasharray": "5 6" }));
+      const crosshair = el("line", { x1: x(0), y1: top, x2: x(0), y2: top + plotH, stroke: "rgba(255,255,255,0.52)", "stroke-width": 1.2, "stroke-dasharray": "4 4" });
+      const tideDot = el("circle", { cx: x(0), cy: yTide(tides[0] || 0), r: 3.4, fill: "#67e8dc", stroke: "#d5fffb", "stroke-width": 1.1 });
+      const waveDot = el("circle", { cx: x(0), cy: yWave(waves[0] || 0), r: 3.1, fill: "#c7f46a", stroke: "#f4ffd1", "stroke-width": 1.1 });
+      svg.appendChild(crosshair);
+      svg.appendChild(tideDot);
+      svg.appendChild(waveDot);
+      const readout = document.createElement("div");
+      readout.className = "chart-readout";
+      shell.appendChild(readout);
+      const updateSelection = (idx) => {
+        const safe = Math.max(0, Math.min(hours - 1, idx));
+        const xx = x(safe);
+        crosshair.setAttribute("x1", xx);
+        crosshair.setAttribute("x2", xx);
+        if (Number.isFinite(tides[safe])) {
+          tideDot.setAttribute("cx", xx);
+          tideDot.setAttribute("cy", yTide(tides[safe]));
+        }
+        if (Number.isFinite(waves[safe])) {
+          waveDot.setAttribute("cx", xx);
+          waveDot.setAttribute("cy", yWave(waves[safe]));
+        }
+        readout.textContent = `${times[safe].toLocaleString([], { weekday: "short", hour: "numeric", timeZone: timezone })} \u2022 Tide ${formatFeet(tides[safe])} \u2022 Surf ${formatFeet(waves[safe])}`;
+        readout.style.left = `${(xx / width) * 100}%`;
+        readout.style.transform = "translateX(-50%)";
+        requestAnimationFrame(() => {
+          const shellRect = shell.getBoundingClientRect();
+          const readoutRect = readout.getBoundingClientRect();
+          const pad = 8;
+          if (readoutRect.left < shellRect.left + pad) {
+            readout.style.left = `${pad}px`;
+            readout.style.transform = "translateX(0)";
+          } else if (readoutRect.right > shellRect.right - pad) {
+            readout.style.left = `${shellRect.width - pad}px`;
+            readout.style.transform = "translateX(-100%)";
+          }
+        });
+      };
+      updateSelection(0);
+      shell.addEventListener("pointerup", (event) => {
+        const rect = shell.getBoundingClientRect();
+        const shellX = (event.clientX - rect.left) * (width / Math.max(rect.width, 1));
+        const frac = Math.max(0, Math.min(1, (shellX - left) / (width - left - right)));
+        updateSelection(Math.round(frac * Math.max(hours - 1, 1)));
+      });
+    }
+    async function renderBeaches() {
+      const beaches = loadBeaches();
+      if (!beaches.length) {
+        els.beachList.innerHTML = `<div class="empty-state">Add a beach to see water temperature, current surf feel, and a three-day tide chart.</div>`;
+        return;
+      }
+      els.beachList.innerHTML = "";
+      beaches.forEach((beach, index) => {
+        const card = beachCard(beach, index);
+        els.beachList.appendChild(card);
+        Promise.all([getMarine(beach), getSunForecast(beach)])
+          .then(([marine, sun]) => renderBeachData(card, beach, marine, sun))
+          .catch((error) => {
+            console.error(error);
+            card.querySelector(".beach-summary").textContent = "Ocean data unavailable";
+            card.querySelector(".beach-status").textContent = "Try a nearby coastal place or current location.";
+          });
+      });
+    }
+    async function runSearch() {
+      const query = els.beachSearchInput.value.trim();
+      if (query.length < 2) {
+        setModalStatus("Type at least two characters.", "error");
+        return;
+      }
+      try {
+        setModalStatus("Searching...");
+        els.beachResults.innerHTML = "";
+        const results = await searchPlaces(query);
+        if (!results.length) {
+          setModalStatus("No matches found.", "error");
+          return;
+        }
+        setModalStatus("Choose the closest match.");
+        els.beachResults.innerHTML = results.map((item, index) => {
+          const detail = item.sourceLabel || placeLabel(item) || `${Number(item.latitude).toFixed(2)}, ${Number(item.longitude).toFixed(2)}`;
+          return `<button class="input-btn result-btn" type="button" data-result-index="${index}"><strong>${item.name}</strong><span>${detail}</span></button>`;
+        }).join("");
+        els.beachResults._results = results;
+      } catch (error) {
+        console.error(error);
+        setModalStatus("Could not search right now.", "error");
+      }
+    }
+    function selectBeach(item) {
+      selectedBeach = {
+        lat: roundCoord(item.latitude),
+        lon: roundCoord(item.longitude),
+        name: item.name || "My beach",
+        sourceLabel: item.sourceLabel || [item.name, item.admin1, item.country].filter(Boolean).join(", "),
+        source: "search"
+      };
+      els.beachNameInput.value = selectedBeach.name;
+      els.sourcePreview.textContent = `Marine data near ${selectedBeach.sourceLabel || `${selectedBeach.lat}, ${selectedBeach.lon}`}`;
+      els.nameArea.classList.remove("hidden");
+      setModalStatus("Rename it if you want, then save.", "ok");
+    }
+    function useCurrentLocation() {
+      if (!navigator.geolocation) {
+        setModalStatus("Location is not available in this browser.", "error");
+        return;
+      }
+      setModalStatus("Getting current location...");
+      navigator.geolocation.getCurrentPosition((pos) => {
+        selectedBeach = {
+          lat: roundCoord(pos.coords.latitude),
+          lon: roundCoord(pos.coords.longitude),
+          name: "Current beach",
+          sourceLabel: `Current location ${roundCoord(pos.coords.latitude)}, ${roundCoord(pos.coords.longitude)}`,
+          source: "geolocation"
+        };
+        els.beachNameInput.value = selectedBeach.name;
+        els.sourcePreview.textContent = `Marine data near ${selectedBeach.sourceLabel}`;
+        els.nameArea.classList.remove("hidden");
+        setModalStatus("Rename it if you want, then save.", "ok");
+      }, () => setModalStatus("Location permission was denied.", "error"), { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+    }
+    function saveSelectedBeach() {
+      if (!selectedBeach) {
+        setModalStatus("Choose a place first.", "error");
+        return;
+      }
+      const name = els.beachNameInput.value.trim();
+      if (!name) {
+        setModalStatus("Give this beach a name.", "error");
+        return;
+      }
+      addBeach({ ...selectedBeach, name });
+      hideOverlay();
+      renderBeaches();
+    }
+    function refreshBeachIndexes() {
+      els.beachList.querySelectorAll(".beach-card").forEach((card, index) => {
+        card.dataset.beachIndex = String(index);
+        card.querySelector("[data-delete-index]")?.setAttribute("data-delete-index", String(index));
+        card.querySelector("[data-toggle-index]")?.setAttribute("data-toggle-index", String(index));
+      });
+    }
+    function toggleBeachChart(index) {
+      const beaches = loadBeaches();
+      const beach = beaches[index];
+      if (!beach) return;
+      beach.collapsed = !beach.collapsed;
+      saveBeaches(beaches);
+      const card = els.beachList.querySelector(`.beach-card[data-beach-index="${index}"]`);
+      if (!card) return;
+      const chartWrap = card.querySelector(".chart-wrap");
+      const button = card.querySelector(".collapse-btn");
+      card.classList.toggle("collapsed", Boolean(beach.collapsed));
+      chartWrap?.classList.toggle("hidden-chart", Boolean(beach.collapsed));
+      button?.setAttribute("aria-expanded", beach.collapsed ? "false" : "true");
+    }
+    function moveBeach(from, to) {
+      if (from === to || from < 0 || to < 0) return;
+      const beaches = loadBeaches();
+      if (!beaches[from] || !beaches[to]) return;
+      const [moved] = beaches.splice(from, 1);
+      beaches.splice(to, 0, moved);
+      saveBeaches(beaches);
+    }
+    function setupBeachDragging() {
+      let dragCard = null;
+      let dragIndex = -1;
+      let dragMoved = false;
+      let dragActive = false;
+      let startX = 0;
+      let startY = 0;
+      let activeHandle = null;
+      els.beachList.addEventListener("pointerdown", (event) => {
+        const handle = event.target.closest("[data-drag-handle]");
+        if (!handle || event.target.closest("button")) return;
+        dragCard = handle.closest(".beach-card");
+        if (!dragCard) return;
+        event.preventDefault();
+        dragIndex = Number(dragCard.dataset.beachIndex);
+        dragMoved = false;
+        dragActive = false;
+        startX = event.clientX;
+        startY = event.clientY;
+        activeHandle = handle;
+        handle.setPointerCapture(event.pointerId);
+      });
+      els.beachList.addEventListener("pointermove", (event) => {
+        if (!dragCard) return;
+        event.preventDefault();
+        const dx = event.clientX - startX;
+        const dy = event.clientY - startY;
+        if (!dragActive && Math.hypot(dx, dy) < 7) return;
+        if (!dragActive) {
+          dragActive = true;
+          dragCard.classList.add("dragging");
+          document.body.classList.add("reordering");
+        }
+        const overCard = document.elementFromPoint(event.clientX, event.clientY)?.closest(".beach-card");
+        if (!overCard || overCard === dragCard || !els.beachList.contains(overCard)) return;
+        const overIndex = Number(overCard.dataset.beachIndex);
+        if (!Number.isFinite(overIndex) || overIndex === dragIndex) return;
+        const rect = overCard.getBoundingClientRect();
+        const movingDown = overIndex > dragIndex;
+        if (movingDown && event.clientY < rect.top + rect.height * 0.56) return;
+        if (!movingDown && event.clientY > rect.top + rect.height * 0.44) return;
+        dragMoved = true;
+        moveBeach(dragIndex, overIndex);
+        const before = overIndex > dragIndex ? overCard.nextSibling : overCard;
+        els.beachList.insertBefore(dragCard, before);
+        refreshBeachIndexes();
+        dragIndex = Number(dragCard.dataset.beachIndex);
+      });
+      const stopDrag = () => {
+        if (!dragCard) return;
+        dragCard.classList.remove("dragging");
+        document.body.classList.remove("reordering");
+        dragCard = null;
+        dragIndex = -1;
+        dragActive = false;
+        activeHandle = null;
+        if (dragMoved) refreshBeachIndexes();
+      };
+      els.beachList.addEventListener("pointerup", stopDrag);
+      els.beachList.addEventListener("pointercancel", stopDrag);
+      els.beachList.addEventListener("lostpointercapture", stopDrag);
+    }
+    els.addBeachBtn.addEventListener("click", () => showOverlay());
+    els.closeBeachBtn.addEventListener("click", hideOverlay);
+    els.searchBeachBtn.addEventListener("click", runSearch);
+    els.beachSearchInput.addEventListener("keydown", (event) => { if (event.key === "Enter") runSearch(); });
+    els.useCurrentBeachBtn.addEventListener("click", useCurrentLocation);
+    els.saveBeachBtn.addEventListener("click", saveSelectedBeach);
+    els.beachResults.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-result-index]");
+      if (!btn) return;
+      const item = els.beachResults._results?.[Number(btn.dataset.resultIndex)];
+      if (item) selectBeach(item);
+    });
+    els.beachList.addEventListener("click", (event) => {
+      const toggleBtn = event.target.closest("[data-toggle-index]");
+      if (toggleBtn) {
+        toggleBeachChart(Number(toggleBtn.dataset.toggleIndex));
+        return;
+      }
+      const btn = event.target.closest("[data-delete-index]");
+      if (!btn) return;
+      const index = Number(btn.dataset.deleteIndex);
+      const beaches = loadBeaches();
+      beaches.splice(index, 1);
+      saveBeaches(beaches);
+      renderBeaches();
+    });
+    setupBeachDragging();
+    renderBeaches();
+  </script>
+</body>
+</html>
