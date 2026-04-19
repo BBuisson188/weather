@@ -241,14 +241,17 @@
     .status.error { color: #ff8e8e; }
     .status.ok { color: var(--success); }
     .hidden { display: none !important; }
-    .onboarding-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(3, 7, 14, 0.62); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 40; }
-    .onboarding-card { width: min(100%, 360px); background: linear-gradient(180deg, rgba(12, 22, 37, 0.98), rgba(9, 17, 30, 0.96)); border: 1px solid var(--line); border-radius: 26px; box-shadow: var(--shadow); padding: 18px; text-align: center; }
+    .onboarding-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(3, 7, 14, 0.62); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 40; overflow-y: auto; overscroll-behavior: contain; }
+    .onboarding-card { width: min(100%, 360px); max-height: calc(100dvh - 44px); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; background: linear-gradient(180deg, rgba(12, 22, 37, 0.98), rgba(9, 17, 30, 0.96)); border: 1px solid var(--line); border-radius: 26px; box-shadow: var(--shadow); padding: 18px; text-align: center; }
     .onboarding-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
     .onboarding-heading { flex: 1; min-width: 0; }
     .onboarding-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
     .onboarding-copy { color: var(--muted); font-size: 13px; line-height: 1.45; font-weight: 600; margin-bottom: 14px; }
     .onboarding-actions { display: grid; gap: 10px; }
     .onboarding-input { text-align: center; }
+    .search-results-wrap { margin-top: 12px; text-align: left; }
+    .search-results-title { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 800; margin-bottom: 8px; }
+    .search-results { display: grid; gap: 8px; }
     .onboarding-note { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 8px; min-height: 16px; }
     .onboarding-close { width: 32px; min-width: 32px; height: 32px; padding: 0; border-radius: 999px; flex-shrink: 0; }
     .recent-wrap { margin-top: 14px; text-align: left; }
@@ -384,9 +387,13 @@
       </div>
       <div class="onboarding-actions">
         <button class="input-btn" id="startLocateBtn" type="button">Use My Location</button>
-        <input class="onboarding-input" id="startZipInput" inputmode="numeric" pattern="[0-9]*" maxlength="5" placeholder="Enter ZIP code" />
+        <input class="onboarding-input" id="startZipInput" inputmode="search" placeholder="Enter city or ZIP" />
       </div>
       <div class="onboarding-note" id="onboardingNote"></div>
+      <div class="search-results-wrap hidden" id="searchResultsWrap">
+        <div class="search-results-title">Choose a location</div>
+        <div class="search-results" id="searchResults"></div>
+      </div>
       <div class="recent-wrap hidden" id="recentWrap">
         <div class="recent-title">Recent Locations</div>
         <div class="recent-list" id="recentList"></div>
@@ -403,7 +410,7 @@
       rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"),
       locateBtn: $("locateBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink"),
       onboardingOverlay: $("onboardingOverlay"), startLocateBtn: $("startLocateBtn"), startZipInput: $("startZipInput"), onboardingNote: $("onboardingNote"),
-      closeOnboardingBtn: $("closeOnboardingBtn"), recentWrap: $("recentWrap"), recentList: $("recentList")
+      closeOnboardingBtn: $("closeOnboardingBtn"), searchResultsWrap: $("searchResultsWrap"), searchResults: $("searchResults"), recentWrap: $("recentWrap"), recentList: $("recentList")
     };
     const STORAGE_KEY = "weather-location-v3";
     const RECENT_STORAGE_KEY = "weather-recent-locations-v1";
@@ -455,6 +462,20 @@
       const recent = [location, ...loadRecentLocations().filter((item) => recentKey(item) !== recentKey(location))].slice(0, 5);
       localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(recent));
     }
+    function clearSearchResults() {
+      els.searchResultsWrap.classList.add("hidden");
+      els.searchResults.innerHTML = "";
+      els.searchResults._items = [];
+    }
+    function renderSearchResults(items) {
+      const safeItems = Array.isArray(items) ? items : [];
+      els.searchResults._items = safeItems;
+      els.searchResultsWrap.classList.toggle("hidden", safeItems.length === 0);
+      els.searchResults.innerHTML = safeItems.map((item, index) => {
+        const detail = item.source === "zip" && item.zip ? `ZIP ${item.zip}` : (item.detail || "Search result");
+        return `<button class="input-btn recent-btn" type="button" data-search-index="${index}"><strong>${item.label}</strong><span>${detail}</span></button>`;
+      }).join("");
+    }
     function renderRecentLocations() {
       const recent = loadRecentLocations();
       els.closeOnboardingBtn.classList.toggle("hidden", !hasSavedLocation());
@@ -466,8 +487,8 @@
     }
     function saveLocation(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); saveRecentLocation(data); activeLocation = data; updateRadarLink(data); hideOnboarding(); }
     function loadSavedLocation() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; } }
-    function showOnboarding(message = "") { if (!els.onboardingOverlay) return; renderRecentLocations(); els.onboardingOverlay.classList.remove("hidden"); els.onboardingNote.textContent = message; }
-    function hideOnboarding() { if (!els.onboardingOverlay) return; els.onboardingOverlay.classList.add("hidden"); els.onboardingNote.textContent = ""; els.onboardingNote.style.color = ""; }
+    function showOnboarding(message = "") { if (!els.onboardingOverlay) return; renderRecentLocations(); clearSearchResults(); els.onboardingOverlay.classList.remove("hidden"); els.onboardingNote.textContent = message; }
+    function hideOnboarding() { if (!els.onboardingOverlay) return; els.onboardingOverlay.classList.add("hidden"); els.onboardingNote.textContent = ""; els.onboardingNote.style.color = ""; clearSearchResults(); }
     function formatTemp(n) { return `${Math.round(n)}\u00B0`; }
     function formatHour(dateStr) { return new Date(dateStr).toLocaleTimeString([], { hour: "numeric" }); }
     function formatShortTime(dateLike) { return new Date(dateLike).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
@@ -494,7 +515,67 @@
     async function getLocationNameFromZip(zip) {
       const res = await fetch(`https://api.zippopotam.us/us/${zip}`); if (!res.ok) throw new Error("ZIP lookup failed");
       const data = await res.json(); const place = data.places?.[0]; if (!place) throw new Error("ZIP not found");
-      return { lat: Number(place.latitude), lon: Number(place.longitude), label: `${place['place name']}, ${place['state abbreviation']}`, source: "zip" };
+      return { lat: Number(place.latitude), lon: Number(place.longitude), label: `${place['place name']}, ${place['state abbreviation']}`, detail: `ZIP ${zip}`, source: "zip", zip };
+    }
+    function normalizeSearchLabel(name, admin1, country) {
+      return [name, admin1 || country].filter(Boolean).join(", ");
+    }
+    function normalizeSearchKeyPart(value) {
+      return String(value || "")
+        .toLowerCase()
+        .replace(/\b(county|province|region|department|district)\b/g, "")
+        .replace(/[.,]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+    async function searchOpenMeteoLocations(query) {
+      const params = new URLSearchParams({ name: query, count: "8", language: "en", format: "json" });
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params.toString()}`);
+      if (!res.ok) throw new Error("Open-Meteo search failed");
+      const data = await res.json();
+      return (data.results || []).map((item) => ({
+        lat: Number(item.latitude),
+        lon: Number(item.longitude),
+        label: normalizeSearchLabel(item.name, item.admin1, item.country),
+        detail: [item.admin2, item.country].filter(Boolean).join(", ") || "Location match",
+        county: item.admin2 || "",
+        admin1: item.admin1 || "",
+        country: item.country || "",
+        source: "search"
+      }));
+    }
+    async function searchNominatimLocations(query) {
+      const params = new URLSearchParams({ q: query, format: "jsonv2", addressdetails: "1", limit: "8" });
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, { headers: { "Accept": "application/json" } });
+      if (!res.ok) throw new Error("Nominatim search failed");
+      const data = await res.json();
+      return data.map((item) => {
+        const addr = item.address || {};
+        const city = item.name || addr.city || addr.town || addr.village || addr.hamlet || addr.county || item.display_name?.split(",")[0] || "Location";
+        const admin1 = addr.state || addr.region || addr.county || "";
+        const country = addr.country || "";
+        return {
+          lat: Number(item.lat),
+          lon: Number(item.lon),
+          label: normalizeSearchLabel(city, admin1, country),
+          detail: [addr.county, country].filter(Boolean).join(", ") || "Location match",
+          county: addr.county || "",
+          admin1,
+          country,
+          source: "search"
+        };
+      });
+    }
+    async function searchCityLocations(query) {
+      const settled = await Promise.allSettled([searchOpenMeteoLocations(query), searchNominatimLocations(query)]);
+      const seen = new Set();
+      return settled.flatMap((result) => result.status === "fulfilled" ? result.value : []).filter((item) => {
+        if (!Number.isFinite(item.lat) || !Number.isFinite(item.lon)) return false;
+        const key = `${normalizeSearchKeyPart(item.label)}|${normalizeSearchKeyPart(item.county)}|${normalizeSearchKeyPart(item.admin1)}|${normalizeSearchKeyPart(item.country)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).slice(0, 8);
     }
     async function getLocationNameFromCoords(lat, lon) {
       try {
@@ -550,7 +631,7 @@
       const svg = els.outlookChart;
       if (!shell || !svg || !hours) return;
       const dayCount = Math.max(1, Math.ceil(hours / 24));
-      const width = Math.max(980, dayCount * 140), height = 210, left = 28, right = 28, top = 14, bottom = 4;
+      const width = Math.max(980, dayCount * 140), height = 210, left = 28, right = 28, top = 24, bottom = 4;
       shell.style.minWidth = `${width}px`;
       svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
       const plotW = width - left - right, plotH = height - top - bottom, ns = 'http://www.w3.org/2000/svg';
@@ -632,6 +713,7 @@
       const readout = document.createElement('div'); readout.className = 'outlook-readout'; shell.appendChild(readout);
       const updateSelection = (idx) => {
         const safe = Math.max(0, Math.min(hours - 1, idx)), xx = x(safe), yt = yTemp(temps[safe]), yf = yTemp(feels[safe]), yp = yProb(probs[safe]), yh = yProb(humidities[safe]);
+        if (outlookInteraction) outlookInteraction.selectedIndex = safe;
         crosshair.setAttribute('x1', xx); crosshair.setAttribute('x2', xx);
         if (outlookSeries.temp) { tempDot.setAttribute('cx', xx); tempDot.setAttribute('cy', yt); }
         if (outlookSeries.feels) { feelsDot.setAttribute('cx', xx); feelsDot.setAttribute('cy', yf); }
@@ -643,11 +725,28 @@
         if (outlookSeries.precip) parts.push(`Rain ${Math.round(probs[safe])}%`);
         if (outlookSeries.humidity) parts.push(`Humidity ${Math.round(humidities[safe])}%`);
         readout.textContent = parts.join(' \u2022 ');
-        const minLeft = 136, maxLeft = width - 136, labelX = Math.max(minLeft, Math.min(maxLeft, xx));
-        readout.style.left = `${labelX}px`; readout.style.transform = 'translateX(-50%)';
+        const scrollWrap = document.querySelector('.outlook-scroll');
+        const viewportLeft = scrollWrap ? scrollWrap.scrollLeft : 0;
+        const viewportWidth = scrollWrap ? scrollWrap.clientWidth : width;
+        const viewportRight = viewportLeft + viewportWidth;
+        const minLeft = viewportLeft + 136;
+        const maxLeft = viewportLeft + viewportWidth - 136;
+        const hardMin = 136;
+        const hardMax = width - 136;
+        if (xx < viewportLeft) {
+          readout.style.left = `${Math.max(0, xx)}px`;
+          readout.style.transform = 'translateX(0)';
+        } else if (xx > viewportRight) {
+          readout.style.left = `${Math.min(width, xx)}px`;
+          readout.style.transform = 'translateX(-100%)';
+        } else {
+          const labelX = Math.max(hardMin, Math.min(hardMax, Math.max(minLeft, Math.min(maxLeft, xx))));
+          readout.style.left = `${labelX}px`;
+          readout.style.transform = 'translateX(-50%)';
+        }
       };
       updateSelection(0);
-      outlookInteraction = { shell, svg, hours, width, left, right, updateSelection };
+      outlookInteraction = { shell, svg, hours, width, left, right, updateSelection, selectedIndex: 0 };
     }
     function renderForecast(data, placeLabel) {
       const now = new Date();
@@ -704,21 +803,57 @@
       setStatus("Getting your current location\u2026"); showOnboarding("Getting your current location\u2026");
       navigator.geolocation.getCurrentPosition(async (pos) => { const lat = roundCoord(pos.coords.latitude), lon = roundCoord(pos.coords.longitude), label = await getLocationNameFromCoords(lat, lon), saved = { lat, lon, label, source: "geolocation" }; saveLocation(saved); await loadWeather(saved); }, () => setStatus("Location permission was denied.", "error"), { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
     }
+    async function applySearchLocation(location) {
+      const saved = { lat: roundCoord(location.lat), lon: roundCoord(location.lon), label: location.label, source: location.source || "search", zip: location.zip || undefined };
+      saveLocation(saved);
+      await loadWeather(saved);
+    }
     async function useZip(zipOverride = null) {
       const zip = (zipOverride ?? els.startZipInput.value).trim();
-      if (!/^\d{5}$/.test(zip)) { setStatus("Please enter a valid 5-digit ZIP.", "error"); showOnboarding("Please enter a valid 5-digit ZIP."); return; }
       try {
         setStatus("Looking up ZIP code\u2026"); showOnboarding("Looking up ZIP code\u2026");
-        const result = await getLocationNameFromZip(zip); const saved = { lat: roundCoord(result.lat), lon: roundCoord(result.lon), label: result.label, source: "zip", zip };
-        saveLocation(saved); await loadWeather(saved);
+        const result = await getLocationNameFromZip(zip);
+        await applySearchLocation(result);
       } catch (error) {
         console.error(error); setStatus("Could not find that ZIP code.", "error"); showOnboarding("Could not find that ZIP code.");
+      }
+    }
+    async function searchLocationInput(valueOverride = null) {
+      const query = (valueOverride ?? els.startZipInput.value).trim();
+      clearSearchResults();
+      if (!query) { setStatus("Enter a city or ZIP.", "error"); showOnboarding("Enter a city or ZIP."); return; }
+      if (/^\d{5}$/.test(query)) { await useZip(query); return; }
+      try {
+        setStatus("Searching for locations\u2026"); showOnboarding("Searching for locations\u2026");
+        const results = await searchCityLocations(query);
+        if (!results.length) {
+          setStatus("Could not find that location.", "error");
+          showOnboarding("Could not find that location.");
+          return;
+        }
+        if (results.length === 1) {
+          await applySearchLocation(results[0]);
+          return;
+        }
+        renderSearchResults(results);
+        setStatus("Choose a matching city.", "ok");
+      } catch (error) {
+        console.error(error);
+        setStatus("Could not search locations right now.", "error");
+        showOnboarding("Could not search locations right now.");
       }
     }
     function seedDemo() {
       els.placeName.textContent = "Set a ZIP or use location"; els.currentTemp.textContent = "--\u00B0"; els.currentCondition.textContent = "Waiting for location"; els.highValue.textContent = "--\u00B0"; els.lowValue.textContent = "--\u00B0"; els.rainLine.textContent = "Rain --"; els.lightLine.innerHTML = `<span>First light --  Rise --</span><span>Last light --  Set --</span>`; els.hourlyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="hour-card"><div class="hour-time">--</div><div class="hour-icon">${glyph(1, false, 24)}</div><div class="hour-temp">--\u00B0</div><div class="hour-rain">--%</div></div>`).join(""); [els.rain24, els.rain3d, els.rain7d, els.freezeHours].forEach(el => el.textContent = "--"); updateRadarLink(loadSavedLocation());
     }
-    els.locateBtn.addEventListener("click", () => showOnboarding()); els.refreshBtn.addEventListener("click", refreshCurrentWeather); els.startLocateBtn.addEventListener("click", useBrowserLocation); els.startZipInput.addEventListener("keydown", (e) => { if (e.key === "Enter") useZip(els.startZipInput.value); }); els.closeOnboardingBtn.addEventListener("click", () => { if (hasSavedLocation()) hideOnboarding(); }); els.recentList.addEventListener("click", async (e) => { const btn = e.target.closest("[data-recent-index]"); if (!btn) return; const recent = loadRecentLocations(); const item = recent[Number(btn.dataset.recentIndex)]; if (!item) return; saveLocation(item); await loadWeather(item, true); });
+    els.locateBtn.addEventListener("click", () => showOnboarding()); els.refreshBtn.addEventListener("click", refreshCurrentWeather); els.startLocateBtn.addEventListener("click", useBrowserLocation); els.startZipInput.addEventListener("keydown", (e) => { if (e.key === "Enter") searchLocationInput(els.startZipInput.value); }); els.closeOnboardingBtn.addEventListener("click", () => { if (hasSavedLocation()) hideOnboarding(); }); els.recentList.addEventListener("click", async (e) => { const btn = e.target.closest("[data-recent-index]"); if (!btn) return; const recent = loadRecentLocations(); const item = recent[Number(btn.dataset.recentIndex)]; if (!item) return; saveLocation(item); await loadWeather(item, true); });
+    els.searchResults.addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-search-index]");
+      if (!btn) return;
+      const item = els.searchResults._items?.[Number(btn.dataset.searchIndex)];
+      if (!item) return;
+      await applySearchLocation(item);
+    });
     els.outlookLegend.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-series]");
       if (!btn) return;
@@ -735,6 +870,10 @@
     const outlookScroll = document.querySelector('.outlook-scroll');
     if (outlookScroll) {
       outlookScroll.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { outlookScroll.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
+      outlookScroll.addEventListener("scroll", () => {
+        if (!outlookInteraction?.shell) return;
+        outlookInteraction.updateSelection(outlookInteraction.selectedIndex ?? 0);
+      });
       let chartDown = false, chartMoved = false, chartStartX = 0, chartStartScroll = 0;
       outlookScroll.addEventListener("pointerdown", (e) => { chartDown = true; chartMoved = false; chartStartX = e.clientX; chartStartScroll = outlookScroll.scrollLeft; outlookScroll.setPointerCapture(e.pointerId); });
       outlookScroll.addEventListener("pointermove", (e) => { if (!chartDown) return; const dx = e.clientX - chartStartX; if (Math.abs(dx) > 6) chartMoved = true; outlookScroll.scrollLeft = chartStartScroll - dx; });
