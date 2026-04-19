@@ -11,23 +11,86 @@
     :root {
       --bg1: #050a13;
       --bg2: #0b1526;
+      --bg3: #12213a;
       --card: rgba(10, 18, 31, 0.88);
       --card-soft: rgba(15, 25, 43, 0.82);
       --text: #eef4ff;
       --muted: #a8bad8;
       --line: rgba(184,205,255,0.20);
+      --line-strong: rgba(184,205,255,0.34);
       --shadow: 0 20px 46px rgba(0,0,0,0.38);
+      --shadow-soft: 0 12px 28px rgba(0,0,0,0.24);
       --accent: #78a9ff;
+      --accent-soft: rgba(120,169,255,0.18);
       --danger: #ff8e8e;
       --ok: #87dfaa;
+      --warn: #ffb45e;
+      --radius-xl: 24px;
+      --radius-lg: 18px;
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; background: linear-gradient(180deg, var(--bg1), var(--bg2)); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background:
+        radial-gradient(circle at 18% 10%, rgba(90, 132, 255, 0.22), transparent 24%),
+        radial-gradient(circle at 88% 0%, rgba(93, 184, 255, 0.14), transparent 24%),
+        radial-gradient(circle at 50% 38%, rgba(81, 119, 255, 0.08), transparent 28%),
+        linear-gradient(180deg, var(--bg1), var(--bg2) 52%, var(--bg3));
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
     body { overflow: hidden; }
     #map { position: fixed; inset: 0; background: #09111f; }
     .leaflet-radar-layer { transition: opacity 180ms linear; }
+    .wind-marker {
+      min-width: 54px;
+      padding: 3px 6px 4px;
+      border-radius: 12px;
+      border: 1px solid rgba(184,205,255,0.20);
+      background: rgba(6, 12, 22, 0.76);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.34);
+      text-align: center;
+      color: #e8f2ff;
+      font-weight: 800;
+      pointer-events: none;
+      transform: translate(-27px, -24px);
+    }
+    .wind-top {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 2px;
+    }
+    .wind-arrow {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #b7dbff;
+      line-height: 1;
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5));
+    }
+    .wind-dir {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: #d8ebff;
+      -webkit-text-stroke: 0.45px rgba(3, 8, 15, 0.9);
+      paint-order: stroke fill;
+    }
+    .wind-speed {
+      font-size: 10px;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      color: #f6fbff;
+      -webkit-text-stroke: 0.45px rgba(3, 8, 15, 0.9);
+      paint-order: stroke fill;
+    }
+    .leaflet-overlay-layer.is-coverage { mix-blend-mode: screen; }
     .shell { position: fixed; inset: 0; pointer-events: none; }
-    .topbar, .bottombar, .statuschip {
+    .topbar, .bottombar {
       pointer-events: auto;
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
@@ -39,55 +102,107 @@
       position: absolute;
       top: max(10px, env(safe-area-inset-top));
       left: 10px;
-      right: 10px;
-      border-radius: 20px;
-      padding: 10px 11px;
-      display: flex;
+      right: auto;
+      border-radius: var(--radius-xl);
+      padding: 10px;
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
     }
-    .titleblock { min-width: 0; }
     .eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 800; margin-bottom: 4px; }
     .title { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .subtitle { font-size: 11px; color: var(--muted); font-weight: 700; margin-top: 3px; }
     .btnrow { display: flex; gap: 8px; flex-shrink: 0; }
     .btn {
       appearance: none;
-      border: 1px solid var(--line);
+      border: 1px solid var(--line-strong);
       background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05));
       color: var(--text);
       border-radius: 999px;
-      height: 34px;
-      min-width: 34px;
-      padding: 0 12px;
+      height: 36px;
+      min-width: 36px;
+      padding: 0 13px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       cursor: pointer;
       font: inherit;
+      font-size: 13px;
+      font-weight: 700;
       text-decoration: none;
-      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+      box-shadow: var(--shadow-soft);
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, color 160ms ease;
     }
     .btn:hover {
       background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06));
       border-color: rgba(184,205,255,0.34);
+      box-shadow: 0 0 0 1px rgba(184,205,255,0.08), var(--shadow-soft);
     }
     .btn:active { transform: scale(0.98); }
+    .btn.is-active {
+      color: #f5f9ff;
+      border-color: rgba(140, 186, 255, 0.58);
+      background: linear-gradient(180deg, rgba(93, 142, 228, 0.28), rgba(28, 51, 96, 0.34));
+      box-shadow: 0 0 0 1px rgba(145,194,255,0.10), 0 14px 30px rgba(0,0,0,0.22);
+    }
+    .btn.is-warn {
+      border-color: rgba(255,180,94,0.46);
+      color: #ffe4c2;
+      background: linear-gradient(180deg, rgba(255,180,94,0.20), rgba(62,33,12,0.24));
+    }
+    .btn.is-subtle { color: var(--muted); }
+    .btn:disabled {
+      opacity: 0.46;
+      cursor: default;
+      box-shadow: none;
+    }
     .btn svg { width: 16px; height: 16px; }
-    .btn.icon-only { width: 34px; padding: 0; }
+    .btn.icon-only { width: 36px; padding: 0; }
     .bottombar {
       position: absolute;
       left: 10px;
       right: 10px;
       bottom: max(10px, env(safe-area-inset-bottom));
-      border-radius: 20px;
-      padding: 10px 11px;
+      border-radius: var(--radius-xl);
+      padding: 12px;
       display: grid;
-      gap: 8px;
+      gap: 12px;
     }
-    .frame-time { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; }
+    .compact-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .compact-left,
+    .compact-center,
+    .compact-right {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+    .compact-left { gap: 8px; }
+    .compact-center {
+      justify-content: center;
+      flex: 1;
+      min-width: 0;
+    }
+    .compact-right { justify-content: flex-end; }
+    .compact-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .compact-note {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .frame-time { font-size: 13px; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .timeline { width: 100%; }
     input[type="range"] {
       width: 100%;
@@ -114,12 +229,47 @@
       border: 0;
       box-shadow: 0 0 0 4px rgba(120,169,255,0.18);
     }
-    .controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .controls-left, .controls-right { display: flex; gap: 6px; flex-wrap: wrap; }
+    .timeline-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .timeline-caption {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .controls {
+      display: grid;
+      gap: 10px;
+    }
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .controls-left, .controls-right, .toggle-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .drawer {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(184,205,255,0.12);
+    }
+    .drawer.hidden-drawer { display: none; }
+    .collapse-btn { width: 30px; min-width: 30px; height: 30px; padding: 0; box-shadow: none; }
+    .collapse-btn svg { transition: transform 160ms ease; }
+    .bottombar.collapsed .collapse-btn svg { transform: rotate(180deg); }
     .credit {
       position: absolute;
       right: 12px;
-      bottom: calc(max(10px, env(safe-area-inset-bottom)) + 120px);
+      bottom: calc(max(10px, env(safe-area-inset-bottom)) + 146px);
       background: rgba(8, 14, 24, 0.78);
       color: var(--muted);
       border-radius: 999px;
@@ -130,12 +280,14 @@
       pointer-events: auto;
     }
     .credit a { color: inherit; }
-    @media (max-width: 520px) {
-      .topbar { align-items: flex-start; flex-direction: column; }
-      .btnrow { width: 100%; }
-      .controls { align-items: flex-start; flex-direction: column; }
+    @media (max-width: 640px) {
+      .btnrow { width: 100%; flex-wrap: wrap; }
+      .compact-head { gap: 8px; }
+      .compact-left { gap: 6px; }
+      .compact-label, .compact-note, .frame-time { font-size: 11px; }
+      .control-row { align-items: flex-start; flex-direction: column; }
       .controls-left, .controls-right { width: 100%; }
-      .credit { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 162px); }
+      .credit { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 198px); }
     }
     @media (prefers-reduced-motion: reduce) {
       .btn { transition: none; }
@@ -146,11 +298,6 @@
   <div id="map"></div>
   <div class="shell">
     <div class="topbar">
-      <div class="titleblock">
-        <div class="eyebrow">Rain Radar</div>
-        <div class="title" id="radarPlace">Loading location&hellip;</div>
-        <div class="subtitle">Recent past radar loop</div>
-      </div>
       <div class="btnrow">
         <a class="btn" href="index.html" aria-label="Back to weather">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
@@ -165,13 +312,26 @@
       </div>
     </div>
 
-
     <div class="credit">Radar data source: <a href="https://www.rainviewer.com/" target="_blank" rel="noreferrer">RainViewer</a></div>
 
-    <div class="bottombar">
-      <div class="frame-time" id="frameTime">Loading frames&hellip;</div>
+    <div class="bottombar collapsed" id="controlsCard">
+      <div class="compact-head">
+        <div class="compact-left">
+          <div class="compact-label">Timeline</div>
+          <div class="compact-note" id="timelineLabel">Latest frame</div>
+        </div>
+        <div class="compact-center">
+          <div class="frame-time" id="frameTime">Loading frames&hellip;</div>
+        </div>
+        <div class="compact-right">
+          <button class="btn icon-only collapse-btn" id="drawerToggleBtn" type="button" aria-label="Show or hide radar options" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        </div>
+      </div>
       <div class="timeline"><input id="timeline" type="range" min="0" max="0" value="0" step="1" /></div>
-      <div class="controls">
+      <div class="timeline-meta">
+        <div class="timeline-caption" id="timelineHint">Use the scrubber or play controls to step through frames.</div>
         <div class="controls-left">
           <button class="btn icon-only" id="prevBtn" type="button" aria-label="Previous radar frame">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20L9 12l10-8"/><path d="M5 19V5"/></svg>
@@ -182,10 +342,23 @@
           <button class="btn icon-only" id="nextBtn" type="button" aria-label="Next radar frame">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4l10 8-10 8"/><path d="M19 5v14"/></svg>
           </button>
-        </div>
-        <div class="controls-right">
-          <button class="btn" id="alertsBtn" type="button">Watch boxes</button>
           <button class="btn" id="latestBtn" type="button">Latest</button>
+        </div>
+      </div>
+      <div class="drawer hidden-drawer" id="controlsDrawer">
+        <div class="controls">
+          <div class="control-row">
+            <div class="controls-left">
+              <button class="btn is-active" id="radarBtn" type="button">Radar</button>
+              <button class="btn" id="windBtn" type="button">Wind</button>
+              <button class="btn" id="smoothBtn" type="button">Smooth</button>
+              <button class="btn" id="snowBtn" type="button">Winter precip</button>
+            </div>
+            <div class="controls-right">
+              <button class="btn is-subtle" id="severeAlertsBtn" type="button">Severe alerts</button>
+              <button class="btn is-subtle" id="allAlertsBtn" type="button">All NWS alerts</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -195,7 +368,6 @@
   <script>
     const STORAGE_KEY = "weather-location-v3";
     const DEFAULT_LOCATION = { lat: 33.95, lon: -84.55, label: "Marietta, GA" };
-    const PLACE = document.getElementById("radarPlace");
     const FRAME_TIME = document.getElementById("frameTime");
     const TIMELINE = document.getElementById("timeline");
     const PLAY_ICON = document.getElementById("playIcon");
@@ -203,9 +375,19 @@
     const PREV_BTN = document.getElementById("prevBtn");
     const NEXT_BTN = document.getElementById("nextBtn");
     const LATEST_BTN = document.getElementById("latestBtn");
-    const ALERTS_BTN = document.getElementById("alertsBtn");
     const REFRESH_BTN = document.getElementById("refreshRadarBtn");
     const RECENTER_BTN = document.getElementById("recenterBtn");
+    const RADAR_BTN = document.getElementById("radarBtn");
+    const WIND_BTN = document.getElementById("windBtn");
+    const SMOOTH_BTN = document.getElementById("smoothBtn");
+    const SNOW_BTN = document.getElementById("snowBtn");
+    const SEVERE_ALERTS_BTN = document.getElementById("severeAlertsBtn");
+    const ALL_ALERTS_BTN = document.getElementById("allAlertsBtn");
+    const TIMELINE_LABEL = document.getElementById("timelineLabel");
+    const TIMELINE_HINT = document.getElementById("timelineHint");
+    const CONTROLS_CARD = document.getElementById("controlsCard");
+    const CONTROLS_DRAWER = document.getElementById("controlsDrawer");
+    const DRAWER_TOGGLE_BTN = document.getElementById("drawerToggleBtn");
 
     const params = new URLSearchParams(window.location.search);
     function loadSavedLocation() {
@@ -221,20 +403,20 @@
       return DEFAULT_LOCATION;
     }
     const locationData = getLocation();
-    PLACE.textContent = locationData.label || "Saved location";
 
+    const STADIA_API_KEY = "";
     const map = L.map("map", { zoomControl: false, attributionControl: false }).setView([locationData.lat, locationData.lon], 7);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      subdomains: "abc"
-    }).addTo(map);
     map.createPane('radarPane');
     map.getPane('radarPane').style.zIndex = 450;
+    map.createPane('windPane');
+    map.getPane('windPane').style.zIndex = 460;
     map.createPane('alertsPane');
     map.getPane('alertsPane').style.zIndex = 470;
+    L.control.attribution({ position: "bottomleft", prefix: false }).addTo(map);
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    const RADAR_OPACITY = 0.72;
+    const RADAR_OPACITY = 0.74;
+    let pastFrames = [];
     let frames = [];
     let radarHost = "https://tilecache.rainviewer.com";
     let radarLayer = null;
@@ -242,10 +424,63 @@
     let playing = false;
     let timer = null;
     let swapToken = 0;
-    let alertsVisible = false;
     let alertsLayer = null;
+    let windLayer = L.layerGroup([], { pane: 'windPane' });
+    let radarVisible = true;
+    let windVisible = false;
+    let smoothRadar = false;
+    let snowColors = false;
+    let alertMode = "none";
+    let windRefreshToken = 0;
+    let windSamplePoints = [];
+    let windSampleData = null;
+    let baseLayer = null;
+    let usingFallbackBasemap = false;
 
-    function setStatus() {}
+    function createStadiaBasemap() {
+      const apiSuffix = STADIA_API_KEY ? `?api_key=${encodeURIComponent(STADIA_API_KEY)}` : "";
+      return L.tileLayer(`https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png${apiSuffix}`, {
+        maxZoom: 20,
+        detectRetina: true,
+        attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noreferrer">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noreferrer">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors'
+      });
+    }
+
+    function createOsmFallbackBasemap() {
+      return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors'
+      });
+    }
+
+    function canUseStadiaForCurrentHost() {
+      if (STADIA_API_KEY) return true;
+      const host = window.location.hostname || "";
+      return host === "bbuisson188.github.io";
+    }
+
+    function switchToFallbackBasemap() {
+      if (usingFallbackBasemap) return;
+      usingFallbackBasemap = true;
+      if (baseLayer && map.hasLayer(baseLayer)) map.removeLayer(baseLayer);
+      baseLayer = createOsmFallbackBasemap();
+      baseLayer.addTo(map);
+      TIMELINE_HINT.textContent = "Basemap fallback active. Stadia was unavailable for this session.";
+    }
+
+    function initBasemap() {
+      if (!canUseStadiaForCurrentHost()) {
+        switchToFallbackBasemap();
+        return;
+      }
+      baseLayer = createStadiaBasemap();
+      baseLayer.on('tileerror', () => {
+        switchToFallbackBasemap();
+      });
+      baseLayer.addTo(map);
+    }
+
+    initBasemap();
 
     function frameLabel(frame) {
       if (!frame?.time) return "No frame loaded";
@@ -253,8 +488,12 @@
       return d.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
     }
 
+    function currentOptionsCode() {
+      return `${smoothRadar ? 1 : 0}_${snowColors ? 1 : 0}`;
+    }
+
     function tileUrl(frame) {
-      return `${radarHost}${frame.path}/512/{z}/{x}/{y}/8/1_1.png`;
+      return `${radarHost}${frame.path}/512/{z}/{x}/{y}/2/${currentOptionsCode()}.png`;
     }
 
     function buildRadarLayer(frame, initialOpacity) {
@@ -275,18 +514,145 @@
       return layer;
     }
 
+    function updateAppearanceButtons() {
+      RADAR_BTN.classList.toggle('is-active', radarVisible);
+      RADAR_BTN.classList.toggle('is-subtle', !radarVisible);
+      WIND_BTN.classList.toggle('is-active', windVisible);
+      WIND_BTN.classList.toggle('is-subtle', !windVisible);
+      SMOOTH_BTN.classList.toggle('is-active', smoothRadar);
+      SNOW_BTN.classList.toggle('is-active', snowColors);
+    }
+
+    function buildWindSampleGrid() {
+      const bounds = map.getBounds();
+      const zoom = map.getZoom();
+      const cols = zoom >= 9 ? 5 : zoom >= 7 ? 4 : 3;
+      const rows = zoom >= 9 ? 4 : 3;
+      const latSpan = bounds.getNorth() - bounds.getSouth();
+      const lonSpan = bounds.getEast() - bounds.getWest();
+      const points = [];
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const lat = bounds.getNorth() - latSpan * ((row + 0.5) / rows);
+          const lon = bounds.getWest() + lonSpan * ((col + 0.5) / cols);
+          points.push({ lat: Number(lat.toFixed(4)), lon: Number(lon.toFixed(4)) });
+        }
+      }
+      return points;
+    }
+
+    function sampleGridKey(points) {
+      return points.map((point) => `${point.lat},${point.lon}`).join('|');
+    }
+
+    function nearestHourlyIndex(times, now) {
+      let bestIndex = 0;
+      let bestDiff = Number.POSITIVE_INFINITY;
+      for (let i = 0; i < times.length; i++) {
+        const diff = Math.abs(new Date(times[i]).getTime() - now.getTime());
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestIndex = i;
+        }
+      }
+      return bestIndex;
+    }
+
+    function windDirectionLabel(degrees) {
+      if (!Number.isFinite(degrees)) return "";
+      const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+      return dirs[Math.round((((degrees % 360) + 360) % 360) / 45) % 8];
+    }
+
+    function createWindIcon(speed, direction) {
+      const travelDirection = ((Number(direction) || 0) + 180) % 360;
+      const directionLabel = windDirectionLabel(Number(direction) || 0);
+      return L.divIcon({
+        className: '',
+        html: `<div class="wind-marker"><div class="wind-top"><div class="wind-arrow" style="transform: rotate(${travelDirection}deg);"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3l4 5h-3v8h-2V8H8z" fill="currentColor"/></svg></div><div class="wind-dir">${directionLabel}</div></div><div class="wind-speed">${Math.round(Number(speed) || 0)} mph</div></div>`,
+        iconSize: [54, 48],
+        iconAnchor: [27, 24]
+      });
+    }
+
+    function currentFrameDate() {
+      const frame = frames[animationIndex];
+      return frame?.time ? new Date(frame.time * 1000) : new Date();
+    }
+
+    function renderWindOverlayAt(referenceDate) {
+      if (!windVisible || !windSampleData || !windSamplePoints.length) return;
+      const locations = Array.isArray(windSampleData) ? windSampleData : [windSampleData];
+      windLayer.clearLayers();
+      locations.forEach((location, index) => {
+        const hourly = location?.hourly;
+        if (!hourly?.time?.length) return;
+        const windIndex = nearestHourlyIndex(hourly.time, referenceDate);
+        const speed = Number(hourly.wind_speed_10m?.[windIndex]) || 0;
+        const direction = Number(hourly.wind_direction_10m?.[windIndex]) || 0;
+        const point = windSamplePoints[index];
+        if (!point) return;
+        windLayer.addLayer(L.marker([point.lat, point.lon], {
+          pane: 'windPane',
+          interactive: false,
+          icon: createWindIcon(speed, direction)
+        }));
+      });
+      if (windVisible && !map.hasLayer(windLayer)) windLayer.addTo(map);
+    }
+
+    async function refreshWindOverlay(referenceDate = currentFrameDate()) {
+      if (!windVisible) return;
+      const points = buildWindSampleGrid();
+      const gridKey = sampleGridKey(points);
+      if (windSampleData && gridKey === sampleGridKey(windSamplePoints)) {
+        renderWindOverlayAt(referenceDate);
+        return;
+      }
+      const token = ++windRefreshToken;
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "auto";
+        const params = new URLSearchParams({
+          latitude: points.map((point) => point.lat).join(','),
+          longitude: points.map((point) => point.lon).join(','),
+          timezone: tz,
+          wind_speed_unit: 'mph',
+          past_days: '1',
+          forecast_days: '1',
+          hourly: 'wind_speed_10m,wind_direction_10m'
+        });
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error('Wind overlay unavailable');
+        const data = await res.json();
+        if (token !== windRefreshToken) return;
+        windSamplePoints = points;
+        windSampleData = data;
+        renderWindOverlayAt(referenceDate);
+      } catch (error) {
+        console.error(error);
+        windLayer.clearLayers();
+      }
+    }
+
     function renderFrame(index) {
       if (!frames.length) return;
       animationIndex = (index + frames.length) % frames.length;
       const frame = frames[animationIndex];
       TIMELINE.value = String(animationIndex);
       FRAME_TIME.textContent = frameLabel(frame);
+      TIMELINE_LABEL.textContent = `${animationIndex + 1} of ${frames.length}`;
+      TIMELINE_HINT.textContent = 'Use the scrubber or play controls to step through the last two hours.';
+      if (windVisible && windSampleData) renderWindOverlayAt(new Date(frame.time * 1000));
+      if (!radarVisible) return;
       const oldLayer = radarLayer;
       const token = ++swapToken;
       const nextLayer = buildRadarLayer(frame, 0).addTo(map);
 
       const finalizeSwap = () => {
-        if (token !== swapToken) return;
+        if (token !== swapToken) {
+          if (map.hasLayer(nextLayer)) map.removeLayer(nextLayer);
+          return;
+        }
         const nextContainer = nextLayer.getContainer();
         const oldContainer = oldLayer?.getContainer?.();
         if (nextContainer) nextContainer.style.transition = 'opacity 220ms linear';
@@ -295,7 +661,11 @@
         window.requestAnimationFrame(() => {
           nextLayer.setOpacity(RADAR_OPACITY);
           window.setTimeout(() => {
-            if (token !== swapToken || !oldLayer) {
+            if (token !== swapToken) {
+              if (map.hasLayer(nextLayer)) map.removeLayer(nextLayer);
+              return;
+            }
+            if (!oldLayer) {
               radarLayer = nextLayer;
               return;
             }
@@ -319,14 +689,36 @@
       PLAY_ICON.innerHTML = '<path d="M8 5v14l11-7z"/>';
     }
 
-    function styleAlertsButton() {
-      if (!ALERTS_BTN) return;
-      ALERTS_BTN.style.background = alertsVisible ? 'rgba(255,172,94,0.18)' : 'rgba(255,255,255,0.06)';
-      ALERTS_BTN.style.borderColor = alertsVisible ? 'rgba(255,172,94,0.45)' : 'var(--line)';
-      ALERTS_BTN.style.color = alertsVisible ? '#ffd7aa' : 'var(--text)';
+    function updateAlertButtons() {
+      SEVERE_ALERTS_BTN.classList.toggle('is-warn', alertMode === 'severe');
+      SEVERE_ALERTS_BTN.classList.toggle('is-subtle', alertMode !== 'severe');
+      ALL_ALERTS_BTN.classList.toggle('is-active', alertMode === 'all');
+      ALL_ALERTS_BTN.classList.toggle('is-subtle', alertMode !== 'all');
     }
 
-    async function loadWatchBoxes() {
+    function filterAlertFeatures(features, mode) {
+      if (mode === 'all') return features.filter((feature) => feature?.geometry);
+      if (mode !== 'severe') return [];
+      const severeEvents = new Set([
+        'Tornado Warning',
+        'Severe Thunderstorm Warning',
+        'Tornado Watch',
+        'Severe Thunderstorm Watch',
+        'Flash Flood Warning'
+      ]);
+      return features.filter((feature) => severeEvents.has(feature?.properties?.event) && feature?.geometry);
+    }
+
+    function alertStyle(feature) {
+      const event = feature?.properties?.event || '';
+      if (/Tornado Warning/i.test(event)) return { color: '#ff5b5b', fillColor: '#ff5b5b' };
+      if (/Severe Thunderstorm Warning/i.test(event)) return { color: '#ff9c42', fillColor: '#ff9c42' };
+      if (/Flash Flood Warning/i.test(event)) return { color: '#48b7ff', fillColor: '#48b7ff' };
+      if (/Watch/i.test(event)) return { color: '#ffd157', fillColor: '#ffd157' };
+      return { color: '#c0d5ff', fillColor: '#c0d5ff' };
+    }
+
+    async function loadAlerts() {
       try {
         const point = `${locationData.lat},${locationData.lon}`;
         const res = await fetch(`https://api.weather.gov/alerts/active?status=actual&message_type=alert&point=${encodeURIComponent(point)}`, {
@@ -335,49 +727,52 @@
         });
         if (!res.ok) throw new Error('Alerts API unavailable');
         const data = await res.json();
-        const features = (data.features || []).filter((feature) => {
-          const event = feature?.properties?.event || '';
-          return /watch/i.test(event) && feature?.geometry;
-        });
+        const features = filterAlertFeatures(data.features || [], alertMode);
         if (alertsLayer) {
           map.removeLayer(alertsLayer);
           alertsLayer = null;
         }
         alertsLayer = L.geoJSON({ type: 'FeatureCollection', features }, {
           pane: 'alertsPane',
-          style: () => ({
-            color: '#ffb45e',
-            weight: 2,
-            opacity: 0.95,
-            fillColor: '#ffb45e',
-            fillOpacity: 0.08
-          }),
+          style: (feature) => {
+            const colors = alertStyle(feature);
+            return {
+              color: colors.color,
+              weight: 2,
+              opacity: 0.95,
+              fillColor: colors.fillColor,
+              fillOpacity: 0.08
+            };
+          },
           onEachFeature: (feature, layer) => {
             const props = feature.properties || {};
-            const title = props.event || 'Watch';
+            const title = props.event || 'Alert';
             const headline = props.headline || '';
             const ends = props.ends ? new Date(props.ends).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : '';
             layer.bindPopup(`<strong>${title}</strong>${headline ? `<br>${headline}` : ''}${ends ? `<br>Ends ${ends}` : ''}`);
           }
         });
-        if (alertsVisible && features.length) alertsLayer.addTo(map);
-        ALERTS_BTN.textContent = features.length ? `Watch boxes (${features.length})` : 'Watch boxes';
+        if (alertMode !== 'none' && features.length) alertsLayer.addTo(map);
+        SEVERE_ALERTS_BTN.textContent = features.length && alertMode === 'severe' ? `Severe alerts (${features.length})` : 'Severe alerts';
+        ALL_ALERTS_BTN.textContent = features.length && alertMode === 'all' ? `All NWS alerts (${features.length})` : 'All NWS alerts';
       } catch (error) {
         console.error(error);
-        ALERTS_BTN.textContent = 'Watch boxes';
+        SEVERE_ALERTS_BTN.textContent = 'Severe alerts';
+        ALL_ALERTS_BTN.textContent = 'All NWS alerts';
       }
-      styleAlertsButton();
+      updateAlertButtons();
     }
 
-    function toggleWatchBoxes() {
-      alertsVisible = !alertsVisible;
-      if (alertsVisible) {
-        if (alertsLayer && alertsLayer.getLayers().length) alertsLayer.addTo(map);
-        else loadWatchBoxes();
-      } else if (alertsLayer && map.hasLayer(alertsLayer)) {
-        map.removeLayer(alertsLayer);
+    function setAlertMode(mode) {
+      alertMode = alertMode === mode ? 'none' : mode;
+      if (alertMode === 'none') {
+        if (alertsLayer && map.hasLayer(alertsLayer)) map.removeLayer(alertsLayer);
+        SEVERE_ALERTS_BTN.textContent = 'Severe alerts';
+        ALL_ALERTS_BTN.textContent = 'All NWS alerts';
+      } else {
+        loadAlerts();
       }
-      styleAlertsButton();
+      updateAlertButtons();
     }
 
     function startLoop() {
@@ -394,20 +789,49 @@
 
     async function loadRadarFrames() {
       stopLoop();
-      setStatus("Loading radar\u2026");
       try {
         const res = await fetch("https://api.rainviewer.com/public/weather-maps.json", { cache: "no-store" });
         if (!res.ok) throw new Error("Radar API unavailable");
         const data = await res.json();
         radarHost = data.host || "https://tilecache.rainviewer.com";
-        frames = Array.isArray(data.radar?.past) ? data.radar.past : [];
-        if (!frames.length) throw new Error("No radar frames available");
+        pastFrames = Array.isArray(data.radar?.past) ? data.radar.past : [];
+        if (!pastFrames.length) throw new Error("No radar frames available");
+        frames = pastFrames;
         TIMELINE.max = String(frames.length - 1);
+        updateAppearanceButtons();
         renderFrame(frames.length - 1);
       } catch (error) {
         console.error(error);
         FRAME_TIME.textContent = "Radar unavailable";
+        TIMELINE_HINT.textContent = 'RainViewer did not return usable frames.';
       }
+    }
+
+    function refreshActiveFrame() {
+      if (!frames.length) return;
+      swapToken++;
+      if (radarLayer && map.hasLayer(radarLayer)) {
+        map.removeLayer(radarLayer);
+        radarLayer = null;
+      }
+      if (radarVisible) renderFrame(animationIndex);
+    }
+
+    function setWindVisibility(nextVisible) {
+      windVisible = nextVisible;
+      updateAppearanceButtons();
+      if (windVisible) refreshWindOverlay(currentFrameDate());
+      else {
+        windSampleData = null;
+        windSamplePoints = [];
+        if (map.hasLayer(windLayer)) map.removeLayer(windLayer);
+      }
+    }
+
+    function toggleDrawer() {
+      const collapsed = CONTROLS_CARD.classList.toggle('collapsed');
+      CONTROLS_DRAWER.classList.toggle('hidden-drawer', collapsed);
+      DRAWER_TOGGLE_BTN.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
     }
 
     TIMELINE.addEventListener("input", () => {
@@ -418,13 +842,32 @@
     PREV_BTN.addEventListener("click", () => { stopLoop(); renderFrame(animationIndex - 1); });
     NEXT_BTN.addEventListener("click", () => { stopLoop(); renderFrame(animationIndex + 1); });
     LATEST_BTN.addEventListener("click", () => { stopLoop(); renderFrame(frames.length - 1); });
-    ALERTS_BTN.addEventListener("click", toggleWatchBoxes);
-    REFRESH_BTN.addEventListener("click", async () => { await loadRadarFrames(); if (alertsVisible) await loadWatchBoxes(); });
+    REFRESH_BTN.addEventListener("click", async () => { await loadRadarFrames(); if (alertMode !== 'none') await loadAlerts(); });
     RECENTER_BTN.addEventListener("click", () => map.setView([locationData.lat, locationData.lon], Math.max(map.getZoom(), 7)));
+    RADAR_BTN.addEventListener("click", () => {
+      radarVisible = !radarVisible;
+      updateAppearanceButtons();
+      refreshActiveFrame();
+    });
+    WIND_BTN.addEventListener("click", () => {
+      setWindVisibility(!windVisible);
+    });
+    SMOOTH_BTN.addEventListener("click", () => {
+      smoothRadar = !smoothRadar;
+      updateAppearanceButtons();
+      refreshActiveFrame();
+    });
+    SNOW_BTN.addEventListener("click", () => { snowColors = !snowColors; updateAppearanceButtons(); refreshActiveFrame(); });
+    SEVERE_ALERTS_BTN.addEventListener("click", () => setAlertMode('severe'));
+    ALL_ALERTS_BTN.addEventListener("click", () => setAlertMode('all'));
+    DRAWER_TOGGLE_BTN.addEventListener("click", toggleDrawer);
+    map.on('moveend zoomend', () => {
+      if (windVisible) refreshWindOverlay();
+    });
 
-    styleAlertsButton();
+    updateAppearanceButtons();
+    updateAlertButtons();
     loadRadarFrames();
-    loadWatchBoxes();
   </script>
 </body>
 </html>

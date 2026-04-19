@@ -589,7 +589,7 @@
     }
     async function getForecast(lat, lon) {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "auto";
-      const params = new URLSearchParams({ latitude: lat, longitude: lon, timezone: tz, temperature_unit: "fahrenheit", precipitation_unit: "inch", wind_speed_unit: "mph", current: "temperature_2m,weather_code,is_day", hourly: "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,precipitation,weather_code", daily: "sunrise,sunset,daylight_duration", forecast_days: "10" });
+      const params = new URLSearchParams({ latitude: lat, longitude: lon, timezone: tz, temperature_unit: "fahrenheit", precipitation_unit: "inch", wind_speed_unit: "mph", current: "temperature_2m,weather_code,is_day", hourly: "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m", daily: "sunrise,sunset,daylight_duration", forecast_days: "10" });
       const res = await fetch(`https://api.open-meteo.com/v1/gfs?${params.toString()}`); if (!res.ok) throw new Error("Forecast request failed");
       return res.json();
     }
@@ -616,6 +616,45 @@
     function renderHourly(times, temps, probs, codes, now) {
       const items = times.map((time, i) => ({ time, date: new Date(time), temp: temps[i], prob: Number(probs[i]) || 0, code: Number(codes[i]) || 0 })).filter((x) => x.date >= now).slice(0, 12);
       els.hourlyStrip.innerHTML = items.map((item) => { const isDay = item.date.getHours() >= 7 && item.date.getHours() <= 19; return `<div class="hour-card ${item.prob >= 40 ? 'is-wet' : ''}"><div class="hour-time">${formatHour(item.time)}</div><div class="hour-icon">${glyph(item.code, isDay, 24)}</div><div class="hour-temp">${Math.round(item.temp)}\u00B0</div><div class="hour-rain">${Math.round(item.prob)}%</div></div>`; }).join("");
+    }
+    function nearestHourlyIndex(times, now) {
+      let bestIndex = 0;
+      let bestDiff = Number.POSITIVE_INFINITY;
+      for (let i = 0; i < times.length; i++) {
+        const diff = Math.abs(new Date(times[i]).getTime() - now.getTime());
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestIndex = i;
+        }
+      }
+      return bestIndex;
+    }
+    function windDirectionLabel(degrees) {
+      if (!Number.isFinite(degrees)) return "";
+      const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+      return dirs[Math.round((((degrees % 360) + 360) % 360) / 45) % 8];
+    }
+    function summarizeWind(speed, gust, direction) {
+      const safeSpeed = Number(speed) || 0;
+      const safeGust = Number(gust) || 0;
+      const displayGust = safeGust > safeSpeed ? Math.round(safeGust) : 0;
+      let label = "";
+      if (safeSpeed >= 25 || displayGust >= 32) label = "Gusty";
+      else if (safeSpeed >= 16 || displayGust >= 24) label = "Windy";
+      else if (safeSpeed >= 10 || displayGust >= 18) label = "Breezy";
+      else if (safeSpeed >= 6 || displayGust >= 12) label = "Light breeze";
+      const dir = windDirectionLabel(direction);
+      if (!label) return { label: "", detail: "" };
+      if (label === "Light breeze") return { label, detail: "" };
+      const parts = [`${Math.round(safeSpeed)} mph`];
+      if (displayGust >= Math.round(safeSpeed) + 5) parts.push(`gusts ${displayGust}`);
+      if (dir && safeSpeed >= 10) parts.push(dir);
+      return { label, detail: parts.join(" ") };
+    }
+    function buildConditionLine(code, wind) {
+      const base = codeToLabel(Number(code));
+      if (!wind?.label) return base;
+      return wind.detail ? `${base} • ${wind.label} ${wind.detail}` : `${base} • ${wind.label}`;
     }
     function renderOutlookChart(hourly, daily) {
       const now = new Date();
@@ -752,14 +791,17 @@
       const now = new Date();
       const current = data.current, hourly = data.hourly, daily = data.daily;
       const hourlyItems = hourly.time.map((time, i) => ({ date: new Date(time), temp: Number(hourly.temperature_2m[i]), prob: Number(hourly.precipitation_probability[i]) || 0, code: Number(hourly.weather_code[i]) || 0 }));
+      const windIndex = nearestHourlyIndex(hourly.time, now);
+      const windSummary = summarizeWind(hourly.wind_speed_10m?.[windIndex], hourly.wind_gusts_10m?.[windIndex], hourly.wind_direction_10m?.[windIndex]);
       const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
       const tomorrowStart = new Date(todayStart); tomorrowStart.setDate(tomorrowStart.getDate() + 1);
       const todayNoon = new Date(todayStart); todayNoon.setHours(12, 0, 0, 0);
       const tomorrowNoon = new Date(tomorrowStart); tomorrowNoon.setHours(12, 0, 0, 0);
       const currentSunset = daily.sunset?.[0] ? new Date(daily.sunset[0]) : null;
-      const nextSunset = daily.sunset?.[1] ? new Date(daily.sunset[1]) : null;
-      const highWindowStart = currentSunset && now >= currentSunset ? currentSunset : todayStart;
-      const highWindowEnd = currentSunset && now < currentSunset ? currentSunset : (nextSunset || tomorrowStart);
+      const highBaseDay = new Date(todayStart);
+      if (currentSunset && now >= currentSunset) highBaseDay.setDate(highBaseDay.getDate() + 1);
+      const highWindowStart = new Date(highBaseDay); highWindowStart.setHours(5, 0, 0, 0);
+      const highWindowEnd = new Date(highBaseDay); highWindowEnd.setHours(23, 59, 59, 999);
       const highWindow = hourlyItems.filter((x) => x.date >= highWindowStart && x.date <= highWindowEnd);
       const lowWindowStart = now >= todayNoon ? todayNoon : todayStart;
       const lowWindowEnd = now >= todayNoon ? tomorrowNoon : todayNoon;
@@ -771,9 +813,9 @@
       els.placeName.textContent = placeLabel;
       els.currentTemp.textContent = formatTemp(current.temperature_2m);
       els.currentGlyph.innerHTML = glyph(Number(current.weather_code), Boolean(current.is_day), 32);
-      els.currentCondition.textContent = codeToLabel(Number(current.weather_code));
+      els.currentCondition.textContent = buildConditionLine(current.weather_code, windSummary);
       els.highValue.textContent = formatTemp(highTemp);
-      els.highSub.innerHTML = highPoint ? `${formatShortTime(highPoint.date)}${tomorrowLabel(highPoint.date, now) ? `<br>${tomorrowLabel(highPoint.date, now)}` : ""}` : "Later";
+      els.highSub.innerHTML = highPoint ? `${formatShortTime(highPoint.date)}${highBaseDay.getTime() > todayStart.getTime() ? `<br>Tomorrow` : ""}` : "Later";
       els.lowValue.textContent = formatTemp(lowTemp);
       els.lowSub.innerHTML = lowPoint ? `${formatShortTime(lowPoint.date)}${tomorrowLabel(lowPoint.date, now) ? `<br>${tomorrowLabel(lowPoint.date, now)}` : ""}` : "Later";
       els.rainLine.textContent = buildRainLine(hourly.time, hourly.precipitation_probability, now);
