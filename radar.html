@@ -97,6 +97,8 @@
       background: linear-gradient(180deg, rgba(14, 24, 41, 0.92), rgba(10, 18, 31, 0.88));
       border: 1px solid var(--line);
       box-shadow: var(--shadow);
+      position: relative;
+      z-index: 1000;
     }
     .topbar {
       position: absolute;
@@ -132,6 +134,8 @@
       font-weight: 700;
       text-decoration: none;
       box-shadow: var(--shadow-soft);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
       transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, color 160ms ease;
     }
     .btn:hover {
@@ -278,6 +282,7 @@
       font-size: 11px;
       font-weight: 700;
       pointer-events: auto;
+      z-index: 1000;
     }
     .credit a { color: inherit; }
     @media (max-width: 640px) {
@@ -447,7 +452,7 @@
 
     function createStadiaBasemap() {
       const apiSuffix = STADIA_API_KEY ? `?api_key=${encodeURIComponent(STADIA_API_KEY)}` : "";
-      return L.tileLayer(`https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png${apiSuffix}`, {
+      return L.tileLayer(`https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.png${apiSuffix}`, {
         maxZoom: 20,
         detectRetina: true,
         attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noreferrer">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noreferrer">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors'
@@ -482,6 +487,11 @@
     }
 
     initBasemap();
+    [document.querySelector('.topbar'), document.getElementById('controlsCard'), document.querySelector('.credit')].forEach((element) => {
+      if (!element) return;
+      L.DomEvent.disableClickPropagation(element);
+      L.DomEvent.disableScrollPropagation(element);
+    });
 
     function frameLabel(frame) {
       if (!frame?.time) return "No frame loaded";
