@@ -282,9 +282,15 @@
     .credit a { color: inherit; }
     @media (max-width: 640px) {
       .btnrow { width: 100%; flex-wrap: wrap; }
+      .topbar { right: 10px; }
+      #mapToggleBtn { flex: 1 1 auto; min-width: 112px; }
       .compact-head { gap: 8px; }
       .compact-left { gap: 6px; }
       .compact-label, .compact-note, .frame-time { font-size: 11px; }
+      .timeline-meta { gap: 8px; }
+      .timeline-caption { flex: 1 1 auto; max-width: 40%; font-size: 10px; }
+      .controls-left { flex-wrap: nowrap; justify-content: flex-end; }
+      #latestBtn { padding: 0 10px; }
       .control-row { align-items: flex-start; flex-direction: column; }
       .controls-left, .controls-right { width: 100%; }
       .credit { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 198px); }
@@ -309,6 +315,7 @@
         <button class="btn icon-only" id="refreshRadarBtn" type="button" aria-label="Refresh radar frames">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
         </button>
+        <button class="btn" id="mapToggleBtn" type="button" aria-label="Switch basemap">Map: Stadia</button>
       </div>
     </div>
 
@@ -376,6 +383,7 @@
     const NEXT_BTN = document.getElementById("nextBtn");
     const LATEST_BTN = document.getElementById("latestBtn");
     const REFRESH_BTN = document.getElementById("refreshRadarBtn");
+    const MAP_TOGGLE_BTN = document.getElementById("mapToggleBtn");
     const RECENTER_BTN = document.getElementById("recenterBtn");
     const RADAR_BTN = document.getElementById("radarBtn");
     const WIND_BTN = document.getElementById("windBtn");
@@ -404,7 +412,7 @@
     }
     const locationData = getLocation();
 
-    const STADIA_API_KEY = "";
+    const STADIA_API_KEY = "9871d525-26da-467e-9eda-430ce733d4f4";
     const map = L.map("map", { zoomControl: false, attributionControl: false }).setView([locationData.lat, locationData.lon], 7);
     map.createPane('radarPane');
     map.getPane('radarPane').style.zIndex = 450;
@@ -435,7 +443,7 @@
     let windSamplePoints = [];
     let windSampleData = null;
     let baseLayer = null;
-    let usingFallbackBasemap = false;
+    let activeBasemap = 'stadia';
 
     function createStadiaBasemap() {
       const apiSuffix = STADIA_API_KEY ? `?api_key=${encodeURIComponent(STADIA_API_KEY)}` : "";
@@ -453,31 +461,24 @@
       });
     }
 
-    function canUseStadiaForCurrentHost() {
-      if (STADIA_API_KEY) return true;
-      const host = window.location.hostname || "";
-      return host === "bbuisson188.github.io";
+    function updateMapToggleLabel() {
+      if (!MAP_TOGGLE_BTN) return;
+      MAP_TOGGLE_BTN.textContent = `Map: ${activeBasemap === 'stadia' ? 'Stadia' : 'OSM'}`;
     }
 
-    function switchToFallbackBasemap() {
-      if (usingFallbackBasemap) return;
-      usingFallbackBasemap = true;
+    function setBasemap(kind) {
+      activeBasemap = kind === 'osm' ? 'osm' : 'stadia';
       if (baseLayer && map.hasLayer(baseLayer)) map.removeLayer(baseLayer);
-      baseLayer = createOsmFallbackBasemap();
+      baseLayer = activeBasemap === 'stadia' ? createStadiaBasemap() : createOsmFallbackBasemap();
+      baseLayer.on('tileerror', () => {
+        if (activeBasemap === 'stadia') TIMELINE_HINT.textContent = "Stadia tile authentication failed. Use the Map button to switch to OSM.";
+      });
       baseLayer.addTo(map);
-      TIMELINE_HINT.textContent = "Basemap fallback active. Stadia was unavailable for this session.";
+      updateMapToggleLabel();
     }
 
     function initBasemap() {
-      if (!canUseStadiaForCurrentHost()) {
-        switchToFallbackBasemap();
-        return;
-      }
-      baseLayer = createStadiaBasemap();
-      baseLayer.on('tileerror', () => {
-        switchToFallbackBasemap();
-      });
-      baseLayer.addTo(map);
+      setBasemap('stadia');
     }
 
     initBasemap();
@@ -843,6 +844,9 @@
     NEXT_BTN.addEventListener("click", () => { stopLoop(); renderFrame(animationIndex + 1); });
     LATEST_BTN.addEventListener("click", () => { stopLoop(); renderFrame(frames.length - 1); });
     REFRESH_BTN.addEventListener("click", async () => { await loadRadarFrames(); if (alertMode !== 'none') await loadAlerts(); });
+    MAP_TOGGLE_BTN.addEventListener("click", () => {
+      setBasemap(activeBasemap === 'stadia' ? 'osm' : 'stadia');
+    });
     RECENTER_BTN.addEventListener("click", () => map.setView([locationData.lat, locationData.lon], Math.max(map.getZoom(), 7)));
     RADAR_BTN.addEventListener("click", () => {
       radarVisible = !radarVisible;
