@@ -607,6 +607,9 @@
       if ([95,96,99].includes(value)) return "storms";
       return "rain";
     }
+    function compactWeekdayLabel(date) {
+      return ["SUN", "MON", "TUE", "WED", "THURS", "FRI", "SAT"][date.getDay()] || "DAY";
+    }
     function precipTimeLabel(date, now) {
       const diffHours = (date.getTime() - now.getTime()) / (60 * 60 * 1000);
       if (diffHours < 1) return "now";
@@ -614,11 +617,11 @@
       const tomorrowStart = new Date(now); tomorrowStart.setHours(24, 0, 0, 0);
       const dayAfterStart = new Date(tomorrowStart); dayAfterStart.setDate(dayAfterStart.getDate() + 1);
       const hour = date.getHours();
-      const partOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "night";
+      const partOfDay = hour < 12 ? "MORN" : hour < 18 ? "DAY" : hour < 22 ? "EVE" : "night";
       if (date < tomorrowStart) return hour >= 18 ? "tonight" : `at ${formatHour(date)}`;
-      if (date < dayAfterStart) return `tomorrow ${partOfDay}`;
+      if (date < dayAfterStart) return `TMRW ${partOfDay}`;
       const daysAway = Math.round((new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / (24 * 60 * 60 * 1000));
-      if (daysAway <= 6) return `${date.toLocaleDateString([], { weekday: "long" })} ${partOfDay}`;
+      if (daysAway <= 6) return `${compactWeekdayLabel(date)} ${partOfDay}`;
       return `in ${daysAway} days`;
     }
     function buildRainLine(times, probs, codes, now) {
