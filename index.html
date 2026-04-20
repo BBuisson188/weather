@@ -618,7 +618,8 @@
       if (date < tomorrowStart) return hour >= 18 ? "tonight" : `at ${formatHour(date)}`;
       if (date < dayAfterStart) return `tomorrow ${partOfDay}`;
       const daysAway = Math.round((new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / (24 * 60 * 60 * 1000));
-      return daysAway <= 10 ? `in ${daysAway} days` : date.toLocaleDateString([], { weekday: "short" });
+      if (daysAway <= 6) return `${date.toLocaleDateString([], { weekday: "long" })} ${partOfDay}`;
+      return `in ${daysAway} days`;
     }
     function buildRainLine(times, probs, codes, now) {
       const future = times
