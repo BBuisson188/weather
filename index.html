@@ -190,6 +190,14 @@
     .current-temp { font-size: clamp(64px, 18vw, 84px); line-height: 0.9; letter-spacing: -0.07em; font-weight: 800; text-shadow: 0 0 22px rgba(125, 174, 255, 0.08); }
     .current-tools { display: inline-flex; align-items: center; gap: 10px; padding: 2px 0; }
     .condition { font-size: 16px; color: var(--muted); font-weight: 600; letter-spacing: -0.01em; }
+    .precip-line {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #d7e6ff;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      min-height: 18px;
+    }
     .trend-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px; position: relative; z-index: 1; }
     .mini-stat, .recap-card { background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); }
     .mini-stat { padding: 12px 12px 10px; text-align: center; background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04)); }
@@ -313,12 +321,12 @@
             </div>
           </div>
           <div class="condition" id="currentCondition">Fetching forecast</div>
+          <div class="precip-line" id="rainLine">Rain --</div>
           <div class="trend-row">
             <div class="mini-stat"><div class="mini-label">High</div><div class="mini-value" id="highValue">--&deg;</div><div class="mini-sub" id="highSub">Later</div></div>
             <div class="mini-stat"><div class="mini-label">Low</div><div class="mini-value" id="lowValue">--&deg;</div><div class="mini-sub" id="lowSub">Later</div></div>
           </div>
           <div class="meta-line">
-            <span id="rainLine">Rain --</span><span class="dot"></span>
             <span id="lightLine" class="light-line"><span>First light --  Rise --</span><span>Last light --  Set --</span></span>
           </div>
         </div>
@@ -608,7 +616,7 @@
       return "rain";
     }
     function compactWeekdayLabel(date) {
-      return ["SUN", "MON", "TUE", "WED", "THURS", "FRI", "SAT"][date.getDay()] || "DAY";
+      return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()] || "Day";
     }
     function precipTimeLabel(date, now) {
       const diffHours = (date.getTime() - now.getTime()) / (60 * 60 * 1000);
@@ -617,9 +625,9 @@
       const tomorrowStart = new Date(now); tomorrowStart.setHours(24, 0, 0, 0);
       const dayAfterStart = new Date(tomorrowStart); dayAfterStart.setDate(dayAfterStart.getDate() + 1);
       const hour = date.getHours();
-      const partOfDay = hour < 12 ? "MORN" : hour < 18 ? "DAY" : hour < 22 ? "EVE" : "night";
+      const partOfDay = hour < 12 ? "morn" : hour < 18 ? "day" : hour < 22 ? "eve" : "night";
       if (date < tomorrowStart) return hour >= 18 ? "tonight" : `at ${formatHour(date)}`;
-      if (date < dayAfterStart) return `TMRW ${partOfDay}`;
+      if (date < dayAfterStart) return `Tomorrow ${partOfDay}`;
       const daysAway = Math.round((new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / (24 * 60 * 60 * 1000));
       if (daysAway <= 6) return `${compactWeekdayLabel(date)} ${partOfDay}`;
       return `in ${daysAway} days`;
