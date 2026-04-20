@@ -600,22 +600,44 @@
       const res = await fetch(`https://archive-api.open-meteo.com/v1/archive?${params.toString()}`); if (!res.ok) throw new Error("History request failed");
       return res.json();
     }
-    function buildRainLine(times, probs, now) {
-      const next12 = times
-        .map((t, i) => ({ time: new Date(t), prob: Number(probs[i]) || 0 }))
-        .filter((x) => x.time >= now)
-        .slice(0, 12);
-      if (!next12.length) return "Rain --";
-      const max = next12.reduce((best, cur) => cur.prob > best.prob ? cur : best, next12[0]);
-      if (max.prob < 20) return "Dry next 12h";
-      if (max.prob >= 50) {
-        const idx = next12.findIndex((x) => x.prob >= 50); const firstStrong = next12[idx], next1 = next12[idx + 1], next2 = next12[idx + 2];
-        const strongRun = [firstStrong, next1, next2].filter(Boolean).filter(x => x.prob >= 50).length >= 2;
-        if (firstStrong && Math.abs(firstStrong.time - now) < 60 * 60 * 1000 && firstStrong.prob >= 50) return `Rain now ${Math.round(firstStrong.prob)}%`;
-        if (strongRun) return `Rain ${Math.round(max.prob)}% starting ${formatHour(firstStrong.time)}`;
-        return `Rain ${Math.round(max.prob)}% at ${formatHour(max.time)}`;
+    function precipTypeLabel(code) {
+      const value = Number(code) || 0;
+      if ([56,57,66,67].includes(value)) return "ice";
+      if ([71,73,75,77,85,86].includes(value)) return "snow";
+      if ([95,96,99].includes(value)) return "storms";
+      return "rain";
+    }
+    function precipTimeLabel(date, now) {
+      const diffHours = (date.getTime() - now.getTime()) / (60 * 60 * 1000);
+      if (diffHours < 1) return "now";
+      if (diffHours < 6) return `in ${Math.round(diffHours)}h`;
+      const tomorrowStart = new Date(now); tomorrowStart.setHours(24, 0, 0, 0);
+      const dayAfterStart = new Date(tomorrowStart); dayAfterStart.setDate(dayAfterStart.getDate() + 1);
+      const hour = date.getHours();
+      const partOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "night";
+      if (date < tomorrowStart) return hour >= 18 ? "tonight" : `at ${formatHour(date)}`;
+      if (date < dayAfterStart) return `tomorrow ${partOfDay}`;
+      const daysAway = Math.round((new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / (24 * 60 * 60 * 1000));
+      return daysAway <= 10 ? `in ${daysAway} days` : date.toLocaleDateString([], { weekday: "short" });
+    }
+    function buildRainLine(times, probs, codes, now) {
+      const future = times
+        .map((t, i) => ({ time: new Date(t), prob: Number(probs[i]) || 0, code: Number(codes[i]) || 0 }))
+        .filter((x) => x.time >= now);
+      if (!future.length) return "Precip --";
+      const next24 = future.slice(0, 24);
+      const meaningful24 = next24.find((item) => item.prob >= 20);
+      if (meaningful24) {
+        const type = precipTypeLabel(meaningful24.code);
+        const when = precipTimeLabel(meaningful24.time, now);
+        if (meaningful24.prob >= 60) return `${type[0].toUpperCase() + type.slice(1)} likely ${when}`;
+        if (meaningful24.prob >= 40) return `${Math.round(meaningful24.prob)}% chance of ${type} ${when}`;
+        return `Slight chance of ${type} ${when}`;
       }
-      return `Rain ${Math.round(max.prob)}% next 12h`;
+      const nextEvent = future.find((item) => item.prob >= 20);
+      if (!nextEvent) return "No precip for 10 days";
+      const nextType = precipTypeLabel(nextEvent.code);
+      return `Next ${nextType} ${precipTimeLabel(nextEvent.time, now)}`;
     }
     function renderHourly(times, temps, probs, codes, now) {
       const items = times.map((time, i) => ({ time, date: new Date(time), temp: temps[i], prob: Number(probs[i]) || 0, code: Number(codes[i]) || 0 })).filter((x) => x.date >= now).slice(0, 12);
@@ -822,7 +844,7 @@
       els.highSub.innerHTML = highPoint ? `${formatShortTime(highPoint.date)}${highBaseDay.getTime() > todayStart.getTime() ? `<br>Tomorrow` : ""}` : "Later";
       els.lowValue.textContent = formatTemp(lowTemp);
       els.lowSub.innerHTML = lowPoint ? `${formatShortTime(lowPoint.date)}${tomorrowLabel(lowPoint.date, now) ? `<br>${tomorrowLabel(lowPoint.date, now)}` : ""}` : "Later";
-      els.rainLine.textContent = buildRainLine(hourly.time, hourly.precipitation_probability, now);
+      els.rainLine.textContent = buildRainLine(hourly.time, hourly.precipitation_probability, hourly.weather_code, now);
       const sunrise = daily.sunrise?.[0], sunset = daily.sunset?.[0], firstLight = sunrise ? new Date(new Date(sunrise).getTime() - 30 * 60 * 1000) : null, lastLight = sunset ? new Date(new Date(sunset).getTime() + 30 * 60 * 1000) : null;
       els.lightLine.innerHTML = `<span>First light ${firstLight ? formatShortTime(firstLight) : '--'}&nbsp;&nbsp;Rise ${sunrise ? formatShortTime(sunrise) : '--'}</span><span>Last light ${lastLight ? formatShortTime(lastLight) : '--'}&nbsp;&nbsp;Set ${sunset ? formatShortTime(sunset) : '--'}</span>`;
       renderHourly(hourly.time, hourly.temperature_2m, hourly.precipitation_probability, hourly.weather_code, now);
