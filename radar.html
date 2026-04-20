@@ -852,6 +852,7 @@
     });
     BACK_BTN.addEventListener("click", (event) => {
       event.preventDefault();
+      stopLoop();
       window.location.href = BACK_BTN.href;
     });
     PLAY_BTN.addEventListener("click", toggleLoop);

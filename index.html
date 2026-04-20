@@ -601,17 +601,21 @@
       return res.json();
     }
     function buildRainLine(times, probs, now) {
-      const future = times.map((t, i) => ({ time: new Date(t), prob: Number(probs[i]) || 0 })).filter((x) => x.time >= now);
-      if (!future.length) return "Rain --";
-      const max = future.reduce((best, cur) => cur.prob > best.prob ? cur : best, future[0]);
+      const next12 = times
+        .map((t, i) => ({ time: new Date(t), prob: Number(probs[i]) || 0 }))
+        .filter((x) => x.time >= now)
+        .slice(0, 12);
+      if (!next12.length) return "Rain --";
+      const max = next12.reduce((best, cur) => cur.prob > best.prob ? cur : best, next12[0]);
+      if (max.prob < 20) return "Dry next 12h";
       if (max.prob >= 50) {
-        const idx = future.findIndex((x) => x.prob >= 50); const firstStrong = future[idx], next1 = future[idx + 1], next2 = future[idx + 2];
+        const idx = next12.findIndex((x) => x.prob >= 50); const firstStrong = next12[idx], next1 = next12[idx + 1], next2 = next12[idx + 2];
         const strongRun = [firstStrong, next1, next2].filter(Boolean).filter(x => x.prob >= 50).length >= 2;
         if (firstStrong && Math.abs(firstStrong.time - now) < 60 * 60 * 1000 && firstStrong.prob >= 50) return `Rain now ${Math.round(firstStrong.prob)}%`;
         if (strongRun) return `Rain ${Math.round(max.prob)}% starting ${formatHour(firstStrong.time)}`;
         return `Rain ${Math.round(max.prob)}% at ${formatHour(max.time)}`;
       }
-      return `Rain ${Math.round(max.prob)}% today`;
+      return `Rain ${Math.round(max.prob)}% next 12h`;
     }
     function renderHourly(times, temps, probs, codes, now) {
       const items = times.map((time, i) => ({ time, date: new Date(time), temp: temps[i], prob: Number(probs[i]) || 0, code: Number(codes[i]) || 0 })).filter((x) => x.date >= now).slice(0, 12);
