@@ -430,7 +430,7 @@
 
     function hasSavedLocation() { const saved = loadSavedLocation(); return Boolean(saved?.lat && saved?.lon); }
     function loadOutlookSeries() {
-      const defaults = { temp: true, feels: true, precip: true, humidity: true };
+      const defaults = { temp: true, feels: false, precip: true, humidity: false };
       try {
         const parsed = JSON.parse(localStorage.getItem(OUTLOOK_SERIES_KEY) || "null");
         return { ...defaults, ...(parsed && typeof parsed === "object" ? parsed : {}) };
