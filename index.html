@@ -632,24 +632,53 @@
       if (daysAway <= 6) return `${compactWeekdayLabel(date)} ${partOfDay}`;
       return `in ${daysAway} days`;
     }
-    function buildRainLine(times, probs, codes, now) {
+    function formatRainAmount(total) {
+      const amount = Number(total) || 0;
+      if (amount <= 0.01) return "trace";
+      if (amount < 0.1) return "<0.1 in";
+      if (amount < 1) return `${amount.toFixed(amount < 0.25 ? 2 : 1)} in`;
+      return `${amount.toFixed(1)} in`;
+    }
+    function buildNextPrecipEvent(items) {
+      const startIndex = items.findIndex((item) => item.prob >= 20 || item.amount >= 0.01);
+      if (startIndex < 0) return null;
+      let endIndex = startIndex;
+      let dryHours = 0;
+      for (let i = startIndex + 1; i < items.length; i++) {
+        const item = items[i];
+        const active = item.prob >= 20 || item.amount >= 0.01;
+        const lingering = item.prob >= 15 || item.amount > 0;
+        if (active || lingering) {
+          endIndex = i;
+          dryHours = 0;
+          continue;
+        }
+        dryHours += 1;
+        if (dryHours >= 2) break;
+        endIndex = i;
+      }
+      const eventItems = items.slice(startIndex, endIndex + 1);
+      const total = eventItems.reduce((sum, item) => sum + item.amount, 0);
+      const peakProb = eventItems.reduce((max, item) => Math.max(max, item.prob), 0);
+      const dominant = eventItems.reduce((best, item) => {
+        const strength = item.amount * 10 + item.prob / 100;
+        return strength >= best.strength ? { code: item.code, strength } : best;
+      }, { code: eventItems[0]?.code || 0, strength: -1 });
+      return { start: eventItems[0], total, peakProb, code: dominant.code };
+    }
+    function buildRainLine(times, probs, amounts, codes, now) {
       const future = times
-        .map((t, i) => ({ time: new Date(t), prob: Number(probs[i]) || 0, code: Number(codes[i]) || 0 }))
+        .map((t, i) => ({ time: new Date(t), prob: Number(probs[i]) || 0, amount: Number(amounts[i]) || 0, code: Number(codes[i]) || 0 }))
         .filter((x) => x.time >= now);
       if (!future.length) return "Precip --";
-      const next24 = future.slice(0, 24);
-      const meaningful24 = next24.find((item) => item.prob >= 20);
-      if (meaningful24) {
-        const type = precipTypeLabel(meaningful24.code);
-        const when = precipTimeLabel(meaningful24.time, now);
-        if (meaningful24.prob >= 60) return `${type[0].toUpperCase() + type.slice(1)} likely ${when}`;
-        if (meaningful24.prob >= 40) return `${Math.round(meaningful24.prob)}% chance of ${type} ${when}`;
-        return `Slight chance of ${type} ${when}`;
-      }
-      const nextEvent = future.find((item) => item.prob >= 20);
-      if (!nextEvent) return "No precip for 10 days";
-      const nextType = precipTypeLabel(nextEvent.code);
-      return `Next ${nextType} ${precipTimeLabel(nextEvent.time, now)}`;
+      const event = buildNextPrecipEvent(future);
+      if (!event) return "No precip for 10 days";
+      const type = precipTypeLabel(event.code);
+      const when = precipTimeLabel(event.start.time, now);
+      const amountLabel = formatRainAmount(event.total);
+      if (event.peakProb >= 60 || event.total >= 0.1) return `Next ${type} ${when}, ${amountLabel}`;
+      if (event.peakProb >= 40) return `${Math.round(event.peakProb)}% ${type} ${when}, ${amountLabel}`;
+      return `Slight ${type} ${when}, ${amountLabel}`;
     }
     function renderHourly(times, temps, probs, codes, now) {
       const items = times.map((time, i) => ({ time, date: new Date(time), temp: temps[i], prob: Number(probs[i]) || 0, code: Number(codes[i]) || 0 })).filter((x) => x.date >= now).slice(0, 12);
@@ -856,7 +885,7 @@
       els.highSub.innerHTML = highPoint ? `${formatShortTime(highPoint.date)}${highBaseDay.getTime() > todayStart.getTime() ? `<br>Tomorrow` : ""}` : "Later";
       els.lowValue.textContent = formatTemp(lowTemp);
       els.lowSub.innerHTML = lowPoint ? `${formatShortTime(lowPoint.date)}${tomorrowLabel(lowPoint.date, now) ? `<br>${tomorrowLabel(lowPoint.date, now)}` : ""}` : "Later";
-      els.rainLine.textContent = buildRainLine(hourly.time, hourly.precipitation_probability, hourly.weather_code, now);
+      els.rainLine.textContent = buildRainLine(hourly.time, hourly.precipitation_probability, hourly.precipitation, hourly.weather_code, now);
       const sunrise = daily.sunrise?.[0], sunset = daily.sunset?.[0], firstLight = sunrise ? new Date(new Date(sunrise).getTime() - 30 * 60 * 1000) : null, lastLight = sunset ? new Date(new Date(sunset).getTime() + 30 * 60 * 1000) : null;
       els.lightLine.innerHTML = `<span>First light ${firstLight ? formatShortTime(firstLight) : '--'}&nbsp;&nbsp;Rise ${sunrise ? formatShortTime(sunrise) : '--'}</span><span>Last light ${lastLight ? formatShortTime(lastLight) : '--'}&nbsp;&nbsp;Set ${sunset ? formatShortTime(sunset) : '--'}</span>`;
       renderHourly(hourly.time, hourly.temperature_2m, hourly.precipitation_probability, hourly.weather_code, now);
