@@ -423,6 +423,9 @@
     const STORAGE_KEY = "weather-location-v3";
     const RECENT_STORAGE_KEY = "weather-recent-locations-v1";
     const OUTLOOK_SERIES_KEY = "weather-outlook-series-v1";
+    const NWS_MAX_STATION_DISTANCE_MILES = 25;
+    const METERS_PER_MILE = 1609.344;
+    const MM_PER_INCH = 25.4;
     let activeLocation = null;
     let outlookInteraction = null;
     let latestOutlookData = null;
@@ -604,9 +607,104 @@
     async function getHistory(lat, lon) {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "auto";
       const today = new Date(); const start = new Date(today); start.setDate(start.getDate() - 7); const ymd = (d) => d.toISOString().slice(0, 10);
-      const params = new URLSearchParams({ latitude: lat, longitude: lon, timezone: tz, temperature_unit: "fahrenheit", precipitation_unit: "inch", start_date: ymd(start), end_date: ymd(today), hourly: "temperature_2m,precipitation" });
+      const params = new URLSearchParams({ latitude: lat, longitude: lon, timezone: tz, temperature_unit: "fahrenheit", start_date: ymd(start), end_date: ymd(today), hourly: "temperature_2m" });
       const res = await fetch(`https://archive-api.open-meteo.com/v1/archive?${params.toString()}`); if (!res.ok) throw new Error("History request failed");
       return res.json();
+    }
+    function milesFromMeters(value) {
+      const meters = Number(value);
+      return Number.isFinite(meters) ? meters / METERS_PER_MILE : Number.POSITIVE_INFINITY;
+    }
+    function inchesFromMm(value) {
+      const mm = Number(value);
+      if (!Number.isFinite(mm) || mm <= 0) return 0;
+      return mm / MM_PER_INCH;
+    }
+    function formatRecapRain(value) {
+      return Number.isFinite(value) ? `${value.toFixed(2)} in` : "--";
+    }
+    function rainObservationAmount(observation) {
+      const props = observation?.properties || {};
+      return inchesFromMm(props.precipitationLastHour?.value);
+    }
+    function nwsDateTime(date) {
+      return date.toISOString().replace(/\.\d{3}Z$/, "Z");
+    }
+    function summarizeObservedRain(observations, now = new Date()) {
+      const buckets = new Map();
+      observations.forEach((observation) => {
+        const timestamp = new Date(observation?.properties?.timestamp || "");
+        if (!Number.isFinite(timestamp.getTime())) return;
+        const key = timestamp.toISOString().slice(0, 13);
+        const amount = rainObservationAmount(observation);
+        const existing = buckets.get(key);
+        if (!existing || timestamp > existing.time || amount > existing.amount) {
+          buckets.set(key, { time: timestamp, amount: Math.max(amount, existing?.amount || 0) });
+        }
+      });
+      const values = Array.from(buckets.values()).filter((item) => item.time <= now);
+      const totalSince = (hours, minCoverage) => {
+        const start = new Date(now.getTime() - hours * 60 * 60 * 1000);
+        const items = values.filter((item) => item.time >= start);
+        if (items.length < minCoverage) return null;
+        return items.reduce((sum, item) => sum + item.amount, 0);
+      };
+      const rain24 = totalSince(24, 18);
+      const rain3d = totalSince(72, 48);
+      const rain7d = totalSince(168, 110);
+      if (![rain24, rain3d, rain7d].some(Number.isFinite)) return null;
+      return { rain24, rain3d, rain7d, coverageHours: values.length };
+    }
+    async function getStationObservations(stationId) {
+      const now = new Date();
+      const start = new Date(now.getTime() - 168 * 60 * 60 * 1000);
+      const params = new URLSearchParams({ start: nwsDateTime(start), end: nwsDateTime(now), limit: "500" });
+      let url = `https://api.weather.gov/stations/${encodeURIComponent(stationId)}/observations?${params.toString()}`;
+      const observations = [];
+      for (let page = 0; page < 6 && url; page++) {
+        const res = await fetch(url, { headers: { "Accept": "application/geo+json" } });
+        if (!res.ok) throw new Error("NWS observations request failed");
+        const data = await res.json();
+        observations.push(...(Array.isArray(data.features) ? data.features : []));
+        url = data.pagination?.next || "";
+      }
+      return observations;
+    }
+    async function getObservedRain(lat, lon) {
+      try {
+        const pointRes = await fetch(`https://api.weather.gov/points/${Number(lat).toFixed(4)},${Number(lon).toFixed(4)}`, { headers: { "Accept": "application/geo+json" } });
+        if (!pointRes.ok) return null;
+        const point = await pointRes.json();
+        const stationsUrl = point.properties?.observationStations;
+        if (!stationsUrl) return null;
+        const stationsRes = await fetch(stationsUrl, { headers: { "Accept": "application/geo+json" } });
+        if (!stationsRes.ok) return null;
+        const stationsData = await stationsRes.json();
+        const stations = (Array.isArray(stationsData.features) ? stationsData.features : [])
+          .map((station) => {
+            const props = station.properties || {};
+            return {
+              id: props.stationIdentifier,
+              name: props.name || props.stationIdentifier,
+              distanceMiles: milesFromMeters(props.distance?.value)
+            };
+          })
+          .filter((station) => station.id && station.distanceMiles <= NWS_MAX_STATION_DISTANCE_MILES)
+          .sort((a, b) => a.distanceMiles - b.distanceMiles)
+          .slice(0, 5);
+        for (const station of stations) {
+          try {
+            const observations = await getStationObservations(station.id);
+            const summary = summarizeObservedRain(observations);
+            if (summary) return { ...summary, station };
+          } catch (error) {
+            console.warn(error);
+          }
+        }
+      } catch (error) {
+        console.warn(error);
+      }
+      return null;
     }
     function precipTypeLabel(code) {
       const value = Number(code) || 0;
@@ -892,18 +990,25 @@
       latestOutlookData = { hourly, daily };
       renderOutlookChart(hourly, daily);
     }
-    function renderHistory(data) {
-      const times = data.hourly.time.map((t) => new Date(t)), rain = data.hourly.precipitation.map(Number), temp = data.hourly.temperature_2m.map(Number), now = new Date();
-      const last24Start = new Date(now.getTime() - 24 * 60 * 60 * 1000), last3Start = new Date(now.getTime() - 72 * 60 * 60 * 1000), last7Start = new Date(now.getTime() - 168 * 60 * 60 * 1000); let sum24 = 0, sum3 = 0, sum7 = 0;
-      for (let i = 0; i < times.length; i++) { if (times[i] >= last24Start) sum24 += rain[i] || 0; if (times[i] >= last3Start) sum3 += rain[i] || 0; if (times[i] >= last7Start) sum7 += rain[i] || 0; }
+    function renderHistory(data, observedRain) {
+      const times = data.hourly.time.map((t) => new Date(t)), temp = data.hourly.temperature_2m.map(Number), now = new Date();
       const midnight = new Date(now); midnight.setHours(0,0,0,0); const overnightStart = new Date(midnight.getTime() - 8 * 60 * 60 * 1000), overnightTemps = times.map((t, i) => ({ t, temp: temp[i] })).filter(x => x.t >= overnightStart && x.t < midnight); const freezeCount = overnightTemps.filter(x => x.temp < 32).length;
-      els.rain24.textContent = `${sum24.toFixed(2)} in`; els.rain3d.textContent = `${sum3.toFixed(2)} in`; els.rain7d.textContent = `${sum7.toFixed(2)} in`; els.freezeHours.textContent = `${freezeCount.toFixed(1)} h`;
+      els.rain24.textContent = formatRecapRain(observedRain?.rain24);
+      els.rain3d.textContent = formatRecapRain(observedRain?.rain3d);
+      els.rain7d.textContent = formatRecapRain(observedRain?.rain7d);
+      els.freezeHours.textContent = `${freezeCount.toFixed(1)} h`;
     }
     async function loadWeather(location, forceFresh = false) {
       try {
         if (!location?.lat || !location?.lon) { setStatus("Use your location or enter a ZIP to get started."); showOnboarding(); return; }
         activeLocation = location; updateRadarLink(location); setStatus(forceFresh ? "Refreshing weather\u2026" : "Updating weather\u2026"); els.placeName.textContent = location.label || "Loading\u2026";
-        const [forecast, history] = await Promise.all([getForecast(location.lat, location.lon), getHistory(location.lat, location.lon)]); renderForecast(forecast, location.label || `Near ${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}`); renderHistory(history); setStatus(forceFresh ? "Refreshed" : "Updated", "ok");
+        const [forecast, history] = await Promise.all([getForecast(location.lat, location.lon), getHistory(location.lat, location.lon)]);
+        renderForecast(forecast, location.label || `Near ${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}`);
+        renderHistory(history, null);
+        setStatus(forceFresh ? "Refreshed" : "Updated", "ok");
+        getObservedRain(location.lat, location.lon).then((observedRain) => {
+          if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, observedRain);
+        });
       } catch (error) { console.error(error); setStatus("Could not load weather data.", "error"); els.currentCondition.textContent = "Weather unavailable"; }
     }
     async function refreshCurrentWeather() { const saved = activeLocation || loadSavedLocation(); if (!saved?.lat || !saved?.lon) { setStatus("No saved location yet.", "error"); showOnboarding(); return; } resetPanels(); await loadWeather(saved, true); }
