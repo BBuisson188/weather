@@ -1034,11 +1034,16 @@
       const card = els.freezeHours.closest(".recap-card");
       const label = card?.querySelector(".recap-label");
       const sub = card?.querySelector(".recap-sub");
-      if (!hasRecentFreeze && pollen) {
-        const trendText = pollen.trend === "better" ? "falling tomorrow" : pollen.trend === "worse" ? "rising tomorrow" : "steady tomorrow";
+      if (!hasRecentFreeze) {
         if (label) label.textContent = "Pollen";
-        els.freezeHours.innerHTML = `<span class="pollen-value">${pollen.category || pollen.value}${pollenTrendMarkup(pollen.trend)}</span>`;
-        if (sub) sub.textContent = `${pollen.name} pollen, ${trendText}`;
+        if (pollen) {
+          const trendText = pollen.trend === "better" ? "falling tomorrow" : pollen.trend === "worse" ? "rising tomorrow" : "steady tomorrow";
+          els.freezeHours.innerHTML = `<span class="pollen-value">${pollen.category || pollen.value}${pollenTrendMarkup(pollen.trend)}</span>`;
+          if (sub) sub.textContent = `${pollen.name} pollen, ${trendText}`;
+        } else {
+          els.freezeHours.textContent = "--";
+          if (sub) sub.textContent = pollenApiKey() ? "Pollen unavailable" : "Pollen forecast not configured";
+        }
         return;
       }
       if (label) label.textContent = "Freeze last night";
