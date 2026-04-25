@@ -242,6 +242,11 @@
     .recap-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.11em; font-weight: 800; color: var(--muted); margin-bottom: 4px; }
     .recap-value { font-size: 28px; letter-spacing: -0.05em; font-weight: 800; margin-bottom: 4px; }
     .recap-sub { font-size: 13px; color: var(--muted); font-weight: 600; }
+    .pollen-value { display: inline-flex; align-items: center; gap: 7px; letter-spacing: -0.04em; }
+    .pollen-arrow { font-size: 18px; line-height: 1; }
+    .pollen-arrow.is-better { color: #75f0a4; }
+    .pollen-arrow.is-worse { color: #ff7d7d; }
+    .pollen-arrow.is-steady { color: var(--muted); font-size: 15px; }
     input { width: 100%; border: 1px solid var(--line-strong); outline: none; height: 42px; border-radius: 16px; padding: 0 14px; font: inherit; color: var(--text); background: rgba(255,255,255,0.06); }
     input::placeholder { color: #8ea2c2; }
     .helper { font-size: 12px; color: var(--muted); line-height: 1.45; font-weight: 600; }
@@ -423,6 +428,8 @@
     const STORAGE_KEY = "weather-location-v3";
     const RECENT_STORAGE_KEY = "weather-recent-locations-v1";
     const OUTLOOK_SERIES_KEY = "weather-outlook-series-v1";
+    const POLLEN_API_KEY_STORAGE = "weather-google-pollen-key-v1";
+    const GOOGLE_POLLEN_API_KEY = "";
     const NWS_MAX_STATION_DISTANCE_MILES = 25;
     const METERS_PER_MILE = 1609.344;
     const MM_PER_INCH = 25.4;
@@ -604,9 +611,37 @@
       const res = await fetch(`https://api.open-meteo.com/v1/gfs?${params.toString()}`); if (!res.ok) throw new Error("Forecast request failed");
       return res.json();
     }
+    function pollenApiKey() {
+      return GOOGLE_POLLEN_API_KEY || localStorage.getItem(POLLEN_API_KEY_STORAGE) || "";
+    }
+    async function getPollenForecast(lat, lon) {
+      const key = pollenApiKey();
+      if (!key) return null;
+      const params = new URLSearchParams({ key, days: "3", plantsDescription: "0", pageSize: "3" });
+      params.set("location.latitude", String(lat));
+      params.set("location.longitude", String(lon));
+      const res = await fetch(`https://pollen.googleapis.com/v1/forecast:lookup?${params.toString()}`);
+      if (!res.ok) throw new Error("Pollen request failed");
+      return summarizePollen(await res.json());
+    }
+    function summarizePollen(data) {
+      const days = Array.isArray(data?.dailyInfo) ? data.dailyInfo : [];
+      const pick = (day) => {
+        const items = (day?.pollenTypeInfo || [])
+          .map((item) => ({ name: item.displayName || item.code || "Pollen", value: Number(item.indexInfo?.value), category: item.indexInfo?.category || "" }))
+          .filter((item) => Number.isFinite(item.value));
+        return items.sort((a, b) => b.value - a.value)[0] || null;
+      };
+      const today = pick(days[0]);
+      if (!today) return null;
+      const tomorrow = pick(days[1]);
+      const delta = tomorrow ? tomorrow.value - today.value : 0;
+      const trend = delta > 0 ? "worse" : delta < 0 ? "better" : "steady";
+      return { ...today, trend };
+    }
     async function getHistory(lat, lon) {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "auto";
-      const today = new Date(); const start = new Date(today); start.setDate(start.getDate() - 7); const ymd = (d) => d.toISOString().slice(0, 10);
+      const today = new Date(); const start = new Date(today); start.setDate(start.getDate() - 10); const ymd = (d) => d.toISOString().slice(0, 10);
       const params = new URLSearchParams({ latitude: lat, longitude: lon, timezone: tz, temperature_unit: "fahrenheit", start_date: ymd(start), end_date: ymd(today), hourly: "temperature_2m" });
       const res = await fetch(`https://archive-api.open-meteo.com/v1/archive?${params.toString()}`); if (!res.ok) throw new Error("History request failed");
       return res.json();
@@ -990,13 +1025,35 @@
       latestOutlookData = { hourly, daily };
       renderOutlookChart(hourly, daily);
     }
-    function renderHistory(data, observedRain) {
+    function pollenTrendMarkup(trend) {
+      if (trend === "better") return `<span class="pollen-arrow is-better">↓</span>`;
+      if (trend === "worse") return `<span class="pollen-arrow is-worse">↑</span>`;
+      return `<span class="pollen-arrow is-steady">→</span>`;
+    }
+    function renderSeasonalRecap(freezeCount, hasRecentFreeze, pollen) {
+      const card = els.freezeHours.closest(".recap-card");
+      const label = card?.querySelector(".recap-label");
+      const sub = card?.querySelector(".recap-sub");
+      if (!hasRecentFreeze && pollen) {
+        const trendText = pollen.trend === "better" ? "falling tomorrow" : pollen.trend === "worse" ? "rising tomorrow" : "steady tomorrow";
+        if (label) label.textContent = "Pollen";
+        els.freezeHours.innerHTML = `<span class="pollen-value">${pollen.category || pollen.value}${pollenTrendMarkup(pollen.trend)}</span>`;
+        if (sub) sub.textContent = `${pollen.name} pollen, ${trendText}`;
+        return;
+      }
+      if (label) label.textContent = "Freeze last night";
+      els.freezeHours.textContent = `${freezeCount.toFixed(1)} h`;
+      if (sub) sub.textContent = "Hours below 32 overnight";
+    }
+    function renderHistory(data, observedRain, pollen) {
       const times = data.hourly.time.map((t) => new Date(t)), temp = data.hourly.temperature_2m.map(Number), now = new Date();
+      const recentFreezeStart = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+      const hasRecentFreeze = times.some((t, i) => t >= recentFreezeStart && Number(temp[i]) < 32);
       const midnight = new Date(now); midnight.setHours(0,0,0,0); const overnightStart = new Date(midnight.getTime() - 8 * 60 * 60 * 1000), overnightTemps = times.map((t, i) => ({ t, temp: temp[i] })).filter(x => x.t >= overnightStart && x.t < midnight); const freezeCount = overnightTemps.filter(x => x.temp < 32).length;
       els.rain24.textContent = formatRecapRain(observedRain?.rain24);
       els.rain3d.textContent = formatRecapRain(observedRain?.rain3d);
       els.rain7d.textContent = formatRecapRain(observedRain?.rain7d);
-      els.freezeHours.textContent = `${freezeCount.toFixed(1)} h`;
+      renderSeasonalRecap(freezeCount, hasRecentFreeze, pollen);
     }
     async function loadWeather(location, forceFresh = false) {
       try {
@@ -1004,10 +1061,18 @@
         activeLocation = location; updateRadarLink(location); setStatus(forceFresh ? "Refreshing weather\u2026" : "Updating weather\u2026"); els.placeName.textContent = location.label || "Loading\u2026";
         const [forecast, history] = await Promise.all([getForecast(location.lat, location.lon), getHistory(location.lat, location.lon)]);
         renderForecast(forecast, location.label || `Near ${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}`);
-        renderHistory(history, null);
+        const recapState = { observedRain: null, pollen: null };
+        renderHistory(history, recapState.observedRain, recapState.pollen);
         setStatus(forceFresh ? "Refreshed" : "Updated", "ok");
         getObservedRain(location.lat, location.lon).then((observedRain) => {
-          if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, observedRain);
+          recapState.observedRain = observedRain;
+          if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, recapState.observedRain, recapState.pollen);
+        });
+        getPollenForecast(location.lat, location.lon).then((pollen) => {
+          recapState.pollen = pollen;
+          if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, recapState.observedRain, recapState.pollen);
+        }).catch((error) => {
+          console.warn(error);
         });
       } catch (error) { console.error(error); setStatus("Could not load weather data.", "error"); els.currentCondition.textContent = "Weather unavailable"; }
     }
