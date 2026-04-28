@@ -662,6 +662,28 @@
       const props = observation?.properties || {};
       return inchesFromMm(props.precipitationLastHour?.value);
     }
+    function inchesFromQuantity(qpf) {
+      const quantity = Number(qpf?.quantity);
+      if (!Number.isFinite(quantity) || quantity <= 0) return 0;
+      const unit = String(qpf?.unit || "").toUpperCase();
+      return unit.includes("MILLI") ? quantity / MM_PER_INCH : quantity;
+    }
+    async function getGoogleObservedRain(lat, lon) {
+      const key = pollenApiKey();
+      if (!key) return null;
+      const params = new URLSearchParams({ key, unitsSystem: "IMPERIAL" });
+      params.set("location.latitude", String(lat));
+      params.set("location.longitude", String(lon));
+      const res = await fetch(`https://weather.googleapis.com/v1/currentConditions:lookup?${params.toString()}`);
+      if (!res.ok) throw new Error("Google Weather rain unavailable");
+      const data = await res.json();
+      return {
+        rain24: inchesFromQuantity(data.currentConditionsHistory?.qpf),
+        rain3d: null,
+        rain7d: null,
+        source: "google-weather"
+      };
+    }
     function nwsDateTime(date) {
       return date.toISOString().replace(/\.\d{3}Z$/, "Z");
     }
@@ -707,39 +729,11 @@
     }
     async function getObservedRain(lat, lon) {
       try {
-        const pointRes = await fetch(`https://api.weather.gov/points/${Number(lat).toFixed(4)},${Number(lon).toFixed(4)}`, { headers: { "Accept": "application/geo+json" } });
-        if (!pointRes.ok) return null;
-        const point = await pointRes.json();
-        const stationsUrl = point.properties?.observationStations;
-        if (!stationsUrl) return null;
-        const stationsRes = await fetch(stationsUrl, { headers: { "Accept": "application/geo+json" } });
-        if (!stationsRes.ok) return null;
-        const stationsData = await stationsRes.json();
-        const stations = (Array.isArray(stationsData.features) ? stationsData.features : [])
-          .map((station) => {
-            const props = station.properties || {};
-            return {
-              id: props.stationIdentifier,
-              name: props.name || props.stationIdentifier,
-              distanceMiles: milesFromMeters(props.distance?.value)
-            };
-          })
-          .filter((station) => station.id && station.distanceMiles <= NWS_MAX_STATION_DISTANCE_MILES)
-          .sort((a, b) => a.distanceMiles - b.distanceMiles)
-          .slice(0, 5);
-        for (const station of stations) {
-          try {
-            const observations = await getStationObservations(station.id);
-            const summary = summarizeObservedRain(observations);
-            if (summary) return { ...summary, station };
-          } catch (error) {
-            console.warn(error);
-          }
-        }
+        return await getGoogleObservedRain(lat, lon);
       } catch (error) {
         console.warn(error);
+        return null;
       }
-      return null;
     }
     function precipTypeLabel(code) {
       const value = Number(code) || 0;
