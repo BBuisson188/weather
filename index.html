@@ -1050,14 +1050,14 @@
       els.freezeHours.textContent = `${freezeCount.toFixed(1)} h`;
       if (sub) sub.textContent = "Hours below 32 overnight";
     }
-    function renderHistory(data, observedRain, pollen) {
+    function renderHistory(data, observedRain, pollen, rainLoading = false) {
       const times = data.hourly.time.map((t) => new Date(t)), temp = data.hourly.temperature_2m.map(Number), now = new Date();
       const recentFreezeStart = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
       const hasRecentFreeze = times.some((t, i) => t >= recentFreezeStart && Number(temp[i]) < 32);
       const midnight = new Date(now); midnight.setHours(0,0,0,0); const overnightStart = new Date(midnight.getTime() - 8 * 60 * 60 * 1000), overnightTemps = times.map((t, i) => ({ t, temp: temp[i] })).filter(x => x.t >= overnightStart && x.t < midnight); const freezeCount = overnightTemps.filter(x => x.temp < 32).length;
-      els.rain24.textContent = formatRecapRain(observedRain?.rain24);
-      els.rain3d.textContent = formatRecapRain(observedRain?.rain3d);
-      els.rain7d.textContent = formatRecapRain(observedRain?.rain7d);
+      els.rain24.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain24);
+      els.rain3d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain3d);
+      els.rain7d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain7d);
       renderSeasonalRecap(freezeCount, hasRecentFreeze, pollen);
     }
     async function loadWeather(location, forceFresh = false) {
@@ -1066,16 +1066,21 @@
         activeLocation = location; updateRadarLink(location); setStatus(forceFresh ? "Refreshing weather\u2026" : "Updating weather\u2026"); els.placeName.textContent = location.label || "Loading\u2026";
         const [forecast, history] = await Promise.all([getForecast(location.lat, location.lon), getHistory(location.lat, location.lon)]);
         renderForecast(forecast, location.label || `Near ${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}`);
-        const recapState = { observedRain: null, pollen: null };
-        renderHistory(history, recapState.observedRain, recapState.pollen);
+        const recapState = { observedRain: null, pollen: null, rainLoading: true };
+        renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
         setStatus(forceFresh ? "Refreshed" : "Updated", "ok");
         getObservedRain(location.lat, location.lon).then((observedRain) => {
           recapState.observedRain = observedRain;
-          if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, recapState.observedRain, recapState.pollen);
+          recapState.rainLoading = false;
+          if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
+        }).catch((error) => {
+          console.warn(error);
+          recapState.rainLoading = false;
+          if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
         });
         getPollenForecast(location.lat, location.lon).then((pollen) => {
           recapState.pollen = pollen;
-          if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, recapState.observedRain, recapState.pollen);
+          if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
         }).catch((error) => {
           console.warn(error);
         });
