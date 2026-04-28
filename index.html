@@ -379,8 +379,8 @@
         <div class="section-head"><div class="section-title">Quick recap</div><div class="section-note">Recent conditions</div></div>
         <div class="grid-2">
           <div class="recap-card"><div class="recap-label">Rain 24h</div><div class="recap-value" id="rain24">--</div><div class="recap-sub">Accumulated precipitation</div></div>
-          <div class="recap-card"><div class="recap-label">Rain 3d</div><div class="recap-value" id="rain3d">--</div><div class="recap-sub">Accumulated precipitation</div></div>
-          <div class="recap-card"><div class="recap-label">Rain 7d</div><div class="recap-value" id="rain7d">--</div><div class="recap-sub">Accumulated precipitation</div></div>
+          <div class="recap-card"><div class="recap-label">Rain 3d</div><div class="recap-value" id="rain3d">--</div><div class="recap-sub">Needs history source</div></div>
+          <div class="recap-card"><div class="recap-label">Rain 7d</div><div class="recap-value" id="rain7d">--</div><div class="recap-sub">Needs history source</div></div>
           <div class="recap-card"><div class="recap-label">Freeze last night</div><div class="recap-value" id="freezeHours">--</div><div class="recap-sub">Hours below 32° overnight</div></div>
         </div>
       </section>
@@ -1050,8 +1050,8 @@
       const hasRecentFreeze = times.some((t, i) => t >= recentFreezeStart && Number(temp[i]) < 32);
       const midnight = new Date(now); midnight.setHours(0,0,0,0); const overnightStart = new Date(midnight.getTime() - 8 * 60 * 60 * 1000), overnightTemps = times.map((t, i) => ({ t, temp: temp[i] })).filter(x => x.t >= overnightStart && x.t < midnight); const freezeCount = overnightTemps.filter(x => x.temp < 32).length;
       els.rain24.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain24);
-      els.rain3d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain3d);
-      els.rain7d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain7d);
+      els.rain3d.textContent = "--";
+      els.rain7d.textContent = "--";
       renderSeasonalRecap(freezeCount, hasRecentFreeze, pollen);
     }
     async function loadWeather(location, forceFresh = false) {
