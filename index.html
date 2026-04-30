@@ -379,8 +379,8 @@
         <div class="section-head"><div class="section-title">Quick recap</div><div class="section-note">Recent conditions</div></div>
         <div class="grid-2">
           <div class="recap-card"><div class="recap-label">Rain 24h</div><div class="recap-value" id="rain24">--</div><div class="recap-sub">Accumulated precipitation</div></div>
-          <div class="recap-card"><div class="recap-label">Rain 3d</div><div class="recap-value" id="rain3d">--</div><div class="recap-sub">Needs history source</div></div>
-          <div class="recap-card"><div class="recap-label">Rain 7d</div><div class="recap-value" id="rain7d">--</div><div class="recap-sub">Needs history source</div></div>
+          <div class="recap-card"><div class="recap-label">Rain 3d</div><div class="recap-value" id="rain3d">--</div><div class="recap-sub">Daily observed total</div></div>
+          <div class="recap-card"><div class="recap-label">Rain 7d</div><div class="recap-value" id="rain7d">--</div><div class="recap-sub">Daily observed total</div></div>
           <div class="recap-card"><div class="recap-label">Freeze last night</div><div class="recap-value" id="freezeHours">--</div><div class="recap-sub">Hours below 32° overnight</div></div>
         </div>
       </section>
@@ -430,6 +430,7 @@
     const OUTLOOK_SERIES_KEY = "weather-outlook-series-v1";
     const POLLEN_API_KEY_STORAGE = "weather-google-pollen-key-v1";
     const GOOGLE_POLLEN_API_KEY = "AIzaSyDvi2i_SmPm5lwa9WNJVP0lifkW8c3Aik8";
+    const VISUAL_CROSSING_API_KEY = "2X477MLGHNP262WUPP74HXM8D";
     const NWS_MAX_STATION_DISTANCE_MILES = 25;
     const METERS_PER_MILE = 1609.344;
     const MM_PER_INCH = 25.4;
@@ -684,6 +685,23 @@
         source: "google-weather"
       };
     }
+    async function getVisualCrossingRain(lat, lon) {
+      if (!VISUAL_CROSSING_API_KEY) return null;
+      const today = new Date();
+      const start = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const ymd = (d) => d.toISOString().slice(0, 10);
+      const location = `${Number(lat).toFixed(4)},${Number(lon).toFixed(4)}`;
+      const params = new URLSearchParams({ unitGroup: "us", include: "days", elements: "datetime,precip", key: VISUAL_CROSSING_API_KEY, contentType: "json" });
+      const res = await fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(location)}/${ymd(start)}/${ymd(today)}?${params.toString()}`);
+      if (!res.ok) throw new Error("Visual Crossing rain unavailable");
+      const data = await res.json();
+      const days = Array.isArray(data.days) ? data.days : [];
+      const totals = days
+        .map((day) => ({ date: new Date(`${day.datetime}T12:00:00`), precip: Number(day.precip) || 0 }))
+        .filter((day) => Number.isFinite(day.date.getTime()));
+      const sumDays = (count) => totals.slice(-count).reduce((sum, day) => sum + day.precip, 0);
+      return { rain3d: sumDays(3), rain7d: sumDays(7), source: "visual-crossing" };
+    }
     function nwsDateTime(date) {
       return date.toISOString().replace(/\.\d{3}Z$/, "Z");
     }
@@ -728,12 +746,18 @@
       return observations;
     }
     async function getObservedRain(lat, lon) {
+      const result = { rain24: null, rain3d: null, rain7d: null };
       try {
-        return await getGoogleObservedRain(lat, lon);
+        Object.assign(result, await getGoogleObservedRain(lat, lon));
       } catch (error) {
         console.warn(error);
-        return null;
       }
+      try {
+        Object.assign(result, await getVisualCrossingRain(lat, lon));
+      } catch (error) {
+        console.warn(error);
+      }
+      return [result.rain24, result.rain3d, result.rain7d].some(Number.isFinite) ? result : null;
     }
     function precipTypeLabel(code) {
       const value = Number(code) || 0;
@@ -1050,8 +1074,8 @@
       const hasRecentFreeze = times.some((t, i) => t >= recentFreezeStart && Number(temp[i]) < 32);
       const midnight = new Date(now); midnight.setHours(0,0,0,0); const overnightStart = new Date(midnight.getTime() - 8 * 60 * 60 * 1000), overnightTemps = times.map((t, i) => ({ t, temp: temp[i] })).filter(x => x.t >= overnightStart && x.t < midnight); const freezeCount = overnightTemps.filter(x => x.temp < 32).length;
       els.rain24.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain24);
-      els.rain3d.textContent = "--";
-      els.rain7d.textContent = "--";
+      els.rain3d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain3d);
+      els.rain7d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain7d);
       renderSeasonalRecap(freezeCount, hasRecentFreeze, pollen);
     }
     async function loadWeather(location, forceFresh = false) {
