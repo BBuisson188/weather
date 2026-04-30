@@ -607,10 +607,82 @@
       return `Near ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
     }
     async function getForecast(lat, lon) {
+      try {
+        return await getVisualCrossingForecast(lat, lon);
+      } catch (error) {
+        console.warn(error);
+      }
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "auto";
       const params = new URLSearchParams({ latitude: lat, longitude: lon, timezone: tz, temperature_unit: "fahrenheit", precipitation_unit: "inch", wind_speed_unit: "mph", current: "temperature_2m,weather_code,is_day", hourly: "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m", daily: "sunrise,sunset,daylight_duration", forecast_days: "10" });
       const res = await fetch(`https://api.open-meteo.com/v1/gfs?${params.toString()}`); if (!res.ok) throw new Error("Forecast request failed");
       return res.json();
+    }
+    function visualCrossingLocation(lat, lon) {
+      return `${Number(lat).toFixed(4)},${Number(lon).toFixed(4)}`;
+    }
+    function combineVisualCrossingDate(day, time) {
+      if (!day?.datetime || !time) return "";
+      const offset = Number.isFinite(Number(day.tzoffset)) ? Number(day.tzoffset) : null;
+      const offsetText = offset === null ? "" : `${offset >= 0 ? "+" : "-"}${String(Math.floor(Math.abs(offset))).padStart(2, "0")}:${String(Math.round((Math.abs(offset) % 1) * 60)).padStart(2, "0")}`;
+      return `${day.datetime}T${time}${offsetText}`;
+    }
+    function visualCrossingCode(icon, conditions = "") {
+      const value = `${icon || ""} ${conditions || ""}`.toLowerCase();
+      if (value.includes("thunder")) return 95;
+      if (value.includes("snow") || value.includes("sleet")) return 73;
+      if (value.includes("freezing") || value.includes("ice")) return 66;
+      if (value.includes("rain") || value.includes("showers")) return 61;
+      if (value.includes("drizzle")) return 51;
+      if (value.includes("fog")) return 45;
+      if (value.includes("overcast") || value.includes("cloudy")) return value.includes("part") ? 2 : 3;
+      return 0;
+    }
+    function normalizeVisualCrossingForecast(data) {
+      const offset = Number(data?.tzoffset);
+      const days = (Array.isArray(data?.days) ? data.days : []).map((day) => ({ ...day, tzoffset: Number.isFinite(offset) ? offset : day.tzoffset }));
+      const hours = days.flatMap((day) => (Array.isArray(day.hours) ? day.hours : []).map((hour) => ({ day, hour })));
+      const current = data?.currentConditions || hours.find(({ hour }) => Number.isFinite(Number(hour.temp)))?.hour || {};
+      const currentCode = visualCrossingCode(current.icon, current.conditions);
+      const currentTime = current.datetimeEpoch ? new Date(current.datetimeEpoch * 1000) : new Date();
+      const hourly = {
+        time: hours.map(({ day, hour }) => combineVisualCrossingDate(day, hour.datetime)),
+        temperature_2m: hours.map(({ hour }) => Number(hour.temp)),
+        apparent_temperature: hours.map(({ hour }) => Number(hour.feelslike ?? hour.temp)),
+        relative_humidity_2m: hours.map(({ hour }) => Number(hour.humidity) || 0),
+        precipitation_probability: hours.map(({ hour }) => Number(hour.precipprob) || 0),
+        precipitation: hours.map(({ hour }) => Number(hour.precip) || 0),
+        weather_code: hours.map(({ hour }) => visualCrossingCode(hour.icon, hour.conditions)),
+        wind_speed_10m: hours.map(({ hour }) => Number(hour.windspeed) || 0),
+        wind_direction_10m: hours.map(({ hour }) => Number(hour.winddir) || 0),
+        wind_gusts_10m: hours.map(({ hour }) => Number(hour.windgust) || 0)
+      };
+      return {
+        current: {
+          temperature_2m: Number(current.temp),
+          weather_code: currentCode,
+          is_day: current.icon ? !String(current.icon).includes("night") : currentTime.getHours() >= 7 && currentTime.getHours() <= 19
+        },
+        hourly,
+        daily: {
+          sunrise: days.map((day) => combineVisualCrossingDate(day, day.sunrise)).filter(Boolean),
+          sunset: days.map((day) => combineVisualCrossingDate(day, day.sunset)).filter(Boolean)
+        },
+        source: "visual-crossing"
+      };
+    }
+    async function getVisualCrossingForecast(lat, lon) {
+      if (!VISUAL_CROSSING_API_KEY) throw new Error("Visual Crossing key missing");
+      const location = visualCrossingLocation(lat, lon);
+      const params = new URLSearchParams({
+        unitGroup: "us",
+        include: "current,days,hours",
+        elements: "datetime,datetimeEpoch,temp,feelslike,humidity,precip,precipprob,conditions,icon,windspeed,windgust,winddir,sunrise,sunset",
+        key: VISUAL_CROSSING_API_KEY,
+        contentType: "json"
+      });
+      const res = await fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(location)}?${params.toString()}`);
+      if (!res.ok) throw new Error("Visual Crossing forecast unavailable");
+      return normalizeVisualCrossingForecast(await res.json());
     }
     function pollenApiKey() {
       return GOOGLE_POLLEN_API_KEY || localStorage.getItem(POLLEN_API_KEY_STORAGE) || "";
@@ -641,11 +713,42 @@
       return { ...today, trend };
     }
     async function getHistory(lat, lon) {
+      try {
+        return await getVisualCrossingHistory(lat, lon);
+      } catch (error) {
+        console.warn(error);
+      }
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "auto";
       const today = new Date(); const start = new Date(today); start.setDate(start.getDate() - 10); const ymd = (d) => d.toISOString().slice(0, 10);
       const params = new URLSearchParams({ latitude: lat, longitude: lon, timezone: tz, temperature_unit: "fahrenheit", start_date: ymd(start), end_date: ymd(today), hourly: "temperature_2m" });
       const res = await fetch(`https://archive-api.open-meteo.com/v1/archive?${params.toString()}`); if (!res.ok) throw new Error("History request failed");
       return res.json();
+    }
+    function normalizeVisualCrossingHistory(data) {
+      const offset = Number(data?.tzoffset);
+      const days = (Array.isArray(data?.days) ? data.days : []).map((day) => ({ ...day, tzoffset: Number.isFinite(offset) ? offset : day.tzoffset }));
+      const items = days.flatMap((day) => (Array.isArray(day.hours) ? day.hours : []).map((hour) => ({ day, hour })));
+      return {
+        hourly: {
+          time: items.map(({ day, hour }) => combineVisualCrossingDate(day, hour.datetime)),
+          temperature_2m: items.map(({ hour }) => Number(hour.temp))
+        },
+        daily: {
+          time: days.map((day) => combineVisualCrossingDate(day, "12:00:00")),
+          temperature_2m_min: days.map((day) => Number(day.tempmin ?? day.temp))
+        },
+        source: "visual-crossing"
+      };
+    }
+    async function getVisualCrossingHistory(lat, lon) {
+      if (!VISUAL_CROSSING_API_KEY) throw new Error("Visual Crossing key missing");
+      const today = new Date();
+      const start = new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000);
+      const ymd = (d) => d.toISOString().slice(0, 10);
+      const params = new URLSearchParams({ unitGroup: "us", include: "days", elements: "datetime,tempmin", key: VISUAL_CROSSING_API_KEY, contentType: "json" });
+      const res = await fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(visualCrossingLocation(lat, lon))}/${ymd(start)}/${ymd(today)}?${params.toString()}`);
+      if (!res.ok) throw new Error("Visual Crossing history unavailable");
+      return normalizeVisualCrossingHistory(await res.json());
     }
     function milesFromMeters(value) {
       const meters = Number(value);
@@ -1065,14 +1168,23 @@
         return;
       }
       if (label) label.textContent = "Freeze last night";
-      els.freezeHours.textContent = `${freezeCount.toFixed(1)} h`;
-      if (sub) sub.textContent = "Hours below 32 overnight";
+      els.freezeHours.textContent = Number.isFinite(freezeCount) ? `${freezeCount.toFixed(1)} h` : "--";
+      if (sub) sub.textContent = Number.isFinite(freezeCount) ? "Hours below 32 overnight" : "Recent low below 32";
     }
     function renderHistory(data, observedRain, pollen, rainLoading = false) {
-      const times = data.hourly.time.map((t) => new Date(t)), temp = data.hourly.temperature_2m.map(Number), now = new Date();
+      const now = new Date();
+      const times = (data.hourly?.time || []).map((t) => new Date(t));
+      const temp = (data.hourly?.temperature_2m || []).map(Number);
+      const dailyTimes = (data.daily?.time || []).map((t) => new Date(t));
+      const dailyMins = (data.daily?.temperature_2m_min || []).map(Number);
       const recentFreezeStart = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
-      const hasRecentFreeze = times.some((t, i) => t >= recentFreezeStart && Number(temp[i]) < 32);
-      const midnight = new Date(now); midnight.setHours(0,0,0,0); const overnightStart = new Date(midnight.getTime() - 8 * 60 * 60 * 1000), overnightTemps = times.map((t, i) => ({ t, temp: temp[i] })).filter(x => x.t >= overnightStart && x.t < midnight); const freezeCount = overnightTemps.filter(x => x.temp < 32).length;
+      const hourlyHasFreeze = times.some((t, i) => t >= recentFreezeStart && Number(temp[i]) < 32);
+      const dailyHasFreeze = dailyTimes.some((t, i) => t >= recentFreezeStart && Number(dailyMins[i]) < 32);
+      const hasRecentFreeze = hourlyHasFreeze || dailyHasFreeze;
+      const midnight = new Date(now); midnight.setHours(0,0,0,0);
+      const overnightStart = new Date(midnight.getTime() - 8 * 60 * 60 * 1000);
+      const overnightTemps = times.map((t, i) => ({ t, temp: temp[i] })).filter(x => x.t >= overnightStart && x.t < midnight);
+      const freezeCount = overnightTemps.length ? overnightTemps.filter(x => x.temp < 32).length : null;
       els.rain24.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain24);
       els.rain3d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain3d);
       els.rain7d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain7d);
