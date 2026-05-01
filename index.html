@@ -1068,7 +1068,8 @@
       const maxWind = Math.max(...items.map((item) => Math.max(item.wind, item.gust)).filter(Number.isFinite), 0);
       const sky = dominantSkyLabel(items);
       const dayWord = offset === 0 ? "today" : "tomorrow";
-      const noRain = !precipEvent || (precipEvent.peakProb < 20 && precipEvent.total < 0.01);
+      const maxRainChance = Math.max(...items.map((item) => item.prob).filter(Number.isFinite), 0);
+      const meaningfulPrecipEvent = precipEvent && (precipEvent.peakProb >= 25 || precipEvent.total >= 0.03);
       const fogFirst = fogItems[0];
       const stormFirst = stormItems[0];
       const snowFirst = snowItems[0];
@@ -1080,14 +1081,14 @@
         const snowTime = formatNarrativeWhen(snowFirst.time, offset, daily);
         return { title: `Snow possible ${snowTime}`, detail: `Expect highs near ${Math.round(high)}° with snow chances around ${formatHour(snowFirst.time)}.` };
       }
-      if (fogFirst && precipEvent && precipEvent.start.time > fogFirst.time) {
+      if (fogFirst && meaningfulPrecipEvent && precipEvent.start.time > fogFirst.time) {
         return { title: "Fog early, rain later", detail: `Fog may linger ${formatNarrativeWhen(fogFirst.time, offset, daily)}; rain chances build around ${formatHour(precipEvent.start.time)}.` };
       }
       if (stormFirst) {
-        const total = precipEvent ? formatRainAmount(precipEvent.total) : "some rain";
+        const total = meaningfulPrecipEvent ? formatRainAmount(precipEvent.total) : "some rain";
         return { title: `Storms possible ${formatNarrativeWhen(stormFirst.time, offset, daily)}`, detail: `Thunderstorms look most likely around ${formatHour(stormFirst.time)} with about ${total} expected.` };
       }
-      if (precipEvent) {
+      if (meaningfulPrecipEvent) {
         const when = formatNarrativeWhen(precipEvent.start.time, offset, daily);
         const total = formatRainAmount(precipEvent.total);
         if (precipEvent.total >= 0.5 || precipEvent.peakProb >= 75) return { title: `Rain likely ${when}`, detail: `The wettest window starts around ${formatHour(precipEvent.start.time)} with about ${total} expected.` };
@@ -1095,10 +1096,13 @@
         return { title: `Small rain chance ${when}`, detail: `Only trace to light rain is showing, mainly near ${formatHour(precipEvent.start.time)}.` };
       }
       if (fogFirst) return { title: `Foggy ${formatNarrativeWhen(fogFirst.time, offset, daily)}`, detail: `Fog may reduce visibility early; otherwise ${sky} with highs near ${Math.round(high)}°.` };
-      if (maxWind >= 30) return { title: `Gusty and ${sky}`, detail: `No rain expected ${dayWord}; gusts may reach around ${Math.round(maxWind)} mph.` };
-      if (Number.isFinite(high) && high >= 92) return { title: `Hot and ${sky}`, detail: `No rain expected ${dayWord}; highs should reach the low to mid ${Math.round(high / 5) * 5}s.` };
-      if (Number.isFinite(low) && low <= 35) return { title: `Cold start, ${sky} later`, detail: `No rain expected ${dayWord}; lows near ${Math.round(low)}° with highs near ${Math.round(high)}°.` };
-      return { title: `${sky.charAt(0).toUpperCase()}${sky.slice(1)}, no rain`, detail: `No rain expected ${dayWord}; temperatures run from about ${Math.round(low)}° to ${Math.round(high)}°.` };
+      if (maxRainChance >= 15) return { title: "Small rain chance", detail: `Most of ${dayWord} looks dry, but a slight chance shows up in the forecast.` };
+      if (maxWind >= 30) return { title: `Gusty and ${sky}`, detail: `Gusts may reach around ${Math.round(maxWind)} mph with temperatures from about ${Math.round(low)}° to ${Math.round(high)}°.` };
+      if (Number.isFinite(high) && high >= 92) return { title: `Hot and ${sky}`, detail: `Highs should reach the low to mid ${Math.round(high / 5) * 5}s, with temperatures starting near ${Math.round(low)}°.` };
+      if (Number.isFinite(low) && low <= 35) return { title: `Cold start, ${sky} later`, detail: `Lows near ${Math.round(low)}° with highs near ${Math.round(high)}°.` };
+      if (sky === "cloudy") return { title: "Cloudy but dry", detail: `Rain does not look likely; temperatures run from about ${Math.round(low)}° to ${Math.round(high)}°.` };
+      if (sky === "partly cloudy") return { title: "Partly cloudy skies", detail: `Temperatures run from about ${Math.round(low)}° to ${Math.round(high)}°.` };
+      return { title: "Clear skies", detail: `Temperatures run from about ${Math.round(low)}° to ${Math.round(high)}°.` };
     }
     function renderHeroNarrative(data, offset = narrativeDayOffset) {
       if (!data?.hourly) return;
