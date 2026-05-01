@@ -198,6 +198,11 @@
       letter-spacing: -0.01em;
       min-height: 18px;
     }
+    .narrative-row { display: grid; grid-template-columns: 36px 1fr 36px; align-items: center; gap: 6px; margin-top: 2px; }
+    .narrative-copy { min-width: 0; }
+    .narrative-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 850; margin-bottom: 4px; }
+    .narrative-arrow { width: 32px; min-width: 32px; height: 32px; padding: 0; box-shadow: none; }
+    .narrative-arrow.is-hidden { visibility: hidden; pointer-events: none; }
     .trend-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px; position: relative; z-index: 1; }
     .mini-stat, .recap-card { background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); }
     .mini-stat { padding: 12px 12px 10px; text-align: center; background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04)); }
@@ -339,8 +344,19 @@
               </button>
             </div>
           </div>
-          <div class="condition" id="currentCondition">Fetching forecast</div>
-          <div class="precip-line" id="rainLine">Rain --</div>
+          <div class="narrative-row">
+            <button class="icon-btn icon-only narrative-arrow is-hidden" id="narrativePrevBtn" type="button" aria-label="Show today">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <div class="narrative-copy">
+              <div class="narrative-label" id="narrativeLabel">Today</div>
+              <div class="condition" id="currentCondition">Fetching forecast</div>
+              <div class="precip-line" id="rainLine">Rain --</div>
+            </div>
+            <button class="icon-btn icon-only narrative-arrow" id="narrativeNextBtn" type="button" aria-label="Show tomorrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
           <div class="trend-row">
             <div class="mini-stat source-tap" data-source-key="high" role="button" tabindex="0"><div class="mini-label">High</div><div class="mini-value" id="highValue">--&deg;</div><div class="mini-sub" id="highSub">Later</div></div>
             <div class="mini-stat source-tap" data-source-key="low" role="button" tabindex="0"><div class="mini-label">Low</div><div class="mini-value" id="lowValue">--&deg;</div><div class="mini-sub" id="lowSub">Later</div></div>
@@ -376,21 +392,21 @@
           </a>
         </div>
         <div class="section-head">
-          <div><div class="section-title">Ocean</div><div class="section-note">Beach water, surf + tides</div></div>
-          <a class="link-btn action-btn ocean-btn" href="ocean.html" aria-label="Open ocean">
-            <span class="action-badge">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2"/><path d="M3 19c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2"/></svg>
-            </span>
-            <span class="action-label">Ocean</span>
-          </a>
-        </div>
-        <div class="section-head">
           <div><div class="section-title">Long range forecast</div><div class="section-note">AI-based outlooks</div></div>
           <a class="link-btn action-btn" id="longRangeLink" href="longrange.html" aria-label="Open long range outlook">
             <span class="action-badge">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 15 3-4 3 2 4-6"/><path d="M17 7h-4"/></svg>
             </span>
             <span class="action-label">Long Range</span>
+          </a>
+        </div>
+        <div class="section-head">
+          <div><div class="section-title">Ocean</div><div class="section-note">Beach water, surf + tides</div></div>
+          <a class="link-btn action-btn ocean-btn" href="ocean.html" aria-label="Open ocean">
+            <span class="action-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2"/><path d="M3 19c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2"/></svg>
+            </span>
+            <span class="action-label">Ocean</span>
           </a>
         </div>
       </section>
@@ -446,7 +462,7 @@
   <script>
     const $ = (id) => document.getElementById(id);
     const els = {
-      placeName: $("placeName"), currentTemp: $("currentTemp"), currentGlyph: $("currentGlyph"), currentCondition: $("currentCondition"),
+      placeName: $("placeName"), currentTemp: $("currentTemp"), currentGlyph: $("currentGlyph"), currentCondition: $("currentCondition"), narrativeLabel: $("narrativeLabel"), narrativePrevBtn: $("narrativePrevBtn"), narrativeNextBtn: $("narrativeNextBtn"),
       highValue: $("highValue"), highSub: $("highSub"), lowValue: $("lowValue"), lowSub: $("lowSub"),
       rainLine: $("rainLine"), lightLine: $("lightLine"), hourlyStrip: $("hourlyStrip"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"), outlookLegend: $("outlookLegend"),
       rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"),
@@ -468,6 +484,8 @@
     let outlookInteraction = null;
     let latestOutlookData = null;
     let latestSourceDetails = {};
+    let narrativeDayOffset = null;
+    let latestForecastData = null;
     const outlookSeries = loadOutlookSeries();
 
     function hasSavedLocation() { const saved = loadSavedLocation(); return Boolean(saved?.lat && saved?.lon); }
@@ -962,6 +980,136 @@
       if (amount < 1) return `${amount.toFixed(amount < 0.25 ? 2 : 1)} in`;
       return `${amount.toFixed(1)} in`;
     }
+    function dayPartLabel(date) {
+      const hour = date.getHours();
+      if (hour < 6) return "overnight";
+      if (hour < 12) return "this morning";
+      if (hour < 17) return "this afternoon";
+      if (hour < 21) return "this evening";
+      return "tonight";
+    }
+    function genericDayPart(date) {
+      const hour = date.getHours();
+      if (hour < 6) return "overnight";
+      if (hour < 12) return "morning";
+      if (hour < 17) return "afternoon";
+      if (hour < 21) return "evening";
+      return "night";
+    }
+    function narrativeDefaultOffset(now = new Date()) {
+      return now.getHours() >= 17 ? 1 : 0;
+    }
+    function dayOffsetWindow(offset, now = new Date()) {
+      const start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      start.setDate(start.getDate() + offset);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      return { start: offset === 0 ? now : start, dayStart: start, end };
+    }
+    function buildNarrativeItems(hourly, offset, now = new Date()) {
+      const { start, end } = dayOffsetWindow(offset, now);
+      return (hourly.time || [])
+        .map((time, index) => ({
+          time: new Date(time),
+          temp: Number(hourly.temperature_2m?.[index]),
+          feels: Number(hourly.apparent_temperature?.[index] ?? hourly.temperature_2m?.[index]),
+          humidity: Number(hourly.relative_humidity_2m?.[index]) || 0,
+          prob: Number(hourly.precipitation_probability?.[index]) || 0,
+          amount: Number(hourly.precipitation?.[index]) || 0,
+          code: Number(hourly.weather_code?.[index]) || 0,
+          wind: Number(hourly.wind_speed_10m?.[index]) || 0,
+          gust: Number(hourly.wind_gusts_10m?.[index]) || 0
+        }))
+        .filter((item) => item.time >= start && item.time < end);
+    }
+    function dominantSkyLabel(items) {
+      const codes = items.map((item) => item.code);
+      const storm = codes.some((code) => [95,96,99].includes(code));
+      const snow = codes.some((code) => [71,73,75,77,85,86].includes(code));
+      const rain = codes.some((code) => [51,53,55,61,63,65,80,81,82].includes(code));
+      const fog = codes.some((code) => [45,48].includes(code));
+      if (storm) return "stormy";
+      if (snow) return "snowy";
+      if (rain) return "rainy";
+      if (fog) return "foggy";
+      const cloudyCount = codes.filter((code) => code === 3).length;
+      const partCount = codes.filter((code) => code === 2).length;
+      if (cloudyCount >= Math.max(2, items.length * 0.45)) return "cloudy";
+      if (partCount + cloudyCount >= Math.max(2, items.length * 0.45)) return "partly cloudy";
+      return "mostly clear";
+    }
+    function isSameForecastDay(a, b) {
+      return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    }
+    function sunTimeForDate(daily, date, key) {
+      const values = daily?.[key] || [];
+      const match = values.find((value) => isSameForecastDay(new Date(value), date));
+      return match ? new Date(match) : null;
+    }
+    function formatNarrativeWhen(date, offset, daily) {
+      if (offset === 0) return dayPartLabel(date);
+      const sunrise = sunTimeForDate(daily, date, "sunrise");
+      const sunset = sunTimeForDate(daily, date, "sunset");
+      if (sunrise && date < sunrise) return "overnight tonight";
+      if (sunset && date >= sunset) return "tomorrow overnight";
+      return `tomorrow ${genericDayPart(date)}`;
+    }
+    function summarizeDailyNarrative(hourly, daily, offset, now = new Date()) {
+      const items = buildNarrativeItems(hourly, offset, now);
+      if (!items.length) return { title: offset === 0 ? "Today unavailable" : "Tomorrow unavailable", detail: "Forecast data is not available for this period." };
+      const precipEvent = buildNextPrecipEvent(items);
+      const fogItems = items.filter((item) => [45,48].includes(item.code));
+      const stormItems = items.filter((item) => [95,96,99].includes(item.code));
+      const snowItems = items.filter((item) => [71,73,75,77,85,86].includes(item.code));
+      const iceItems = items.filter((item) => [56,57,66,67].includes(item.code));
+      const high = Math.max(...items.map((item) => item.temp).filter(Number.isFinite));
+      const low = Math.min(...items.map((item) => item.temp).filter(Number.isFinite));
+      const maxWind = Math.max(...items.map((item) => Math.max(item.wind, item.gust)).filter(Number.isFinite), 0);
+      const sky = dominantSkyLabel(items);
+      const dayWord = offset === 0 ? "today" : "tomorrow";
+      const noRain = !precipEvent || (precipEvent.peakProb < 20 && precipEvent.total < 0.01);
+      const fogFirst = fogItems[0];
+      const stormFirst = stormItems[0];
+      const snowFirst = snowItems[0];
+      const iceFirst = iceItems[0];
+      if (iceFirst) {
+        return { title: "Icy weather possible", detail: `Freezing precip may show up ${formatNarrativeWhen(iceFirst.time, offset, daily)}. Check roads before heading out.` };
+      }
+      if (snowFirst) {
+        const snowTime = formatNarrativeWhen(snowFirst.time, offset, daily);
+        return { title: `Snow possible ${snowTime}`, detail: `Expect highs near ${Math.round(high)}° with snow chances around ${formatHour(snowFirst.time)}.` };
+      }
+      if (fogFirst && precipEvent && precipEvent.start.time > fogFirst.time) {
+        return { title: "Fog early, rain later", detail: `Fog may linger ${formatNarrativeWhen(fogFirst.time, offset, daily)}; rain chances build around ${formatHour(precipEvent.start.time)}.` };
+      }
+      if (stormFirst) {
+        const total = precipEvent ? formatRainAmount(precipEvent.total) : "some rain";
+        return { title: `Storms possible ${formatNarrativeWhen(stormFirst.time, offset, daily)}`, detail: `Thunderstorms look most likely around ${formatHour(stormFirst.time)} with about ${total} expected.` };
+      }
+      if (precipEvent) {
+        const when = formatNarrativeWhen(precipEvent.start.time, offset, daily);
+        const total = formatRainAmount(precipEvent.total);
+        if (precipEvent.total >= 0.5 || precipEvent.peakProb >= 75) return { title: `Rain likely ${when}`, detail: `The wettest window starts around ${formatHour(precipEvent.start.time)} with about ${total} expected.` };
+        if (precipEvent.total >= 0.1 || precipEvent.peakProb >= 45) return { title: `Showers possible ${when}`, detail: `Best rain chance is around ${formatHour(precipEvent.start.time)} with about ${total} expected.` };
+        return { title: `Small rain chance ${when}`, detail: `Only trace to light rain is showing, mainly near ${formatHour(precipEvent.start.time)}.` };
+      }
+      if (fogFirst) return { title: `Foggy ${formatNarrativeWhen(fogFirst.time, offset, daily)}`, detail: `Fog may reduce visibility early; otherwise ${sky} with highs near ${Math.round(high)}°.` };
+      if (maxWind >= 30) return { title: `Gusty and ${sky}`, detail: `No rain expected ${dayWord}; gusts may reach around ${Math.round(maxWind)} mph.` };
+      if (Number.isFinite(high) && high >= 92) return { title: `Hot and ${sky}`, detail: `No rain expected ${dayWord}; highs should reach the low to mid ${Math.round(high / 5) * 5}s.` };
+      if (Number.isFinite(low) && low <= 35) return { title: `Cold start, ${sky} later`, detail: `No rain expected ${dayWord}; lows near ${Math.round(low)}° with highs near ${Math.round(high)}°.` };
+      return { title: `${sky.charAt(0).toUpperCase()}${sky.slice(1)}, no rain`, detail: `No rain expected ${dayWord}; temperatures run from about ${Math.round(low)}° to ${Math.round(high)}°.` };
+    }
+    function renderHeroNarrative(data, offset = narrativeDayOffset) {
+      if (!data?.hourly) return;
+      narrativeDayOffset = offset ?? narrativeDefaultOffset();
+      const narrative = summarizeDailyNarrative(data.hourly, data.daily, narrativeDayOffset, new Date());
+      els.narrativeLabel.textContent = narrativeDayOffset === 0 ? "Today" : "Tomorrow";
+      els.currentCondition.textContent = narrative.title;
+      els.rainLine.textContent = narrative.detail;
+      els.narrativePrevBtn.classList.toggle("is-hidden", narrativeDayOffset === 0);
+      els.narrativeNextBtn.classList.toggle("is-hidden", narrativeDayOffset === 1);
+    }
     function buildNextPrecipEvent(items) {
       const startIndex = items.findIndex((item) => item.prob >= 20 || item.amount >= 0.01);
       if (startIndex < 0) return null;
@@ -1235,12 +1383,13 @@
       els.placeName.textContent = placeLabel;
       els.currentTemp.textContent = formatTemp(current.temperature_2m);
       els.currentGlyph.innerHTML = glyph(Number(current.weather_code), Boolean(current.is_day), 32);
-      els.currentCondition.textContent = buildConditionLine(current.weather_code, windSummary);
+      latestForecastData = data;
+      if (narrativeDayOffset === null) narrativeDayOffset = narrativeDefaultOffset(now);
+      renderHeroNarrative(data, narrativeDayOffset);
       els.highValue.textContent = formatTemp(highTemp);
       els.highSub.innerHTML = highPoint ? `${formatShortTime(highPoint.date)}${highBaseDay.getTime() > todayStart.getTime() ? `<br>Tomorrow` : ""}` : "Later";
       els.lowValue.textContent = formatTemp(lowTemp);
       els.lowSub.innerHTML = lowPoint ? `${formatShortTime(lowPoint.date)}${tomorrowLabel(lowPoint.date, now) ? `<br>${tomorrowLabel(lowPoint.date, now)}` : ""}` : "Later";
-      els.rainLine.textContent = buildRainLine(hourly.time, hourly.precipitation_probability, hourly.precipitation, hourly.weather_code, now);
       const sunrise = daily.sunrise?.[0], sunset = daily.sunset?.[0], firstLight = sunrise ? new Date(new Date(sunrise).getTime() - 30 * 60 * 1000) : null, lastLight = sunset ? new Date(new Date(sunset).getTime() + 30 * 60 * 1000) : null;
       els.lightLine.innerHTML = `<span>First light ${firstLight ? formatShortTime(firstLight) : '--'}&nbsp;&nbsp;Rise ${sunrise ? formatShortTime(sunrise) : '--'}</span><span>Last light ${lastLight ? formatShortTime(lastLight) : '--'}&nbsp;&nbsp;Set ${sunset ? formatShortTime(sunset) : '--'}</span>`;
       renderHourly(hourly.time, hourly.temperature_2m, hourly.precipitation_probability, hourly.weather_code, now, data.source);
@@ -1427,6 +1576,10 @@
       }
     }
     function seedDemo() {
+      narrativeDayOffset = narrativeDefaultOffset();
+      els.narrativeLabel.textContent = narrativeDayOffset === 0 ? "Today" : "Tomorrow";
+      els.narrativePrevBtn.classList.toggle("is-hidden", narrativeDayOffset === 0);
+      els.narrativeNextBtn.classList.toggle("is-hidden", narrativeDayOffset === 1);
       els.placeName.textContent = "Set a ZIP or use location"; els.currentTemp.textContent = "--\u00B0"; els.currentCondition.textContent = "Waiting for location"; els.highValue.textContent = "--\u00B0"; els.lowValue.textContent = "--\u00B0"; els.rainLine.textContent = "Rain --"; els.lightLine.innerHTML = `<span>First light --  Rise --</span><span>Last light --  Set --</span>`; els.hourlyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="hour-card"><div class="hour-time">--</div><div class="hour-icon">${glyph(1, false, 24)}</div><div class="hour-temp">--\u00B0</div><div class="hour-rain">--%</div></div>`).join(""); [els.rain24, els.rain3d, els.rain7d, els.freezeHours].forEach(el => el.textContent = "--"); updateRadarLink(loadSavedLocation());
     }
     els.locateBtn.addEventListener("click", () => showOnboarding()); els.refreshBtn.addEventListener("click", refreshCurrentWeather); els.startLocateBtn.addEventListener("click", useBrowserLocation); els.startZipInput.addEventListener("keydown", (e) => { if (e.key === "Enter") searchLocationInput(els.startZipInput.value); }); els.closeOnboardingBtn.addEventListener("click", () => { if (hasSavedLocation()) hideOnboarding(); }); els.recentList.addEventListener("click", async (e) => { const btn = e.target.closest("[data-recent-index]"); if (!btn) return; const recent = loadRecentLocations(); const item = recent[Number(btn.dataset.recentIndex)]; if (!item) return; saveLocation(item); await loadWeather(item, true); });
@@ -1447,6 +1600,14 @@
       saveOutlookSeries();
       syncOutlookLegend();
       if (latestOutlookData) renderOutlookChart(latestOutlookData.hourly, latestOutlookData.daily);
+    });
+    els.narrativePrevBtn.addEventListener("click", () => {
+      if (!latestForecastData) return;
+      renderHeroNarrative(latestForecastData, 0);
+    });
+    els.narrativeNextBtn.addEventListener("click", () => {
+      if (!latestForecastData) return;
+      renderHeroNarrative(latestForecastData, 1);
     });
     els.hourlyStrip.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { els.hourlyStrip.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
     let isDown = false, hourlyMoved = false, startX = 0, startScroll = 0; els.hourlyStrip.addEventListener("pointerdown", (e) => { isDown = true; hourlyMoved = false; startX = e.clientX; startScroll = els.hourlyStrip.scrollLeft; els.hourlyStrip.setPointerCapture(e.pointerId); }); els.hourlyStrip.addEventListener("pointermove", (e) => { if (!isDown) return; const dx = e.clientX - startX; if (Math.abs(dx) > 6) hourlyMoved = true; els.hourlyStrip.scrollLeft = startScroll - dx; }); const stopDragging = () => { isDown = false; }; els.hourlyStrip.addEventListener("pointerup", stopDragging); els.hourlyStrip.addEventListener("pointercancel", stopDragging); els.hourlyStrip.addEventListener("lostpointercapture", stopDragging);
