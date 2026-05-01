@@ -208,6 +208,9 @@
     .light-line { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; line-height: 1.1; text-align: left; }
     .dot { width: 4px; height: 4px; border-radius: 50%; background: rgba(159, 177, 207, 0.45); }
     .section-card { padding: 14px; border-radius: var(--radius-xl); }
+    .view-stack { display: grid; gap: 0; padding-top: 10px; padding-bottom: 10px; }
+    .view-stack .section-head { margin-bottom: 0; padding: 8px 4px; }
+    .view-stack .section-head + .section-head { border-top: 1px solid var(--line); }
     .section-card.outlook-card::after { display: none; }
     .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding: 2px 4px 0; }
     .section-title { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; }
@@ -351,7 +354,7 @@
         <div class="chart-hint">Swipe or drag sideways to move through the full outlook.</div>
       </section>
 
-      <section class="card section-card">
+      <section class="card section-card view-stack">
         <div class="section-head">
           <div><div class="section-title">Radar</div><div class="section-note">Full screen rain radar</div></div>
           <a class="link-btn action-btn radar-btn" id="radarLink" href="radar.html" aria-label="Open radar">
@@ -361,9 +364,6 @@
             <span class="action-label">Open Radar</span>
           </a>
         </div>
-      </section>
-
-      <section class="card section-card">
         <div class="section-head">
           <div><div class="section-title">Ocean</div><div class="section-note">Beach water, surf + tides</div></div>
           <a class="link-btn action-btn ocean-btn" href="ocean.html" aria-label="Open ocean">
@@ -371,6 +371,15 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2"/><path d="M3 19c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2"/></svg>
             </span>
             <span class="action-label">Ocean</span>
+          </a>
+        </div>
+        <div class="section-head">
+          <div><div class="section-title">Long range forecast</div><div class="section-note">AI-based outlooks</div></div>
+          <a class="link-btn action-btn" id="longRangeLink" href="longrange.html" aria-label="Open long range outlook">
+            <span class="action-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 15 3-4 3 2 4-6"/><path d="M17 7h-4"/></svg>
+            </span>
+            <span class="action-label">Long Range</span>
           </a>
         </div>
       </section>
@@ -421,7 +430,7 @@
       highValue: $("highValue"), highSub: $("highSub"), lowValue: $("lowValue"), lowSub: $("lowSub"),
       rainLine: $("rainLine"), lightLine: $("lightLine"), hourlyStrip: $("hourlyStrip"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"), outlookLegend: $("outlookLegend"),
       rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"),
-      locateBtn: $("locateBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink"),
+      locateBtn: $("locateBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink"), longRangeLink: $("longRangeLink"),
       onboardingOverlay: $("onboardingOverlay"), startLocateBtn: $("startLocateBtn"), startZipInput: $("startZipInput"), onboardingNote: $("onboardingNote"),
       closeOnboardingBtn: $("closeOnboardingBtn"), searchResultsWrap: $("searchResultsWrap"), searchResults: $("searchResults"), recentWrap: $("recentWrap"), recentList: $("recentList")
     };
@@ -526,10 +535,21 @@
       return `<svg viewBox="0 0 48 48" width="${size}" height="${size}" aria-hidden="true"><path d="M30 10a12 12 0 1 0 10 19 14 14 0 1 1-10-19Z" fill="${moon}" /></svg>`;
     }
     function updateRadarLink(location) {
-      if (!location?.lat || !location?.lon) { els.radarLink.href = "radar.html"; return; }
+      if (!location?.lat || !location?.lon) {
+        els.radarLink.href = "radar.html";
+        if (els.longRangeLink) els.longRangeLink.href = "longrange.html";
+        return;
+      }
       const url = new URL("radar.html", window.location.href);
       url.searchParams.set("lat", location.lat); url.searchParams.set("lon", location.lon); if (location.label) url.searchParams.set("label", location.label);
       els.radarLink.href = url.toString();
+      if (els.longRangeLink) {
+        const longRangeUrl = new URL("longrange.html", window.location.href);
+        longRangeUrl.searchParams.set("lat", location.lat);
+        longRangeUrl.searchParams.set("lon", location.lon);
+        if (location.label) longRangeUrl.searchParams.set("label", location.label);
+        els.longRangeLink.href = longRangeUrl.toString();
+      }
     }
     async function getLocationNameFromZip(zip) {
       const res = await fetch(`https://api.zippopotam.us/us/${zip}`); if (!res.ok) throw new Error("ZIP lookup failed");

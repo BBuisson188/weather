@@ -93,7 +93,7 @@
       paint-order: stroke fill;
     }
     .leaflet-overlay-layer.is-coverage { mix-blend-mode: screen; }
-    .shell { position: fixed; inset: 0; pointer-events: none; }
+    .shell { position: fixed; inset: 0; pointer-events: none; z-index: 3000; }
     .topbar, .bottombar {
       pointer-events: auto;
       backdrop-filter: blur(16px);
@@ -102,7 +102,7 @@
       border: 1px solid var(--line);
       box-shadow: var(--shadow);
       position: relative;
-      z-index: 2000;
+      z-index: 3000;
     }
     .topbar {
       position: absolute;
@@ -114,6 +114,8 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      pointer-events: auto;
+      z-index: 3200;
     }
     .eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 800; margin-bottom: 4px; }
     .title { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -139,6 +141,7 @@
       text-decoration: none;
       box-shadow: var(--shadow-soft);
       touch-action: manipulation;
+      pointer-events: auto;
       -webkit-tap-highlight-color: transparent;
       transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, color 160ms ease;
     }
@@ -286,7 +289,7 @@
       font-size: 11px;
       font-weight: 700;
       pointer-events: auto;
-      z-index: 2000;
+      z-index: 3100;
     }
     .credit a { color: inherit; }
     @media (max-width: 640px) {
@@ -857,11 +860,14 @@
       stopLoop();
       renderFrame(Number(TIMELINE.value));
     });
-    BACK_BTN.addEventListener("click", (event) => {
+    function returnToWeather(event) {
       event.preventDefault();
+      event.stopPropagation();
       stopLoop();
       window.location.href = BACK_BTN.href;
-    });
+    }
+    BACK_BTN.addEventListener("pointerup", returnToWeather);
+    BACK_BTN.addEventListener("click", returnToWeather);
     PLAY_BTN.addEventListener("click", toggleLoop);
     PREV_BTN.addEventListener("click", () => { stopLoop(); renderFrame(animationIndex - 1); });
     NEXT_BTN.addEventListener("click", () => { stopLoop(); renderFrame(animationIndex + 1); });

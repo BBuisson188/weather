@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Long Range</title>
+  <meta name="theme-color" content="#09111e" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="manifest" href="site.webmanifest" />
+  <style>
+    :root {
+      --bg1: #050a12;
+      --bg2: #101927;
+      --bg3: #172439;
+      --card: rgba(13, 22, 36, 0.84);
+      --text: #eef5ff;
+      --muted: #9fb0c8;
+      --line: rgba(184, 205, 255, 0.16);
+      --line-strong: rgba(184, 205, 255, 0.30);
+      --shadow: 0 26px 60px rgba(0, 0, 0, 0.42);
+      --shadow-soft: 0 14px 32px rgba(0, 0, 0, 0.30);
+      --warm: #ffb86b;
+      --cool: #8bc7ff;
+      --rain: #73a7ff;
+      --dry: #d5c47a;
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --maxw: 460px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 8%, rgba(104, 151, 255, 0.20), transparent 24%),
+        radial-gradient(circle at 88% 3%, rgba(255, 184, 107, 0.13), transparent 25%),
+        linear-gradient(180deg, var(--bg1), var(--bg2) 44%, var(--bg3));
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 14% 16%, rgba(255,255,255,0.76) 0 1px, transparent 2px),
+        radial-gradient(circle at 74% 12%, rgba(255,255,255,0.64) 0 1px, transparent 2px),
+        radial-gradient(circle at 88% 24%, rgba(255,255,255,0.48) 0 1px, transparent 2px);
+      opacity: 0.58;
+    }
+    .app { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: max(18px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom)); }
+    .stack { display: flex; flex-direction: column; gap: 14px; }
+    .card {
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius-xl);
+      position: relative;
+      overflow: hidden;
+    }
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0));
+      opacity: 0.7;
+    }
+    .hero, .section-card { padding: 16px; }
+    .topline, .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+    .place-wrap { min-width: 0; }
+    .title-cluster { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+    .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .place { font-size: 20px; font-weight: 850; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .icon-btn, .input-btn {
+      appearance: none;
+      border: 1px solid var(--line-strong);
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+      box-shadow: var(--shadow-soft);
+      border-radius: 999px;
+      font: inherit;
+      height: 38px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .icon-btn.icon-only { width: 38px; min-width: 38px; padding: 0; }
+    .icon-btn svg { width: 16px; height: 16px; opacity: 0.9; }
+    .summary { position: relative; z-index: 1; margin-top: 16px; display: grid; gap: 12px; }
+    .summary-title { font-size: 28px; line-height: 1; letter-spacing: -0.06em; font-weight: 850; }
+    .summary-copy { color: #d8e6ff; font-size: 14px; line-height: 1.4; font-weight: 700; }
+    .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .quick-card, .week-card {
+      position: relative;
+      z-index: 1;
+      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+    }
+    .quick-card { padding: 12px; }
+    .quick-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 800; margin-bottom: 5px; }
+    .quick-value { font-size: 20px; letter-spacing: -0.04em; font-weight: 850; }
+    .section-title { font-size: 15px; font-weight: 850; letter-spacing: -0.02em; }
+    .section-note { font-size: 12px; color: var(--muted); font-weight: 700; opacity: 0.9; }
+    .week-list { display: grid; gap: 12px; position: relative; z-index: 1; }
+    .week-card { padding: 14px; }
+    .week-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+    .week-date { font-size: 15px; font-weight: 850; letter-spacing: -0.02em; }
+    .week-tag { font-size: 12px; color: var(--muted); font-weight: 800; }
+    .range-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .range-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 800; margin-bottom: 3px; }
+    .range-value { font-size: 24px; letter-spacing: -0.05em; font-weight: 850; }
+    .range-value.high { color: var(--warm); }
+    .range-value.low { color: var(--cool); }
+    .week-notes { display: grid; gap: 7px; }
+    .note-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      color: #dce9ff;
+      font-size: 13px;
+      font-weight: 750;
+      line-height: 1.25;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: var(--muted); }
+    .dot.rain { background: var(--rain); }
+    .dot.dry { background: var(--dry); }
+    .dot.hot { background: #ff8f70; }
+    .dot.cool { background: var(--cool); }
+    .source-note { color: var(--muted); font-size: 12px; line-height: 1.4; font-weight: 650; position: relative; z-index: 1; }
+    .status { color: var(--muted); font-size: 13px; font-weight: 750; min-height: 18px; position: relative; z-index: 1; }
+    .status.error { color: #ff9a9a; }
+    .hidden { display: none !important; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .stack > * { animation: fadeUp 420ms ease both; }
+    @media (max-width: 380px) {
+      .quick-grid, .range-grid { grid-template-columns: 1fr; }
+      .summary-title { font-size: 25px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="stack">
+      <section class="card hero">
+        <div class="topline">
+          <div class="title-cluster">
+            <a class="icon-btn icon-only" href="index.html" aria-label="Back to weather">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+            </a>
+            <div class="place-wrap">
+              <div class="eyebrow">Long Range</div>
+              <div class="place" id="placeName">Loading...</div>
+            </div>
+          </div>
+        </div>
+        <div class="summary">
+          <div class="summary-title" id="summaryTitle">6-week outlook</div>
+          <div class="summary-copy" id="summaryCopy">Building a travel-friendly outlook...</div>
+          <div class="quick-grid">
+            <div class="quick-card"><div class="quick-label">Warmest stretch</div><div class="quick-value" id="warmestValue">--</div></div>
+            <div class="quick-card"><div class="quick-label">Rain pattern</div><div class="quick-value" id="rainValue">--</div></div>
+          </div>
+          <div class="status" id="status">Loading long-range data...</div>
+        </div>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-head">
+          <div><div class="section-title">Weekly outlook</div><div class="section-note">Expected ranges, not exact timing</div></div>
+        </div>
+        <div class="week-list" id="weekList"></div>
+      </section>
+
+      <section class="card section-card">
+        <div class="source-note">Long-range data uses ECMWF seasonal ensemble guidance through Open-Meteo. Treat this like a planning outlook: useful for expected ranges and rain patterns, but exact daily timing will change.</div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      placeName: $("placeName"),
+      summaryTitle: $("summaryTitle"),
+      summaryCopy: $("summaryCopy"),
+      warmestValue: $("warmestValue"),
+      rainValue: $("rainValue"),
+      weekList: $("weekList"),
+      status: $("status")
+    };
+    const STORAGE_KEY = "weather-location-v3";
+
+    function loadSavedLocation() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; }
+    }
+    function locationFromPage() {
+      const params = new URLSearchParams(window.location.search);
+      const lat = Number(params.get("lat"));
+      const lon = Number(params.get("lon"));
+      if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        return { lat, lon, label: params.get("label") || `Near ${lat.toFixed(2)}, ${lon.toFixed(2)}` };
+      }
+      return loadSavedLocation();
+    }
+    function fmtDate(date) {
+      return date.toLocaleDateString([], { month: "short", day: "numeric" });
+    }
+    function fmtRange(values) {
+      const nums = values.map(Number).filter(Number.isFinite);
+      if (!nums.length) return "--";
+      return `${Math.round(Math.min(...nums))}-${Math.round(Math.max(...nums))}&deg;`;
+    }
+    function formatRainAmount(value) {
+      const amount = Number(value) || 0;
+      if (amount < 0.05) return "trace";
+      if (amount < 1) return `${amount.toFixed(amount < 0.25 ? 2 : 1)} in`;
+      return `${amount.toFixed(1)} in`;
+    }
+    function tempPattern(highs, lows) {
+      const maxHigh = Math.max(...highs);
+      const minLow = Math.min(...lows);
+      if (minLow <= 32) return { text: "Freeze risk on colder mornings", tone: "cool" };
+      if (minLow <= 42) return { text: "Chilly mornings possible", tone: "cool" };
+      if (maxHigh >= 95) return { text: "Very hot afternoons possible", tone: "hot" };
+      if (maxHigh >= 88) return { text: "Hot afternoons", tone: "hot" };
+      if (maxHigh >= 78) return { text: "Warm afternoons", tone: "hot" };
+      if (maxHigh <= 58) return { text: "Cool days", tone: "cool" };
+      return { text: "Comfortable temperature range", tone: "cool" };
+    }
+    function rainPattern(total, rainDays, wetDays) {
+      if (wetDays >= 5 && total >= 1.25) return { text: "Rain likely most days", tone: "rain" };
+      if (rainDays >= 5 && total >= 0.5) return { text: "Small possibility of daily rain", tone: "rain" };
+      if (total >= 1.5) return { text: "Wet week possible", tone: "rain" };
+      if (wetDays >= 3 || total >= 0.75) return { text: "Rain likely some days", tone: "rain" };
+      if (rainDays >= 2 || total >= 0.25) return { text: "Rain possible some days", tone: "rain" };
+      if (rainDays === 1 || total >= 0.05) return { text: "Small chance of rain", tone: "dry" };
+      return { text: "Little rain expected", tone: "dry" };
+    }
+    function weekLabel(days) {
+      const first = days[0].date;
+      const last = days[days.length - 1].date;
+      return `${fmtDate(first)}-${fmtDate(last)}`;
+    }
+    function buildWeeks(data) {
+      const daily = data.daily || {};
+      const rows = (daily.time || []).map((time, index) => ({
+        date: new Date(`${time}T12:00:00`),
+        high: Number(daily.temperature_2m_max?.[index]),
+        low: Number(daily.temperature_2m_min?.[index]),
+        rain: Number(daily.precipitation_sum?.[index]) || 0
+      })).filter((item) => Number.isFinite(item.date.getTime()) && Number.isFinite(item.high) && Number.isFinite(item.low));
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const future = rows.filter((item) => item.date >= today).slice(0, 42);
+      const weeks = [];
+      for (let i = 0; i < future.length; i += 7) {
+        const days = future.slice(i, i + 7);
+        if (days.length >= 3) weeks.push(days);
+      }
+      return weeks.slice(0, 6).map((days, index) => {
+        const highs = days.map((day) => day.high);
+        const lows = days.map((day) => day.low);
+        const rainTotal = days.reduce((sum, day) => sum + day.rain, 0);
+        const rainDays = days.filter((day) => day.rain >= 0.02).length;
+        const wetDays = days.filter((day) => day.rain >= 0.1).length;
+        return {
+          index,
+          label: weekLabel(days),
+          highs,
+          lows,
+          rainTotal,
+          rainDays,
+          wetDays,
+          temp: tempPattern(highs, lows),
+          rain: rainPattern(rainTotal, rainDays, wetDays)
+        };
+      });
+    }
+    function renderWeeks(weeks) {
+      if (!weeks.length) {
+        els.weekList.innerHTML = `<div class="source-note">Long-range data is unavailable for this location right now.</div>`;
+        return;
+      }
+      els.weekList.innerHTML = weeks.map((week) => `
+        <article class="week-card">
+          <div class="week-top">
+            <div class="week-date">${week.label}</div>
+            <div class="week-tag">Week ${week.index + 1}</div>
+          </div>
+          <div class="range-grid">
+            <div><div class="range-label">Highs</div><div class="range-value high">${fmtRange(week.highs)}</div></div>
+            <div><div class="range-label">Lows</div><div class="range-value low">${fmtRange(week.lows)}</div></div>
+          </div>
+          <div class="week-notes">
+            <div class="note-pill"><span class="dot ${week.rain.tone}"></span>${week.rain.text}; ${formatRainAmount(week.rainTotal)} expected for the week</div>
+            <div class="note-pill"><span class="dot ${week.temp.tone}"></span>${week.temp.text}</div>
+          </div>
+        </article>
+      `).join("");
+    }
+    function renderSummary(location, weeks) {
+      els.placeName.textContent = location.label || `Near ${Number(location.lat).toFixed(2)}, ${Number(location.lon).toFixed(2)}`;
+      if (!weeks.length) return;
+      const warmest = weeks.reduce((best, week) => Math.max(...week.highs) > Math.max(...best.highs) ? week : best, weeks[0]);
+      const wettest = weeks.reduce((best, week) => week.rainTotal > best.rainTotal ? week : best, weeks[0]);
+      const dryWeeks = weeks.filter((week) => week.rainTotal < 0.15).length;
+      els.warmestValue.innerHTML = `${warmest.label}`;
+      els.rainValue.textContent = dryWeeks >= 3 ? "Mostly dry" : wettest.rain.text;
+      els.summaryCopy.textContent = `Expect highs around ${fmtRange(weeks.flatMap((week) => week.highs)).replace("&deg;", " degrees")} over the next six weeks, with ${wettest.rain.text.toLowerCase()} most likely around ${wettest.label}.`;
+    }
+    async function getLongRange(location) {
+      const params = new URLSearchParams({
+        latitude: location.lat,
+        longitude: location.lon,
+        forecast_days: "46",
+        temperature_unit: "fahrenheit",
+        precipitation_unit: "inch",
+        timezone: "auto",
+        models: "ecmwf_ec46_ensemble_mean",
+        daily: "temperature_2m_max,temperature_2m_min,precipitation_sum"
+      });
+      const res = await fetch(`https://seasonal-api.open-meteo.com/v1/seasonal?${params.toString()}`);
+      if (!res.ok) throw new Error("Long-range request failed");
+      return res.json();
+    }
+    async function init() {
+      const location = locationFromPage();
+      if (!location?.lat || !location?.lon) {
+        els.placeName.textContent = "No location";
+        els.summaryCopy.textContent = "Set a weather location on the main screen first.";
+        els.status.textContent = "No saved location found.";
+        els.status.classList.add("error");
+        return;
+      }
+      try {
+        els.placeName.textContent = location.label || "Loading...";
+        const data = await getLongRange(location);
+        const weeks = buildWeeks(data);
+        renderSummary(location, weeks);
+        renderWeeks(weeks);
+        els.status.textContent = "Updated";
+      } catch (error) {
+        console.error(error);
+        els.status.textContent = "Could not load long-range data.";
+        els.status.classList.add("error");
+      }
+    }
+    init();
+  </script>
+</body>
+</html>
