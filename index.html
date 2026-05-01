@@ -201,6 +201,8 @@
     .trend-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px; position: relative; z-index: 1; }
     .mini-stat, .recap-card { background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); }
     .mini-stat { padding: 12px 12px 10px; text-align: center; background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04)); }
+    .source-tap { cursor: pointer; touch-action: manipulation; }
+    .source-tap:active { transform: scale(0.99); }
     .mini-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.10em; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
     .mini-value { font-size: 22px; letter-spacing: -0.04em; font-weight: 800; white-space: nowrap; }
     .mini-sub { font-size: 12px; color: var(--muted); margin-top: 2px; font-weight: 600; line-height: 1.2; min-height: 28px; }
@@ -276,6 +278,15 @@
     .recent-btn { width: 100%; justify-content: flex-start; min-height: 44px; height: auto; padding: 10px 12px; border-radius: 16px; white-space: normal; text-align: left; line-height: 1.25; }
     .recent-btn strong { display: block; font-size: 13px; font-weight: 800; color: var(--text); }
     .recent-btn span { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); font-weight: 700; }
+    .source-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(3, 7, 14, 0.62); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 50; }
+    .source-modal { width: min(100%, 360px); background: linear-gradient(180deg, rgba(12, 22, 37, 0.98), rgba(9, 17, 30, 0.96)); border: 1px solid var(--line); border-radius: 26px; box-shadow: var(--shadow); padding: 18px; }
+    .source-title { font-size: 20px; font-weight: 850; letter-spacing: -0.03em; margin-bottom: 6px; }
+    .source-copy { color: var(--muted); font-size: 13px; line-height: 1.45; font-weight: 650; margin-bottom: 12px; }
+    .source-rows { display: grid; gap: 8px; margin-bottom: 14px; }
+    .source-row { display: grid; gap: 2px; padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,0.055); border: 1px solid rgba(184,205,255,0.12); }
+    .source-row-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 850; }
+    .source-row-value { font-size: 14px; color: var(--text); font-weight: 750; line-height: 1.35; }
+    .source-ok { width: 100%; }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
@@ -331,8 +342,8 @@
           <div class="condition" id="currentCondition">Fetching forecast</div>
           <div class="precip-line" id="rainLine">Rain --</div>
           <div class="trend-row">
-            <div class="mini-stat"><div class="mini-label">High</div><div class="mini-value" id="highValue">--&deg;</div><div class="mini-sub" id="highSub">Later</div></div>
-            <div class="mini-stat"><div class="mini-label">Low</div><div class="mini-value" id="lowValue">--&deg;</div><div class="mini-sub" id="lowSub">Later</div></div>
+            <div class="mini-stat source-tap" data-source-key="high" role="button" tabindex="0"><div class="mini-label">High</div><div class="mini-value" id="highValue">--&deg;</div><div class="mini-sub" id="highSub">Later</div></div>
+            <div class="mini-stat source-tap" data-source-key="low" role="button" tabindex="0"><div class="mini-label">Low</div><div class="mini-value" id="lowValue">--&deg;</div><div class="mini-sub" id="lowSub">Later</div></div>
           </div>
           <div class="meta-line">
             <span id="lightLine" class="light-line"><span>First light --  Rise --</span><span>Last light --  Set --</span></span>
@@ -387,10 +398,10 @@
       <section class="card section-card">
         <div class="section-head"><div class="section-title">Quick recap</div><div class="section-note">Recent conditions</div></div>
         <div class="grid-2">
-          <div class="recap-card"><div class="recap-label">Rain 24h</div><div class="recap-value" id="rain24">--</div><div class="recap-sub">Accumulated precipitation</div></div>
-          <div class="recap-card"><div class="recap-label">Rain 3d</div><div class="recap-value" id="rain3d">--</div><div class="recap-sub">Daily observed total</div></div>
-          <div class="recap-card"><div class="recap-label">Rain 7d</div><div class="recap-value" id="rain7d">--</div><div class="recap-sub">Daily observed total</div></div>
-          <div class="recap-card"><div class="recap-label">Freeze last night</div><div class="recap-value" id="freezeHours">--</div><div class="recap-sub">Hours below 32° overnight</div></div>
+          <div class="recap-card source-tap" data-source-key="rain24" role="button" tabindex="0"><div class="recap-label">Rain 24h</div><div class="recap-value" id="rain24">--</div><div class="recap-sub">Accumulated precipitation</div></div>
+          <div class="recap-card source-tap" data-source-key="rain3d" role="button" tabindex="0"><div class="recap-label">Rain 3d</div><div class="recap-value" id="rain3d">--</div><div class="recap-sub">Daily observed total</div></div>
+          <div class="recap-card source-tap" data-source-key="rain7d" role="button" tabindex="0"><div class="recap-label">Rain 7d</div><div class="recap-value" id="rain7d">--</div><div class="recap-sub">Daily observed total</div></div>
+          <div class="recap-card source-tap" data-source-key="seasonal" role="button" tabindex="0"><div class="recap-label">Freeze last night</div><div class="recap-value" id="freezeHours">--</div><div class="recap-sub">Hours below 32° overnight</div></div>
         </div>
       </section>
     </div>
@@ -423,6 +434,15 @@
     </div>
   </div>
 
+  <div class="source-overlay hidden" id="sourceOverlay">
+    <div class="source-modal" role="dialog" aria-modal="true" aria-labelledby="sourceTitle">
+      <div class="source-title" id="sourceTitle">Data source</div>
+      <div class="source-copy" id="sourceCopy"></div>
+      <div class="source-rows" id="sourceRows"></div>
+      <button class="input-btn source-ok" id="sourceOkBtn" type="button">OK</button>
+    </div>
+  </div>
+
   <script>
     const $ = (id) => document.getElementById(id);
     const els = {
@@ -431,6 +451,7 @@
       rainLine: $("rainLine"), lightLine: $("lightLine"), hourlyStrip: $("hourlyStrip"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"), outlookLegend: $("outlookLegend"),
       rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"),
       locateBtn: $("locateBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink"), longRangeLink: $("longRangeLink"),
+      sourceOverlay: $("sourceOverlay"), sourceTitle: $("sourceTitle"), sourceCopy: $("sourceCopy"), sourceRows: $("sourceRows"), sourceOkBtn: $("sourceOkBtn"),
       onboardingOverlay: $("onboardingOverlay"), startLocateBtn: $("startLocateBtn"), startZipInput: $("startZipInput"), onboardingNote: $("onboardingNote"),
       closeOnboardingBtn: $("closeOnboardingBtn"), searchResultsWrap: $("searchResultsWrap"), searchResults: $("searchResults"), recentWrap: $("recentWrap"), recentList: $("recentList")
     };
@@ -446,6 +467,7 @@
     let activeLocation = null;
     let outlookInteraction = null;
     let latestOutlookData = null;
+    let latestSourceDetails = {};
     const outlookSeries = loadOutlookSeries();
 
     function hasSavedLocation() { const saved = loadSavedLocation(); return Boolean(saved?.lat && saved?.lon); }
@@ -522,6 +544,33 @@
     function formatShortTime(dateLike) { return new Date(dateLike).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
     function tomorrowLabel(dateLike, now = new Date()) { const d = new Date(dateLike); const tomorrowStart = new Date(now); tomorrowStart.setHours(24,0,0,0); return d >= tomorrowStart ? "Tomorrow" : ""; }
     function resetPanels() { els.hourlyStrip.scrollLeft = 0; const outlookScroll = document.querySelector('.outlook-scroll'); if (outlookScroll) outlookScroll.scrollLeft = 0; }
+    function forecastSourceLabel(source) {
+      return source === "visual-crossing" ? "Visual Crossing Timeline API" : "Open-Meteo GFS fallback";
+    }
+    function sourceRow(label, value) {
+      return { label, value };
+    }
+    function showSourceDetail(detail) {
+      if (!detail || !els.sourceOverlay) return;
+      els.sourceTitle.textContent = detail.title || "Data source";
+      els.sourceCopy.textContent = detail.copy || "";
+      els.sourceRows.innerHTML = (detail.rows || []).map((row) => `<div class="source-row"><div class="source-row-label">${row.label}</div><div class="source-row-value">${row.value}</div></div>`).join("");
+      els.sourceOverlay.classList.remove("hidden");
+    }
+    function hideSourceDetail() {
+      if (els.sourceOverlay) els.sourceOverlay.classList.add("hidden");
+    }
+    function unavailableSource(title, source, reason) {
+      return {
+        title,
+        copy: "This value is not available for the current location or request.",
+        rows: [
+          sourceRow("Source", source),
+          sourceRow("Reason", reason || "The provider did not return usable data."),
+          sourceRow("Backup", "The app keeps the tile visible, but does not invent a replacement value.")
+        ]
+      };
+    }
     function codeToLabel(code) {
       const map = {0:"Clear",1:"Mostly Clear",2:"Partly Cloudy",3:"Cloudy",45:"Fog",48:"Fog",51:"Light Drizzle",53:"Drizzle",55:"Heavy Drizzle",56:"Freezing Drizzle",57:"Freezing Drizzle",61:"Light Rain",63:"Rain",65:"Heavy Rain",66:"Freezing Rain",67:"Freezing Rain",71:"Light Snow",73:"Snow",75:"Heavy Snow",77:"Snow Grains",80:"Rain Showers",81:"Rain Showers",82:"Heavy Showers",85:"Snow Showers",86:"Snow Showers",95:"Thunderstorm",96:"Storm / Hail",99:"Storm / Hail"};
       return map[code] || "Forecast";
@@ -805,7 +854,7 @@
         rain24: inchesFromQuantity(data.currentConditionsHistory?.qpf),
         rain3d: null,
         rain7d: null,
-        source: "google-weather"
+        rain24Source: "Google Weather API current conditions history"
       };
     }
     async function getVisualCrossingRain(lat, lon) {
@@ -823,7 +872,7 @@
         .map((day) => ({ date: new Date(`${day.datetime}T12:00:00`), precip: Number(day.precip) || 0 }))
         .filter((day) => Number.isFinite(day.date.getTime()));
       const sumDays = (count) => totals.slice(-count).reduce((sum, day) => sum + day.precip, 0);
-      return { rain3d: sumDays(3), rain7d: sumDays(7), source: "visual-crossing" };
+      return { rain3d: sumDays(3), rain7d: sumDays(7), rain3dSource: "Visual Crossing Timeline daily precip", rain7dSource: "Visual Crossing Timeline daily precip" };
     }
     function nwsDateTime(date) {
       return date.toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -869,7 +918,7 @@
       return observations;
     }
     async function getObservedRain(lat, lon) {
-      const result = { rain24: null, rain3d: null, rain7d: null };
+      const result = { rain24: null, rain3d: null, rain7d: null, rain24Source: "", rain3dSource: "", rain7dSource: "" };
       try {
         Object.assign(result, await getGoogleObservedRain(lat, lon));
       } catch (error) {
@@ -954,9 +1003,20 @@
       if (event.peakProb >= 40) return `${Math.round(event.peakProb)}% ${type} ${when}, ${amountLabel}`;
       return `Slight ${type} ${when}, ${amountLabel}`;
     }
-    function renderHourly(times, temps, probs, codes, now) {
+    function renderHourly(times, temps, probs, codes, now, source) {
       const items = times.map((time, i) => ({ time, date: new Date(time), temp: temps[i], prob: Number(probs[i]) || 0, code: Number(codes[i]) || 0 })).filter((x) => x.date >= now).slice(0, 12);
-      els.hourlyStrip.innerHTML = items.map((item) => { const isDay = item.date.getHours() >= 7 && item.date.getHours() <= 19; return `<div class="hour-card ${item.prob >= 40 ? 'is-wet' : ''}"><div class="hour-time">${formatHour(item.time)}</div><div class="hour-icon">${glyph(item.code, isDay, 24)}</div><div class="hour-temp">${Math.round(item.temp)}\u00B0</div><div class="hour-rain">${Math.round(item.prob)}%</div></div>`; }).join("");
+      items.forEach((item, index) => {
+        latestSourceDetails[`hour-${index}`] = {
+          title: `${formatHour(item.time)} forecast`,
+          copy: "This hourly tile is forecast data, not an observation.",
+          rows: [
+            sourceRow("Source", forecastSourceLabel(source)),
+            sourceRow("Shows", `${Math.round(item.temp)}° and ${Math.round(item.prob)}% precip chance`),
+            sourceRow("Accuracy", "Best for the next few hours; timing and rain chance can shift.")
+          ]
+        };
+      });
+      els.hourlyStrip.innerHTML = items.map((item, index) => { const isDay = item.date.getHours() >= 7 && item.date.getHours() <= 19; return `<div class="hour-card source-tap ${item.prob >= 40 ? 'is-wet' : ''}" data-source-key="hour-${index}" role="button" tabindex="0"><div class="hour-time">${formatHour(item.time)}</div><div class="hour-icon">${glyph(item.code, isDay, 24)}</div><div class="hour-temp">${Math.round(item.temp)}\u00B0</div><div class="hour-rain">${Math.round(item.prob)}%</div></div>`; }).join("");
     }
     function nearestHourlyIndex(times, now) {
       let bestIndex = 0;
@@ -1151,6 +1211,27 @@
       const lowTemp = lowWindow.length ? Math.min(...lowWindow.map((x) => x.temp)) : current.temperature_2m;
       const highPoint = highWindow.find((x) => x.temp === highTemp) || highWindow[0];
       const lowPoint = lowWindow.find((x) => x.temp === lowTemp) || lowWindow[0];
+      const sourceName = forecastSourceLabel(data.source);
+      latestSourceDetails.high = {
+        title: "High temperature",
+        copy: "The high is calculated from the hourly forecast window for the current day.",
+        rows: [
+          sourceRow("Source", sourceName),
+          sourceRow("Value", `${formatTemp(highTemp)}${highPoint ? ` around ${formatShortTime(highPoint.date)}` : ""}`),
+          sourceRow("Backup", data.source === "visual-crossing" ? "Open-Meteo GFS if Visual Crossing fails" : "Fallback source is active"),
+          sourceRow("Accuracy", "Forecast value; usually useful for planning, but afternoon highs can move a few degrees.")
+        ]
+      };
+      latestSourceDetails.low = {
+        title: "Low temperature",
+        copy: "The low is calculated from the noon-to-noon forecast window so nighttime lows land in the right bucket.",
+        rows: [
+          sourceRow("Source", sourceName),
+          sourceRow("Value", `${formatTemp(lowTemp)}${lowPoint ? ` around ${formatShortTime(lowPoint.date)}` : ""}`),
+          sourceRow("Backup", data.source === "visual-crossing" ? "Open-Meteo GFS if Visual Crossing fails" : "Fallback source is active"),
+          sourceRow("Accuracy", "Forecast value; overnight lows can vary by neighborhood and elevation.")
+        ]
+      };
       els.placeName.textContent = placeLabel;
       els.currentTemp.textContent = formatTemp(current.temperature_2m);
       els.currentGlyph.innerHTML = glyph(Number(current.weather_code), Boolean(current.is_day), 32);
@@ -1162,7 +1243,7 @@
       els.rainLine.textContent = buildRainLine(hourly.time, hourly.precipitation_probability, hourly.precipitation, hourly.weather_code, now);
       const sunrise = daily.sunrise?.[0], sunset = daily.sunset?.[0], firstLight = sunrise ? new Date(new Date(sunrise).getTime() - 30 * 60 * 1000) : null, lastLight = sunset ? new Date(new Date(sunset).getTime() + 30 * 60 * 1000) : null;
       els.lightLine.innerHTML = `<span>First light ${firstLight ? formatShortTime(firstLight) : '--'}&nbsp;&nbsp;Rise ${sunrise ? formatShortTime(sunrise) : '--'}</span><span>Last light ${lastLight ? formatShortTime(lastLight) : '--'}&nbsp;&nbsp;Set ${sunset ? formatShortTime(sunset) : '--'}</span>`;
-      renderHourly(hourly.time, hourly.temperature_2m, hourly.precipitation_probability, hourly.weather_code, now);
+      renderHourly(hourly.time, hourly.temperature_2m, hourly.precipitation_probability, hourly.weather_code, now, data.source);
       latestOutlookData = { hourly, daily };
       renderOutlookChart(hourly, daily);
     }
@@ -1181,15 +1262,36 @@
           const trendText = pollen.trend === "better" ? "falling tomorrow" : pollen.trend === "worse" ? "rising tomorrow" : "steady tomorrow";
           els.freezeHours.innerHTML = `<span class="pollen-value">${pollen.category || pollen.value}${pollenTrendMarkup(pollen.trend)}</span>`;
           if (sub) sub.textContent = `${pollen.name} pollen, ${trendText}`;
+          latestSourceDetails.seasonal = {
+            title: "Pollen",
+            copy: "This tile replaces freeze info when there has not been a recent freeze.",
+            rows: [
+              sourceRow("Source", "Google Pollen API"),
+              sourceRow("Shows", `${pollen.name} pollen: ${pollen.category || pollen.value}`),
+              sourceRow("Trend", trendText),
+              sourceRow("Accuracy", "Regional pollen forecast; useful as a daily guide, not a sensor at your exact location.")
+            ]
+          };
         } else {
           els.freezeHours.textContent = "--";
           if (sub) sub.textContent = pollenApiKey() ? "Pollen unavailable" : "Pollen forecast not configured";
+          latestSourceDetails.seasonal = unavailableSource("Pollen", "Google Pollen API", pollenApiKey() ? "Google did not return pollen data here. This can happen outside supported areas or where pollen data coverage is limited." : "No Google Pollen API key is configured.");
         }
         return;
       }
       if (label) label.textContent = "Freeze last night";
       els.freezeHours.textContent = Number.isFinite(freezeCount) ? `${freezeCount.toFixed(1)} h` : "--";
       if (sub) sub.textContent = Number.isFinite(freezeCount) ? "Hours below 32 overnight" : "Recent low below 32";
+      latestSourceDetails.seasonal = {
+        title: "Freeze last night",
+        copy: "This tile shows freeze details when the last 10 days include a below-freezing low.",
+        rows: [
+          sourceRow("Source", "Visual Crossing daily minimum temperature; Open-Meteo Archive fallback"),
+          sourceRow("Shows", Number.isFinite(freezeCount) ? `${freezeCount.toFixed(1)} hours below 32° overnight` : "Recent low below 32°"),
+          sourceRow("Backup", "Open-Meteo Archive if Visual Crossing history fails"),
+          sourceRow("Accuracy", "Historical model/station blend; useful for recent freeze signal, not a yard-level thermometer.")
+        ]
+      };
     }
     function renderHistory(data, observedRain, pollen, rainLoading = false) {
       const now = new Date();
@@ -1208,6 +1310,48 @@
       els.rain24.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain24);
       els.rain3d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain3d);
       els.rain7d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain7d);
+      latestSourceDetails.rain24 = rainLoading ? {
+        title: "Rain 24h",
+        copy: "Recent rain data is still loading.",
+        rows: [sourceRow("Primary source", "Google Weather API current conditions history"), sourceRow("Backup", "None currently for 24-hour observed rain")]
+      } : Number.isFinite(observedRain?.rain24) ? {
+        title: "Rain 24h",
+        copy: "This is recent accumulated precipitation from the provider's current-condition history.",
+        rows: [
+          sourceRow("Source", observedRain.rain24Source || "Google Weather API current conditions history"),
+          sourceRow("Value", formatRecapRain(observedRain.rain24)),
+          sourceRow("Backup", "None currently for 24-hour observed rain"),
+          sourceRow("Accuracy", "Observed/analysis-style recent rain; usually better than modeled archive rain, but can still miss very local differences.")
+        ]
+      } : unavailableSource("Rain 24h", "Google Weather API current conditions history", "The API did not return a usable 24-hour precipitation total.");
+      latestSourceDetails.rain3d = rainLoading ? {
+        title: "Rain 3d",
+        copy: "Recent rain data is still loading.",
+        rows: [sourceRow("Primary source", "Visual Crossing Timeline daily precip")]
+      } : Number.isFinite(observedRain?.rain3d) ? {
+        title: "Rain 3d",
+        copy: "This sums daily precipitation totals for the last 3 days.",
+        rows: [
+          sourceRow("Source", observedRain.rain3dSource || "Visual Crossing Timeline daily precip"),
+          sourceRow("Value", formatRecapRain(observedRain.rain3d)),
+          sourceRow("Backup", "None currently displayed"),
+          sourceRow("Accuracy", "Daily observed/model blend; good for recent trend, but exact totals can vary locally.")
+        ]
+      } : unavailableSource("Rain 3d", "Visual Crossing Timeline daily precip", "Visual Crossing did not return enough daily precipitation data.");
+      latestSourceDetails.rain7d = rainLoading ? {
+        title: "Rain 7d",
+        copy: "Recent rain data is still loading.",
+        rows: [sourceRow("Primary source", "Visual Crossing Timeline daily precip")]
+      } : Number.isFinite(observedRain?.rain7d) ? {
+        title: "Rain 7d",
+        copy: "This sums daily precipitation totals for the last 7 days.",
+        rows: [
+          sourceRow("Source", observedRain.rain7dSource || "Visual Crossing Timeline daily precip"),
+          sourceRow("Value", formatRecapRain(observedRain.rain7d)),
+          sourceRow("Backup", "None currently displayed"),
+          sourceRow("Accuracy", "Daily observed/model blend; useful for weekly totals, but not a backyard rain gauge.")
+        ]
+      } : unavailableSource("Rain 7d", "Visual Crossing Timeline daily precip", "Visual Crossing did not return enough daily precipitation data.");
       renderSeasonalRecap(freezeCount, hasRecentFreeze, pollen);
     }
     async function loadWeather(location, forceFresh = false) {
@@ -1305,7 +1449,24 @@
       if (latestOutlookData) renderOutlookChart(latestOutlookData.hourly, latestOutlookData.daily);
     });
     els.hourlyStrip.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { els.hourlyStrip.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
-    let isDown = false, startX = 0, startScroll = 0; els.hourlyStrip.addEventListener("pointerdown", (e) => { isDown = true; startX = e.clientX; startScroll = els.hourlyStrip.scrollLeft; els.hourlyStrip.setPointerCapture(e.pointerId); }); els.hourlyStrip.addEventListener("pointermove", (e) => { if (!isDown) return; const dx = e.clientX - startX; els.hourlyStrip.scrollLeft = startScroll - dx; }); const stopDragging = () => { isDown = false; }; els.hourlyStrip.addEventListener("pointerup", stopDragging); els.hourlyStrip.addEventListener("pointercancel", stopDragging); els.hourlyStrip.addEventListener("lostpointercapture", stopDragging);
+    let isDown = false, hourlyMoved = false, startX = 0, startScroll = 0; els.hourlyStrip.addEventListener("pointerdown", (e) => { isDown = true; hourlyMoved = false; startX = e.clientX; startScroll = els.hourlyStrip.scrollLeft; els.hourlyStrip.setPointerCapture(e.pointerId); }); els.hourlyStrip.addEventListener("pointermove", (e) => { if (!isDown) return; const dx = e.clientX - startX; if (Math.abs(dx) > 6) hourlyMoved = true; els.hourlyStrip.scrollLeft = startScroll - dx; }); const stopDragging = () => { isDown = false; }; els.hourlyStrip.addEventListener("pointerup", stopDragging); els.hourlyStrip.addEventListener("pointercancel", stopDragging); els.hourlyStrip.addEventListener("lostpointercapture", stopDragging);
+    document.addEventListener("click", (e) => {
+      const target = e.target.closest("[data-source-key]");
+      if (!target || hourlyMoved) return;
+      const detail = latestSourceDetails[target.dataset.sourceKey];
+      if (detail) showSourceDetail(detail);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") hideSourceDetail();
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const target = e.target.closest?.("[data-source-key]");
+      if (!target) return;
+      e.preventDefault();
+      const detail = latestSourceDetails[target.dataset.sourceKey];
+      if (detail) showSourceDetail(detail);
+    });
+    els.sourceOkBtn.addEventListener("click", hideSourceDetail);
+    els.sourceOverlay.addEventListener("click", (e) => { if (e.target === els.sourceOverlay) hideSourceDetail(); });
     const outlookScroll = document.querySelector('.outlook-scroll');
     if (outlookScroll) {
       outlookScroll.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { outlookScroll.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
