@@ -92,6 +92,27 @@
       -webkit-text-stroke: 0.45px rgba(3, 8, 15, 0.9);
       paint-order: stroke fill;
     }
+    .location-pin {
+      width: 18px;
+      height: 18px;
+      border-radius: 50% 50% 50% 0;
+      background: #f8fbff;
+      border: 2px solid #07101d;
+      box-shadow: 0 0 0 2px rgba(120,169,255,0.36), 0 7px 16px rgba(0,0,0,0.42);
+      transform: rotate(-45deg);
+      position: relative;
+    }
+    .location-pin::after {
+      content: "";
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      left: 4px;
+      top: 4px;
+      border-radius: 50%;
+      background: #1d64ff;
+      box-shadow: 0 0 0 1px rgba(7,16,29,0.32);
+    }
     .leaflet-overlay-layer.is-coverage { mix-blend-mode: screen; }
     .shell { position: fixed; inset: 0; pointer-events: none; z-index: 3000; }
     .topbar, .bottombar {
@@ -268,6 +289,32 @@
       gap: 6px;
       flex-wrap: wrap;
     }
+    .opacity-control {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: min(100%, 226px);
+      padding: 0 2px;
+    }
+    .opacity-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .opacity-control input {
+      width: 112px;
+      accent-color: var(--accent);
+    }
+    .opacity-value {
+      min-width: 34px;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 900;
+      text-align: right;
+    }
     .drawer {
       margin-top: 10px;
       padding-top: 10px;
@@ -374,6 +421,11 @@
               <button class="btn" id="snowBtn" type="button">Winter precip</button>
             </div>
             <div class="controls-right">
+              <label class="opacity-control" for="radarOpacity">
+                <span class="opacity-label">Opacity</span>
+                <input id="radarOpacity" type="range" min="45" max="90" value="74" step="1" />
+                <span class="opacity-value" id="radarOpacityValue">74%</span>
+              </label>
               <button class="btn is-subtle" id="severeAlertsBtn" type="button">Severe alerts</button>
               <button class="btn is-subtle" id="allAlertsBtn" type="button">All NWS alerts</button>
             </div>
@@ -409,8 +461,30 @@
     const CONTROLS_CARD = document.getElementById("controlsCard");
     const CONTROLS_DRAWER = document.getElementById("controlsDrawer");
     const DRAWER_TOGGLE_BTN = document.getElementById("drawerToggleBtn");
+    const RADAR_OPACITY_INPUT = document.getElementById("radarOpacity");
+    const RADAR_OPACITY_VALUE = document.getElementById("radarOpacityValue");
 
     const params = new URLSearchParams(window.location.search);
+    const RADAR_BASEMAP_KEY = "weather-radar-basemap-v1";
+    const RADAR_OPACITY_KEY = "weather-radar-opacity-v1";
+    const DEFAULT_RADAR_OPACITY = 0.74;
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+    function loadSavedBasemap() {
+      const saved = localStorage.getItem(RADAR_BASEMAP_KEY);
+      return saved === 'osm' ? 'osm' : 'stadia';
+    }
+    function saveBasemap(kind) {
+      localStorage.setItem(RADAR_BASEMAP_KEY, kind === 'osm' ? 'osm' : 'stadia');
+    }
+    function loadSavedRadarOpacity() {
+      const saved = Number(localStorage.getItem(RADAR_OPACITY_KEY));
+      return Number.isFinite(saved) ? clamp(saved, 0.45, 0.9) : DEFAULT_RADAR_OPACITY;
+    }
+    function saveRadarOpacity(value) {
+      localStorage.setItem(RADAR_OPACITY_KEY, String(value.toFixed(2)));
+    }
     function loadSavedLocation() {
       try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; }
     }
@@ -433,10 +507,11 @@
     map.getPane('windPane').style.zIndex = 460;
     map.createPane('alertsPane');
     map.getPane('alertsPane').style.zIndex = 470;
+    map.createPane('locationPane');
+    map.getPane('locationPane').style.zIndex = 520;
     L.control.attribution({ position: "bottomleft", prefix: false }).addTo(map);
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    const RADAR_OPACITY = 0.74;
     let pastFrames = [];
     let frames = [];
     let radarHost = "https://tilecache.rainviewer.com";
@@ -456,7 +531,10 @@
     let windSamplePoints = [];
     let windSampleData = null;
     let baseLayer = null;
-    let activeBasemap = 'stadia';
+    let activeBasemap = loadSavedBasemap();
+    let radarOpacity = loadSavedRadarOpacity();
+    let initialViewportAdjusted = false;
+    let preloadToken = 0;
 
     function createStadiaBasemap() {
       const apiSuffix = STADIA_API_KEY ? `?api_key=${encodeURIComponent(STADIA_API_KEY)}` : "";
@@ -481,6 +559,7 @@
 
     function setBasemap(kind) {
       activeBasemap = kind === 'osm' ? 'osm' : 'stadia';
+      saveBasemap(activeBasemap);
       if (baseLayer && map.hasLayer(baseLayer)) map.removeLayer(baseLayer);
       baseLayer = activeBasemap === 'stadia' ? createStadiaBasemap() : createOsmFallbackBasemap();
       baseLayer.on('tileerror', () => {
@@ -491,7 +570,7 @@
     }
 
     function initBasemap() {
-      setBasemap('stadia');
+      setBasemap(activeBasemap);
     }
 
     initBasemap();
@@ -500,6 +579,18 @@
       L.DomEvent.disableClickPropagation(element);
       L.DomEvent.disableScrollPropagation(element);
     });
+
+    L.marker([locationData.lat, locationData.lon], {
+      pane: 'locationPane',
+      interactive: false,
+      zIndexOffset: 1000,
+      icon: L.divIcon({
+        className: '',
+        html: '<div class="location-pin"></div>',
+        iconSize: [18, 18],
+        iconAnchor: [9, 18]
+      })
+    }).addTo(map);
 
     function frameLabel(frame) {
       if (!frame?.time) return "No frame loaded";
@@ -513,6 +604,10 @@
 
     function tileUrl(frame) {
       return `${radarHost}${frame.path}/512/{z}/{x}/{y}/2/${currentOptionsCode()}.png`;
+    }
+
+    function tileUrlFor(frame, z, x, y) {
+      return `${radarHost}${frame.path}/512/${z}/${x}/${y}/2/${currentOptionsCode()}.png`;
     }
 
     function buildRadarLayer(frame, initialOpacity) {
@@ -540,6 +635,66 @@
       WIND_BTN.classList.toggle('is-subtle', !windVisible);
       SMOOTH_BTN.classList.toggle('is-active', smoothRadar);
       SNOW_BTN.classList.toggle('is-active', snowColors);
+    }
+
+    function updateRadarOpacityControl() {
+      const percent = Math.round(radarOpacity * 100);
+      RADAR_OPACITY_INPUT.value = String(percent);
+      RADAR_OPACITY_VALUE.textContent = `${percent}%`;
+    }
+
+    function applyRadarOpacity(nextOpacity, persist = true) {
+      radarOpacity = clamp(nextOpacity, 0.45, 0.9);
+      if (radarLayer && map.hasLayer(radarLayer)) radarLayer.setOpacity(radarOpacity);
+      updateRadarOpacityControl();
+      if (persist) saveRadarOpacity(radarOpacity);
+    }
+
+    function visibleTileCoordinates() {
+      const zoom = Math.min(7, Math.max(0, Math.round(map.getZoom())));
+      const tileSize = 256;
+      const bounds = map.getPixelBounds();
+      const scale = map.getZoomScale(zoom, map.getZoom());
+      const min = bounds.min.multiplyBy(scale).divideBy(tileSize).floor();
+      const max = bounds.max.multiplyBy(scale).divideBy(tileSize).floor();
+      const limit = 2 ** zoom;
+      const coords = [];
+      for (let x = min.x; x <= max.x; x++) {
+        const wrappedX = ((x % limit) + limit) % limit;
+        for (let y = min.y; y <= max.y; y++) {
+          if (y < 0 || y >= limit) continue;
+          coords.push({ z: zoom, x: wrappedX, y });
+        }
+      }
+      return coords;
+    }
+
+    function preloadInitialRadarTiles() {
+      if (initialViewportAdjusted || !frames.length || !radarVisible) return;
+      const coords = visibleTileCoordinates();
+      if (!coords.length) return;
+      const token = ++preloadToken;
+      const urls = [];
+      frames.forEach((frame) => {
+        coords.forEach((coord) => urls.push(tileUrlFor(frame, coord.z, coord.x, coord.y)));
+      });
+      let index = 0;
+      const loadNextBatch = () => {
+        if (token !== preloadToken || initialViewportAdjusted) return;
+        const batchEnd = Math.min(index + 6, urls.length);
+        for (; index < batchEnd; index++) {
+          const image = new Image();
+          image.decoding = "async";
+          image.src = urls[index];
+        }
+        if (index < urls.length) window.setTimeout(loadNextBatch, 80);
+      };
+      window.setTimeout(loadNextBatch, 250);
+    }
+
+    function cancelInitialRadarPreload() {
+      initialViewportAdjusted = true;
+      preloadToken++;
     }
 
     function buildWindSampleGrid() {
@@ -681,7 +836,7 @@
         if (oldContainer) oldContainer.style.transition = 'opacity 220ms linear';
         nextLayer.setOpacity(0);
         window.requestAnimationFrame(() => {
-          nextLayer.setOpacity(RADAR_OPACITY);
+          nextLayer.setOpacity(radarOpacity);
           window.setTimeout(() => {
             if (token !== swapToken) {
               if (map.hasLayer(nextLayer)) map.removeLayer(nextLayer);
@@ -822,6 +977,7 @@
         TIMELINE.max = String(frames.length - 1);
         updateAppearanceButtons();
         renderFrame(frames.length - 1);
+        preloadInitialRadarTiles();
       } catch (error) {
         console.error(error);
         FRAME_TIME.textContent = "Radar unavailable";
@@ -876,6 +1032,9 @@
     MAP_TOGGLE_BTN.addEventListener("click", () => {
       setBasemap(activeBasemap === 'stadia' ? 'osm' : 'stadia');
     });
+    RADAR_OPACITY_INPUT.addEventListener("input", () => {
+      applyRadarOpacity(Number(RADAR_OPACITY_INPUT.value) / 100);
+    });
     RECENTER_BTN.addEventListener("click", () => map.setView([locationData.lat, locationData.lon], Math.max(map.getZoom(), 7)));
     RADAR_BTN.addEventListener("click", () => {
       radarVisible = !radarVisible;
@@ -897,8 +1056,10 @@
     map.on('moveend zoomend', () => {
       if (windVisible) refreshWindOverlay();
     });
+    map.on('movestart zoomstart resize', cancelInitialRadarPreload);
 
     updateAppearanceButtons();
+    updateRadarOpacityControl();
     updateAlertButtons();
     loadRadarFrames();
   </script>
