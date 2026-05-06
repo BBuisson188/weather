@@ -198,6 +198,66 @@
       letter-spacing: -0.01em;
       min-height: 18px;
     }
+    .today-options {
+      display: grid;
+      gap: 8px;
+      margin: 12px auto 0;
+      max-width: 360px;
+      text-align: left;
+    }
+    .today-options.is-empty { display: none; }
+    .today-option {
+      display: grid;
+      grid-template-columns: 8px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid rgba(184,205,255,0.15);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.035));
+      box-shadow: var(--shadow-soft);
+    }
+    .today-option.is-alert {
+      border-color: rgba(255, 204, 112, 0.30);
+      background: linear-gradient(180deg, rgba(125, 79, 28, 0.38), rgba(30, 36, 61, 0.44));
+    }
+    .today-option.is-warning {
+      border-color: rgba(255, 102, 102, 0.38);
+      background: linear-gradient(180deg, rgba(128, 45, 45, 0.38), rgba(45, 31, 45, 0.44));
+    }
+    .today-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #73a7ff;
+      box-shadow: 0 0 12px rgba(115, 167, 255, 0.34);
+    }
+    .today-option.is-alert .today-dot { background: #ffd166; box-shadow: 0 0 12px rgba(255, 209, 102, 0.34); }
+    .today-option.is-warning .today-dot { background: #ff6969; box-shadow: 0 0 12px rgba(255, 105, 105, 0.34); }
+    .today-option-main { min-width: 0; }
+    .today-option-title {
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 850;
+      letter-spacing: -0.01em;
+      overflow-wrap: anywhere;
+    }
+    .today-option-sub {
+      margin-top: 2px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .today-option-tag {
+      color: #d7e6ff;
+      font-size: 11px;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.82;
+    }
     .narrative-row { display: grid; grid-template-columns: 36px 1fr 36px; align-items: center; gap: 6px; margin-top: 2px; }
     .narrative-copy { min-width: 0; }
     .narrative-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 850; margin-bottom: 4px; }
@@ -357,6 +417,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M9 18l6-6-6-6"/></svg>
             </button>
           </div>
+          <div class="today-options is-empty" id="todayOptions"></div>
           <div class="trend-row">
             <div class="mini-stat source-tap" data-source-key="high" role="button" tabindex="0"><div class="mini-label">High</div><div class="mini-value" id="highValue">--&deg;</div><div class="mini-sub" id="highSub">Later</div></div>
             <div class="mini-stat source-tap" data-source-key="low" role="button" tabindex="0"><div class="mini-label">Low</div><div class="mini-value" id="lowValue">--&deg;</div><div class="mini-sub" id="lowSub">Later</div></div>
@@ -464,7 +525,7 @@
     const els = {
       placeName: $("placeName"), currentTemp: $("currentTemp"), currentGlyph: $("currentGlyph"), currentCondition: $("currentCondition"), narrativeLabel: $("narrativeLabel"), narrativePrevBtn: $("narrativePrevBtn"), narrativeNextBtn: $("narrativeNextBtn"),
       highValue: $("highValue"), highSub: $("highSub"), lowValue: $("lowValue"), lowSub: $("lowSub"),
-      rainLine: $("rainLine"), lightLine: $("lightLine"), hourlyStrip: $("hourlyStrip"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"), outlookLegend: $("outlookLegend"),
+      rainLine: $("rainLine"), todayOptions: $("todayOptions"), lightLine: $("lightLine"), hourlyStrip: $("hourlyStrip"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"), outlookLegend: $("outlookLegend"),
       rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"),
       locateBtn: $("locateBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink"), longRangeLink: $("longRangeLink"),
       sourceOverlay: $("sourceOverlay"), sourceTitle: $("sourceTitle"), sourceCopy: $("sourceCopy"), sourceRows: $("sourceRows"), sourceOkBtn: $("sourceOkBtn"),
@@ -486,6 +547,7 @@
     let latestSourceDetails = {};
     let narrativeDayOffset = null;
     let latestForecastData = null;
+    let latestAlertsData = null;
     const outlookSeries = loadOutlookSeries();
 
     function hasSavedLocation() { const saved = loadSavedLocation(); return Boolean(saved?.lat && saved?.lon); }
@@ -568,11 +630,14 @@
     function sourceRow(label, value) {
       return { label, value };
     }
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
     function showSourceDetail(detail) {
       if (!detail || !els.sourceOverlay) return;
       els.sourceTitle.textContent = detail.title || "Data source";
       els.sourceCopy.textContent = detail.copy || "";
-      els.sourceRows.innerHTML = (detail.rows || []).map((row) => `<div class="source-row"><div class="source-row-label">${row.label}</div><div class="source-row-value">${row.value}</div></div>`).join("");
+      els.sourceRows.innerHTML = (detail.rows || []).map((row) => `<div class="source-row"><div class="source-row-label">${escapeHtml(row.label)}</div><div class="source-row-value">${escapeHtml(row.value)}</div></div>`).join("");
       els.sourceOverlay.classList.remove("hidden");
     }
     function hideSourceDetail() {
@@ -770,6 +835,57 @@
       const res = await fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(location)}?${params.toString()}`);
       if (!res.ok) throw new Error("Visual Crossing forecast unavailable");
       return normalizeVisualCrossingForecast(await res.json());
+    }
+    function alertPriority(alert) {
+      const event = alert?.event || "";
+      if (/Tornado Warning/i.test(event)) return 100;
+      if (/Severe Thunderstorm Warning/i.test(event)) return 95;
+      if (/Flash Flood Warning/i.test(event)) return 92;
+      if (/Warning/i.test(event)) return 88;
+      if (/Tornado Watch/i.test(event)) return 84;
+      if (/Severe Thunderstorm Watch/i.test(event)) return 82;
+      if (/Flood Watch|Flash Flood Watch/i.test(event)) return 78;
+      if (/Watch/i.test(event)) return 70;
+      if (/Advisory/i.test(event)) return 55;
+      return 40;
+    }
+    function alertTone(alert) {
+      return /Warning/i.test(alert?.event || "") ? "warning" : "alert";
+    }
+    function formatAlertWindow(alert) {
+      const starts = alert?.effective ? new Date(alert.effective) : null;
+      const ends = alert?.ends || alert?.expires;
+      const endDate = ends ? new Date(ends) : null;
+      const pieces = [];
+      if (starts && Number.isFinite(starts.getTime())) pieces.push(`Starts ${starts.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`);
+      if (endDate && Number.isFinite(endDate.getTime())) pieces.push(`Ends ${endDate.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}`);
+      return pieces.join(" · ");
+    }
+    function normalizeWeatherAlerts(features) {
+      return (Array.isArray(features) ? features : [])
+        .map((feature) => {
+          const props = feature?.properties || {};
+          return {
+            event: props.event || "Weather alert",
+            headline: props.headline || props.description || "",
+            severity: props.severity || "",
+            urgency: props.urgency || "",
+            effective: props.effective || "",
+            ends: props.ends || "",
+            expires: props.expires || ""
+          };
+        })
+        .sort((a, b) => alertPriority(b) - alertPriority(a));
+    }
+    async function getWeatherAlerts(lat, lon) {
+      const point = `${lat},${lon}`;
+      const res = await fetch(`https://api.weather.gov/alerts/active?status=actual&message_type=alert&point=${encodeURIComponent(point)}`, {
+        headers: { "Accept": "application/geo+json" },
+        cache: "no-store"
+      });
+      if (!res.ok) throw new Error("NWS alerts unavailable");
+      const data = await res.json();
+      return normalizeWeatherAlerts(data.features || []);
     }
     function pollenApiKey() {
       return GOOGLE_POLLEN_API_KEY || localStorage.getItem(POLLEN_API_KEY_STORAGE) || "";
@@ -1086,11 +1202,30 @@
       }
       if (stormFirst) {
         const total = meaningfulPrecipEvent ? formatRainAmount(precipEvent.total) : "some rain";
-        return { title: `Storms possible ${formatNarrativeWhen(stormFirst.time, offset, daily)}`, detail: `Thunderstorms look most likely around ${formatHour(stormFirst.time)} with about ${total} expected.` };
+        const expected = stormFirst.prob >= 50 || precipEvent?.peakProb >= 60 || precipEvent?.total >= 0.1;
+        const continuing = offset > 0 && precipEvent?.startIndex === 0 && precipEvent.start.time.getHours() === 0;
+        if (continuing) {
+          const stop = precipEvent.end ? `, tapering around ${formatHour(precipEvent.end.time)}` : "";
+          return {
+            title: "Storms continuing overnight",
+            detail: `Storms continue from the previous day with about ${total} expected${stop}.`
+          };
+        }
+        return {
+          title: `Thunderstorms ${expected ? "expected" : "possible"} ${formatNarrativeWhen(stormFirst.time, offset, daily)}`,
+          detail: `Storms look most likely around ${formatHour(stormFirst.time)} with about ${total} expected.`
+        };
       }
       if (meaningfulPrecipEvent) {
         const when = formatNarrativeWhen(precipEvent.start.time, offset, daily);
         const total = formatRainAmount(precipEvent.total);
+        const type = precipTypeLabel(precipEvent.code);
+        const continuing = offset > 0 && precipEvent.startIndex === 0 && precipEvent.start.time.getHours() === 0;
+        if (continuing) {
+          const stop = precipEvent.end ? `, tapering around ${formatHour(precipEvent.end.time)}` : "";
+          const label = type === "storms" ? "Storms" : type === "snow" ? "Snow" : type === "ice" ? "Ice" : "Rain";
+          return { title: `${label} continuing overnight`, detail: `${label} continues from the previous day with about ${total} expected${stop}.` };
+        }
         if (precipEvent.total >= 0.5 || precipEvent.peakProb >= 75) return { title: `Rain likely ${when}`, detail: `The wettest window starts around ${formatHour(precipEvent.start.time)} with about ${total} expected.` };
         if (precipEvent.total >= 0.1 || precipEvent.peakProb >= 45) return { title: `Showers possible ${when}`, detail: `Best rain chance is around ${formatHour(precipEvent.start.time)} with about ${total} expected.` };
         return { title: `Small rain chance ${when}`, detail: `Only trace to light rain is showing, mainly near ${formatHour(precipEvent.start.time)}.` };
@@ -1104,13 +1239,68 @@
       if (sky === "partly cloudy") return { title: "Partly cloudy skies", detail: `Temperatures run from about ${Math.round(low)}° to ${Math.round(high)}°.` };
       return { title: "Clear skies", detail: `Temperatures run from about ${Math.round(low)}° to ${Math.round(high)}°.` };
     }
+    function forecastTodayOptions(hourly, daily, offset, now = new Date()) {
+      const items = buildNarrativeItems(hourly, offset, now);
+      if (!items.length) return [];
+      const precipEvent = buildNextPrecipEvent(items);
+      const storm = items.find((item) => [95,96,99].includes(item.code));
+      const heavyRain = precipEvent && (precipEvent.total >= 0.5 || precipEvent.peakProb >= 75);
+      const maxWind = Math.max(...items.map((item) => Math.max(item.wind, item.gust)).filter(Number.isFinite), 0);
+      const options = [];
+      if (storm) {
+        options.push({
+          type: "forecast",
+          title: "Thunderstorms in the forecast",
+          sub: `Most likely around ${formatHour(storm.time)}${precipEvent ? `; about ${formatRainAmount(precipEvent.total)} expected` : ""}.`,
+          tag: "Storms"
+        });
+      }
+      if (heavyRain) {
+        const continuing = offset > 0 && precipEvent.startIndex === 0 && precipEvent.start.time.getHours() === 0;
+        options.push({
+          type: "forecast",
+          title: continuing ? "Rain already underway" : "Heavier rain window",
+          sub: `${continuing ? "Continues overnight" : `Starts around ${formatHour(precipEvent.start.time)}`}${precipEvent.end ? `; tapering around ${formatHour(precipEvent.end.time)}` : ""}. Peak chances near ${Math.round(precipEvent.peakProb)}%.`,
+          tag: "Rain"
+        });
+      }
+      if (maxWind >= 30) {
+        options.push({
+          type: "forecast",
+          title: "Gusty periods",
+          sub: `Gusts may reach around ${Math.round(maxWind)} mph.`,
+          tag: "Wind"
+        });
+      }
+      return options;
+    }
+    function renderTodayOptions(alerts, forecastOptions, offset) {
+      if (!els.todayOptions) return;
+      const activeAlerts = offset === 0 ? (alerts || []).slice(0, 3).map((alert) => ({
+        type: alertTone(alert),
+        title: alert.event,
+        sub: formatAlertWindow(alert) || alert.headline || "Active NWS alert",
+        tag: alert.severity || (/Watch/i.test(alert.event) ? "Watch" : "Alert")
+      })) : [];
+      const items = [...activeAlerts, ...(forecastOptions || [])].slice(0, 4);
+      els.todayOptions.classList.toggle("is-empty", items.length === 0);
+      els.todayOptions.innerHTML = items.map((item) => {
+        const toneClass = item.type === "warning" ? "is-warning" : (item.type === "alert" ? "is-alert" : "");
+        const hasAlertSource = item.type === "warning" || item.type === "alert";
+        const className = `today-option ${toneClass}${hasAlertSource ? " source-tap" : ""}`;
+        const attrs = hasAlertSource ? ` data-source-key="alerts" role="button" tabindex="0"` : "";
+        return `<div class="${className}"${attrs}><span class="today-dot"></span><div class="today-option-main"><div class="today-option-title">${escapeHtml(item.title)}</div><div class="today-option-sub">${escapeHtml(item.sub)}</div></div><div class="today-option-tag">${escapeHtml(item.tag)}</div></div>`;
+      }).join("");
+    }
     function renderHeroNarrative(data, offset = narrativeDayOffset) {
       if (!data?.hourly) return;
       narrativeDayOffset = offset ?? narrativeDefaultOffset();
-      const narrative = summarizeDailyNarrative(data.hourly, data.daily, narrativeDayOffset, new Date());
+      const now = new Date();
+      const narrative = summarizeDailyNarrative(data.hourly, data.daily, narrativeDayOffset, now);
       els.narrativeLabel.textContent = narrativeDayOffset === 0 ? "Today" : "Tomorrow";
       els.currentCondition.textContent = narrative.title;
       els.rainLine.textContent = narrative.detail;
+      renderTodayOptions(latestAlertsData, forecastTodayOptions(data.hourly, data.daily, narrativeDayOffset, now), narrativeDayOffset);
       els.narrativePrevBtn.classList.toggle("is-hidden", narrativeDayOffset === 0);
       els.narrativeNextBtn.classList.toggle("is-hidden", narrativeDayOffset === 1);
     }
@@ -1118,6 +1308,7 @@
       const startIndex = items.findIndex((item) => item.prob >= 20 || item.amount >= 0.01);
       if (startIndex < 0) return null;
       let endIndex = startIndex;
+      let lastActiveIndex = startIndex;
       let dryHours = 0;
       for (let i = startIndex + 1; i < items.length; i++) {
         const item = items[i];
@@ -1125,6 +1316,7 @@
         const lingering = item.prob >= 15 || item.amount > 0;
         if (active || lingering) {
           endIndex = i;
+          if (active) lastActiveIndex = i;
           dryHours = 0;
           continue;
         }
@@ -1139,7 +1331,8 @@
         const strength = item.amount * 10 + item.prob / 100;
         return strength >= best.strength ? { code: item.code, strength } : best;
       }, { code: eventItems[0]?.code || 0, strength: -1 });
-      return { start: eventItems[0], total, peakProb, code: dominant.code };
+      const end = endIndex > lastActiveIndex ? items[endIndex] : items[lastActiveIndex + 1] || null;
+      return { start: eventItems[0], end, total, peakProb, code: dominant.code, startIndex, endIndex, lastActiveIndex };
     }
     function buildRainLine(times, probs, amounts, codes, now) {
       const future = times
@@ -1511,8 +1704,27 @@
       try {
         if (!location?.lat || !location?.lon) { setStatus("Use your location or enter a ZIP to get started."); showOnboarding(); return; }
         activeLocation = location; updateRadarLink(location); setStatus(forceFresh ? "Refreshing weather\u2026" : "Updating weather\u2026"); els.placeName.textContent = location.label || "Loading\u2026";
-        const [forecast, history] = await Promise.all([getForecast(location.lat, location.lon), getHistory(location.lat, location.lon)]);
+        latestAlertsData = null;
+        const [forecast, history, alerts] = await Promise.all([
+          getForecast(location.lat, location.lon),
+          getHistory(location.lat, location.lon),
+          getWeatherAlerts(location.lat, location.lon).catch((error) => {
+            console.warn(error);
+            return [];
+          })
+        ]);
+        latestAlertsData = alerts;
         renderForecast(forecast, location.label || `Near ${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}`);
+        latestSourceDetails.alerts = alerts.length ? {
+          title: "NWS alerts",
+          copy: "Active watches, warnings, and advisories for the saved point.",
+          rows: [
+            sourceRow("Source", "National Weather Service active alerts API"),
+            sourceRow("Top alert", alerts[0].event),
+            sourceRow("Active alerts", String(alerts.length)),
+            sourceRow("Accuracy", "Official NWS alert polygons and point matching; always follow local emergency guidance.")
+          ]
+        } : unavailableSource("NWS alerts", "National Weather Service active alerts API", "No active alerts were returned for this point.");
         const recapState = { observedRain: null, pollen: null, rainLoading: true };
         renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
         setStatus(forceFresh ? "Refreshed" : "Updated", "ok");
@@ -1584,7 +1796,7 @@
       els.narrativeLabel.textContent = narrativeDayOffset === 0 ? "Today" : "Tomorrow";
       els.narrativePrevBtn.classList.toggle("is-hidden", narrativeDayOffset === 0);
       els.narrativeNextBtn.classList.toggle("is-hidden", narrativeDayOffset === 1);
-      els.placeName.textContent = "Set a ZIP or use location"; els.currentTemp.textContent = "--\u00B0"; els.currentCondition.textContent = "Waiting for location"; els.highValue.textContent = "--\u00B0"; els.lowValue.textContent = "--\u00B0"; els.rainLine.textContent = "Rain --"; els.lightLine.innerHTML = `<span>First light --  Rise --</span><span>Last light --  Set --</span>`; els.hourlyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="hour-card"><div class="hour-time">--</div><div class="hour-icon">${glyph(1, false, 24)}</div><div class="hour-temp">--\u00B0</div><div class="hour-rain">--%</div></div>`).join(""); [els.rain24, els.rain3d, els.rain7d, els.freezeHours].forEach(el => el.textContent = "--"); updateRadarLink(loadSavedLocation());
+      els.placeName.textContent = "Set a ZIP or use location"; els.currentTemp.textContent = "--\u00B0"; els.currentCondition.textContent = "Waiting for location"; els.highValue.textContent = "--\u00B0"; els.lowValue.textContent = "--\u00B0"; els.rainLine.textContent = "Rain --"; if (els.todayOptions) { els.todayOptions.innerHTML = ""; els.todayOptions.classList.add("is-empty"); } els.lightLine.innerHTML = `<span>First light --  Rise --</span><span>Last light --  Set --</span>`; els.hourlyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="hour-card"><div class="hour-time">--</div><div class="hour-icon">${glyph(1, false, 24)}</div><div class="hour-temp">--\u00B0</div><div class="hour-rain">--%</div></div>`).join(""); [els.rain24, els.rain3d, els.rain7d, els.freezeHours].forEach(el => el.textContent = "--"); updateRadarLink(loadSavedLocation());
     }
     els.locateBtn.addEventListener("click", () => showOnboarding()); els.refreshBtn.addEventListener("click", refreshCurrentWeather); els.startLocateBtn.addEventListener("click", useBrowserLocation); els.startZipInput.addEventListener("keydown", (e) => { if (e.key === "Enter") searchLocationInput(els.startZipInput.value); }); els.closeOnboardingBtn.addEventListener("click", () => { if (hasSavedLocation()) hideOnboarding(); }); els.recentList.addEventListener("click", async (e) => { const btn = e.target.closest("[data-recent-index]"); if (!btn) return; const recent = loadRecentLocations(); const item = recent[Number(btn.dataset.recentIndex)]; if (!item) return; saveLocation(item); await loadWeather(item, true); });
     els.searchResults.addEventListener("click", async (e) => {
