@@ -1239,6 +1239,135 @@
       if (sky === "partly cloudy") return { title: "Partly cloudy skies", detail: `Temperatures run from about ${Math.round(low)}° to ${Math.round(high)}°.` };
       return { title: "Clear skies", detail: `Temperatures run from about ${Math.round(low)}° to ${Math.round(high)}°.` };
     }
+    function scoreForecastSignificance(items) {
+      if (!items?.length) return 0;
+      const precipEvent = buildNextPrecipEvent(items);
+      const hasStorm = items.some((item) => [95,96,99].includes(item.code));
+      const hasSnow = items.some((item) => [71,73,75,77,85,86].includes(item.code));
+      const hasIce = items.some((item) => [56,57,66,67].includes(item.code));
+      const hasFog = items.some((item) => [45,48].includes(item.code));
+      const maxWind = Math.max(...items.map((item) => Math.max(item.wind, item.gust)).filter(Number.isFinite), 0);
+      const high = Math.max(...items.map((item) => item.temp).filter(Number.isFinite));
+      const low = Math.min(...items.map((item) => item.temp).filter(Number.isFinite));
+      if (hasIce || hasSnow || hasStorm) return 4;
+      if (precipEvent?.total >= 0.5 || precipEvent?.peakProb >= 75) return 4;
+      if (precipEvent?.total >= 0.1 || precipEvent?.peakProb >= 45) return 3;
+      if (maxWind >= 30 || hasFog || high >= 92 || low <= 35) return 3;
+      if (precipEvent?.total >= 0.03 || precipEvent?.peakProb >= 25) return 2;
+      return 0;
+    }
+    function forecastSignificanceForDay(hourly, offset, now = new Date()) {
+      return scoreForecastSignificance(buildNarrativeItems(hourly, offset, now));
+    }
+    function weekdayName(date) {
+      return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][date.getDay()] || "Soon";
+    }
+    function futureEventWhenLabel(date) {
+      return `${weekdayName(date)} ${genericDayPart(date)}`;
+    }
+    function titleCaseWeatherType(type) {
+      return type === "storms" ? "Thunderstorms" : type.charAt(0).toUpperCase() + type.slice(1);
+    }
+    function summarizeFutureSignificantEvent(event) {
+      const type = precipTypeLabel(event.code);
+      const when = futureEventWhenLabel(event.start.time);
+      const amount = formatRainAmount(event.total);
+      const label = titleCaseWeatherType(type);
+      if (type === "storms") {
+        const likely = event.peakProb >= 55 || event.total >= 0.1;
+        return {
+          title: `${likely ? "Thunderstorms likely" : "Chance of thunderstorms"} ${when}`,
+          detail: `The next notable weather shows up ${when.toLowerCase()}, with peak chances near ${Math.round(event.peakProb)}%.`
+        };
+      }
+      if (type === "snow" || type === "ice") {
+        return {
+          title: `${label} possible ${when}`,
+          detail: `The next notable weather shows up ${when.toLowerCase()}; keep an eye on timing as it gets closer.`
+        };
+      }
+      if (event.peakProb >= 60 || event.total >= 0.1) {
+        return {
+          title: `Rain likely ${when}`,
+          detail: `The next notable rain window starts around ${formatHour(event.start.time)}, with about ${amount} expected.`
+        };
+      }
+      return {
+        title: `Chance of rain ${when}`,
+        detail: `The next notable rain chance starts around ${formatHour(event.start.time)}, with about ${amount} expected.`
+      };
+    }
+    function summarizeFutureSignificantDay(items) {
+      const precipEvent = buildNextPrecipEvent(items);
+      const storm = items.find((item) => [95,96,99].includes(item.code));
+      const snow = items.find((item) => [71,73,75,77,85,86].includes(item.code));
+      const ice = items.find((item) => [56,57,66,67].includes(item.code));
+      const fog = items.find((item) => [45,48].includes(item.code));
+      const maxWind = Math.max(...items.map((item) => Math.max(item.wind, item.gust)).filter(Number.isFinite), 0);
+      const high = Math.max(...items.map((item) => item.temp).filter(Number.isFinite));
+      const low = Math.min(...items.map((item) => item.temp).filter(Number.isFinite));
+      if (ice || snow || storm) {
+        const notable = ice || snow || storm;
+        return summarizeFutureSignificantEvent({
+          start: notable,
+          total: precipEvent?.total || notable.amount || 0,
+          peakProb: Math.max(precipEvent?.peakProb || 0, notable.prob || 0),
+          code: notable.code
+        });
+      }
+      if (precipEvent && (precipEvent.peakProb >= 40 || precipEvent.total >= 0.05)) return summarizeFutureSignificantEvent(precipEvent);
+      if (fog) {
+        return {
+          title: `Fog possible ${futureEventWhenLabel(fog.time)}`,
+          detail: `The next notable weather is fog ${futureEventWhenLabel(fog.time).toLowerCase()}.`
+        };
+      }
+      if (maxWind >= 30) {
+        const wind = items.reduce((best, item) => Math.max(item.wind, item.gust) > Math.max(best.wind, best.gust) ? item : best, items[0]);
+        return {
+          title: `Gusty ${futureEventWhenLabel(wind.time)}`,
+          detail: `The next notable weather is wind, with gusts near ${Math.round(Math.max(wind.wind, wind.gust))} mph.`
+        };
+      }
+      if (Number.isFinite(high) && high >= 92) {
+        const hot = items.find((item) => item.temp === high) || items[0];
+        return {
+          title: `Hot ${futureEventWhenLabel(hot.time)}`,
+          detail: `The next notable weather is heat, with highs near ${Math.round(high)} degrees.`
+        };
+      }
+      if (Number.isFinite(low) && low <= 35) {
+        const cold = items.find((item) => item.temp === low) || items[0];
+        return {
+          title: `Cold ${futureEventWhenLabel(cold.time)}`,
+          detail: `The next notable weather is a chilly low near ${Math.round(low)} degrees.`
+        };
+      }
+      return null;
+    }
+    function findNextSignificantWeatherEvent(hourly, now = new Date()) {
+      for (let offset = 2; offset <= 7; offset++) {
+        const items = buildNarrativeItems(hourly, offset, now);
+        if (scoreForecastSignificance(items) < 3) continue;
+        const summary = summarizeFutureSignificantDay(items);
+        if (summary) return { ...summary, offset };
+      }
+      return {
+        title: "Quiet stretch ahead",
+        detail: "No significant weather stands out over the next 7 days."
+      };
+    }
+    function chooseHeroNarrativeMode(data, requestedOffset, now = new Date()) {
+      const offset = requestedOffset;
+      if (offset === 0 || offset === 1) return { mode: "daily", offset };
+      if (offset === 2) return { mode: "next", offset };
+      const alertsActive = (latestAlertsData || []).length > 0;
+      const todayScore = alertsActive ? 4 : forecastSignificanceForDay(data.hourly, 0, now);
+      const tomorrowScore = forecastSignificanceForDay(data.hourly, 1, now);
+      if (todayScore >= 3) return { mode: "daily", offset: 0 };
+      if (tomorrowScore >= 3) return { mode: "daily", offset: 1 };
+      return { mode: "next", offset: 2 };
+    }
     function forecastTodayOptions(hourly, daily, offset, now = new Date()) {
       const items = buildNarrativeItems(hourly, offset, now);
       if (!items.length) return [];
@@ -1294,15 +1423,18 @@
     }
     function renderHeroNarrative(data, offset = narrativeDayOffset) {
       if (!data?.hourly) return;
-      narrativeDayOffset = offset ?? narrativeDefaultOffset();
       const now = new Date();
-      const narrative = summarizeDailyNarrative(data.hourly, data.daily, narrativeDayOffset, now);
-      els.narrativeLabel.textContent = narrativeDayOffset === 0 ? "Today" : "Tomorrow";
+      const choice = chooseHeroNarrativeMode(data, offset, now);
+      narrativeDayOffset = choice.offset;
+      const narrative = choice.mode === "next"
+        ? findNextSignificantWeatherEvent(data.hourly, now)
+        : summarizeDailyNarrative(data.hourly, data.daily, narrativeDayOffset, now);
+      els.narrativeLabel.textContent = choice.mode === "next" ? "Next" : (narrativeDayOffset === 0 ? "Today" : "Tomorrow");
       els.currentCondition.textContent = narrative.title;
       els.rainLine.textContent = narrative.detail;
-      renderTodayOptions(latestAlertsData, forecastTodayOptions(data.hourly, data.daily, narrativeDayOffset, now), narrativeDayOffset);
+      renderTodayOptions(latestAlertsData, choice.mode === "next" ? [] : forecastTodayOptions(data.hourly, data.daily, narrativeDayOffset, now), narrativeDayOffset);
       els.narrativePrevBtn.classList.toggle("is-hidden", narrativeDayOffset === 0);
-      els.narrativeNextBtn.classList.toggle("is-hidden", narrativeDayOffset === 1);
+      els.narrativeNextBtn.classList.toggle("is-hidden", narrativeDayOffset >= 2);
     }
     function buildNextPrecipEvent(items) {
       const startIndex = items.findIndex((item) => item.prob >= 20 || item.amount >= 0.01);
@@ -1581,7 +1713,6 @@
       els.currentTemp.textContent = formatTemp(current.temperature_2m);
       els.currentGlyph.innerHTML = glyph(Number(current.weather_code), Boolean(current.is_day), 32);
       latestForecastData = data;
-      if (narrativeDayOffset === null) narrativeDayOffset = narrativeDefaultOffset(now);
       renderHeroNarrative(data, narrativeDayOffset);
       els.highValue.textContent = formatTemp(highTemp);
       els.highSub.innerHTML = highPoint ? `${formatShortTime(highPoint.date)}${highBaseDay.getTime() > todayStart.getTime() ? `<br>Tomorrow` : ""}` : "Later";
@@ -1819,11 +1950,11 @@
     });
     els.narrativePrevBtn.addEventListener("click", () => {
       if (!latestForecastData) return;
-      renderHeroNarrative(latestForecastData, 0);
+      renderHeroNarrative(latestForecastData, Math.max(0, (narrativeDayOffset ?? 1) - 1));
     });
     els.narrativeNextBtn.addEventListener("click", () => {
       if (!latestForecastData) return;
-      renderHeroNarrative(latestForecastData, 1);
+      renderHeroNarrative(latestForecastData, Math.min(2, (narrativeDayOffset ?? 0) + 1));
     });
     els.hourlyStrip.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { els.hourlyStrip.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
     let isDown = false, hourlyMoved = false, startX = 0, startScroll = 0; els.hourlyStrip.addEventListener("pointerdown", (e) => { isDown = true; hourlyMoved = false; startX = e.clientX; startScroll = els.hourlyStrip.scrollLeft; els.hourlyStrip.setPointerCapture(e.pointerId); }); els.hourlyStrip.addEventListener("pointermove", (e) => { if (!isDown) return; const dx = e.clientX - startX; if (Math.abs(dx) > 6) hourlyMoved = true; els.hourlyStrip.scrollLeft = startScroll - dx; }); const stopDragging = () => { isDown = false; }; els.hourlyStrip.addEventListener("pointerup", stopDragging); els.hourlyStrip.addEventListener("pointercancel", stopDragging); els.hourlyStrip.addEventListener("lostpointercapture", stopDragging);
