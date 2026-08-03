@@ -282,15 +282,14 @@
     .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding: 2px 4px 0; }
     .section-title { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; }
     .section-note { font-size: 12px; color: var(--muted); font-weight: 700; opacity: 0.9; }
-    .hourly-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(66px, 72px); gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 2px 2px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; touch-action: pan-x; }
-    .hourly-strip:active, .outlook-scroll:active { cursor: grabbing; }
-    .hourly-strip::-webkit-scrollbar, .outlook-scroll::-webkit-scrollbar { display: none; }
-    .hour-card { background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04)); border: 1px solid var(--line); box-shadow: var(--shadow-soft); border-radius: 20px; padding: 10px 8px 12px; text-align: center; }
-    .hour-card.is-wet { background: linear-gradient(180deg, rgba(58, 95, 176, 0.22), rgba(22, 40, 76, 0.52)); border-color: rgba(115, 167, 255, 0.26); }
-    .hour-time { font-size: 12px; font-weight: 800; color: var(--muted); margin-bottom: 4px; }
-    .hour-icon { width: 24px; height: 24px; display: block; margin: 0 auto 8px; }
-    .hour-temp { font-size: 22px; font-weight: 800; letter-spacing: -0.05em; margin-bottom: 3px; }
-    .hour-rain { font-size: 12px; color: var(--rain); font-weight: 800; }
+    .daily-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(76px, 82px); gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 2px 2px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; touch-action: pan-x; user-select: none; -webkit-user-select: none; overscroll-behavior-inline: contain; }
+    .daily-strip:active, .outlook-scroll:active { cursor: grabbing; }
+    .daily-strip::-webkit-scrollbar, .outlook-scroll::-webkit-scrollbar { display: none; }
+    .day-card { background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04)); border: 1px solid var(--line); box-shadow: var(--shadow-soft); border-radius: 20px; padding: 10px 7px 12px; text-align: center; }
+    .day-name { font-size: 12px; font-weight: 800; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
+    .day-icon { width: 26px; height: 26px; display: block; margin: 0 auto 8px; }
+    .day-temp { font-size: 16px; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 4px; white-space: nowrap; }
+    .day-rain { font-size: 12px; color: var(--rain); font-weight: 800; }
     .outlook-scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 2px 2px 4px; cursor: grab; touch-action: pan-x; }
     .outlook-chart-shell { min-width: 980px; height: 210px; position: relative; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.012)); border: 1px solid rgba(184,205,255,0.12); overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.03); }
     .outlook-chart { display: block; width: 100%; height: 100%; }
@@ -309,21 +308,6 @@
     .outlook-readout { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); padding: 6px 10px; border-radius: 999px; background: rgba(7, 13, 24, 0.82); border: 1px solid rgba(184,205,255,0.18); box-shadow: var(--shadow-soft); font-size: 12px; color: var(--text); font-weight: 700; white-space: nowrap; pointer-events: none; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .recap-card { padding: 14px; background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04)); }
-    .rain-compare-card {
-      margin-top: 12px; padding: 14px; border: 1px solid rgba(115,167,255,0.2); border-radius: 18px;
-      background: linear-gradient(180deg, rgba(80,132,220,0.08), rgba(255,255,255,0.02));
-    }
-    .rain-compare-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
-    .rain-compare-title { font-size: 13px; font-weight: 850; }
-    .rain-compare-note { color: var(--muted); font-size: 11px; font-weight: 700; text-align: right; }
-    .rain-compare-window + .rain-compare-window { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(184,205,255,0.1); }
-    .rain-compare-window-label { margin-bottom: 7px; color: var(--text); font-size: 12px; font-weight: 850; }
-    .rain-compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .rain-compare-source { min-width: 0; padding: 12px; border-radius: 15px; background: rgba(4,10,20,0.3); border: 1px solid rgba(184,205,255,0.1); }
-    .rain-compare-label { color: var(--muted); font-size: 11px; font-weight: 800; }
-    .rain-compare-value { margin-top: 4px; font-size: 22px; font-weight: 900; letter-spacing: -0.04em; }
-    .rain-compare-state { margin-top: 3px; color: var(--muted); font-size: 10px; font-weight: 700; overflow-wrap: anywhere; }
-    .rain-compare-delta { margin-top: 10px; color: var(--muted); font-size: 11px; font-weight: 750; text-align: center; }
     .recap-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.11em; font-weight: 800; color: var(--muted); margin-bottom: 4px; }
     .recap-value { font-size: 28px; letter-spacing: -0.05em; font-weight: 800; margin-bottom: 4px; }
     .recap-sub { font-size: 13px; color: var(--muted); font-weight: 600; }
@@ -443,11 +427,6 @@
         </div>
       </section>
 
-      <section class="card section-card">
-        <div class="section-head"><div class="section-title">Next 12 hours</div></div>
-        <div class="hourly-strip" id="hourlyStrip"></div>
-      </section>
-
       <section class="card section-card outlook-card">
         <div class="section-head">
           <div><div class="section-title">10-day outlook</div><div class="section-note">Temp + precip</div></div>
@@ -487,40 +466,19 @@
         </div>
       </section>
 
-      <section class="card section-card">
+
+      <section class="card section-card" id="dailyOutlookSection">
+        <div class="section-head"><div class="section-title">Daily outlook</div><div class="section-note">Tomorrow + 14 days</div></div>
+        <div class="daily-strip" id="dailyStrip"></div>
+      </section>
+
+      <section class="card section-card" id="quickRecapSection">
         <div class="section-head"><div class="section-title">Quick recap</div><div class="section-note">Recent conditions</div></div>
         <div class="grid-2">
           <div class="recap-card source-tap" data-source-key="rain24" role="button" tabindex="0"><div class="recap-label">24-hour rain</div><div class="recap-value" id="rain24">--</div></div>
           <div class="recap-card source-tap" data-source-key="rain3d" role="button" tabindex="0"><div class="recap-label">3-day rain</div><div class="recap-value" id="rain3d">--</div></div>
           <div class="recap-card source-tap" data-source-key="rain7d" role="button" tabindex="0"><div class="recap-label">7-day rain</div><div class="recap-value" id="rain7d">--</div></div>
           <div class="recap-card source-tap" data-source-key="seasonal" role="button" tabindex="0"><div class="recap-label">Freeze last night</div><div class="recap-value" id="freezeHours">--</div><div class="recap-sub">Hours below 32° overnight</div></div>
-        </div>
-        <div class="rain-compare-card">
-          <div class="rain-compare-head"><div class="rain-compare-title">Rain data comparison</div><div class="rain-compare-note">Same time windows</div></div>
-          <div class="rain-compare-window">
-            <div class="rain-compare-window-label">24 hours</div>
-            <div class="rain-compare-grid">
-              <div class="rain-compare-source source-tap" data-source-key="rain24Google" role="button" tabindex="0"><div class="rain-compare-label">Google Weather</div><div class="rain-compare-value" id="rain24Google">--</div><div class="rain-compare-state" id="rain24GoogleState">Waiting for data</div></div>
-              <div class="rain-compare-source source-tap" data-source-key="rain24VisualCrossing" role="button" tabindex="0"><div class="rain-compare-label">Visual Crossing</div><div class="rain-compare-value" id="rain24VisualCrossing">--</div><div class="rain-compare-state" id="rain24VisualCrossingState">Waiting for data</div></div>
-            </div>
-            <div class="rain-compare-delta" id="rain24Difference">Difference --</div>
-          </div>
-          <div class="rain-compare-window">
-            <div class="rain-compare-window-label">3 days</div>
-            <div class="rain-compare-grid">
-              <div class="rain-compare-source source-tap" data-source-key="rain3dGoogle" role="button" tabindex="0"><div class="rain-compare-label">Google Weather</div><div class="rain-compare-value" id="rain3dGoogle">--</div><div class="rain-compare-state" id="rain3dGoogleState">Waiting for data</div></div>
-              <div class="rain-compare-source source-tap" data-source-key="rain3dVisualCrossing" role="button" tabindex="0"><div class="rain-compare-label">Visual Crossing</div><div class="rain-compare-value" id="rain3dVisualCrossing">--</div><div class="rain-compare-state" id="rain3dVisualCrossingState">Waiting for data</div></div>
-            </div>
-            <div class="rain-compare-delta" id="rain3dDifference">Difference --</div>
-          </div>
-          <div class="rain-compare-window">
-            <div class="rain-compare-window-label">7 days</div>
-            <div class="rain-compare-grid">
-              <div class="rain-compare-source source-tap" data-source-key="rain7dGoogle" role="button" tabindex="0"><div class="rain-compare-label">Google Weather</div><div class="rain-compare-value" id="rain7dGoogle">--</div><div class="rain-compare-state" id="rain7dGoogleState">Waiting for data</div></div>
-              <div class="rain-compare-source source-tap" data-source-key="rain7dVisualCrossing" role="button" tabindex="0"><div class="rain-compare-label">Visual Crossing</div><div class="rain-compare-value" id="rain7dVisualCrossing">--</div><div class="rain-compare-state" id="rain7dVisualCrossingState">Waiting for data</div></div>
-            </div>
-            <div class="rain-compare-delta" id="rain7dDifference">Difference --</div>
-          </div>
         </div>
       </section>
     </div>
@@ -567,12 +525,9 @@
     const els = {
       placeName: $("placeName"), currentTemp: $("currentTemp"), currentGlyph: $("currentGlyph"), currentCondition: $("currentCondition"), narrativeLabel: $("narrativeLabel"), narrativePrevBtn: $("narrativePrevBtn"), narrativeNextBtn: $("narrativeNextBtn"),
       highValue: $("highValue"), highSub: $("highSub"), lowValue: $("lowValue"), lowSub: $("lowSub"),
-      rainLine: $("rainLine"), todayOptions: $("todayOptions"), lightLine: $("lightLine"), hourlyStrip: $("hourlyStrip"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"), outlookLegend: $("outlookLegend"),
+      rainLine: $("rainLine"), todayOptions: $("todayOptions"), lightLine: $("lightLine"), dailyStrip: $("dailyStrip"), dailyOutlookSection: $("dailyOutlookSection"), quickRecapSection: $("quickRecapSection"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"), outlookLegend: $("outlookLegend"),
       rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"),
-      rain24Google: $("rain24Google"), rain24GoogleState: $("rain24GoogleState"), rain24VisualCrossing: $("rain24VisualCrossing"), rain24VisualCrossingState: $("rain24VisualCrossingState"), rain24Difference: $("rain24Difference"),
       locateBtn: $("locateBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink"), longRangeLink: $("longRangeLink"),
-      rain3dGoogle: $("rain3dGoogle"), rain3dGoogleState: $("rain3dGoogleState"), rain3dVisualCrossing: $("rain3dVisualCrossing"), rain3dVisualCrossingState: $("rain3dVisualCrossingState"), rain3dDifference: $("rain3dDifference"),
-      rain7dGoogle: $("rain7dGoogle"), rain7dGoogleState: $("rain7dGoogleState"), rain7dVisualCrossing: $("rain7dVisualCrossing"), rain7dVisualCrossingState: $("rain7dVisualCrossingState"), rain7dDifference: $("rain7dDifference"),
       sourceOverlay: $("sourceOverlay"), sourceTitle: $("sourceTitle"), sourceCopy: $("sourceCopy"), sourceRows: $("sourceRows"), sourceOkBtn: $("sourceOkBtn"),
       onboardingOverlay: $("onboardingOverlay"), startLocateBtn: $("startLocateBtn"), startZipInput: $("startZipInput"), onboardingNote: $("onboardingNote"),
       closeOnboardingBtn: $("closeOnboardingBtn"), searchResultsWrap: $("searchResultsWrap"), searchResults: $("searchResults"), recentWrap: $("recentWrap"), recentList: $("recentList")
@@ -589,6 +544,14 @@
     const VISUAL_CROSSING_RAIN_CACHE_KEY = "weather-visual-crossing-rain-v1";
     const VISUAL_CROSSING_RAIN_BUDGET_KEY = "weather-visual-crossing-rain-budget-v1";
     const VISUAL_CROSSING_HISTORY_CACHE_KEY = "weather-visual-crossing-history-v1";
+    const FORECAST_CACHE_KEY = "weather-core-forecast-v1";
+    const DAILY_OUTLOOK_CACHE_KEY = "weather-daily-outlook-v1";
+    const POLLEN_CACHE_KEY = "weather-google-pollen-v1";
+    const CORE_FORECAST_TTL_MS = 30 * 60 * 1000;
+    const MANUAL_REFRESH_GUARD_MS = 2 * 60 * 1000;
+    const DAILY_OUTLOOK_TTL_MS = 6 * 60 * 60 * 1000;
+    const POLLEN_TTL_MS = 24 * 60 * 60 * 1000;
+    const CACHE_LOCATION_LIMIT = 5;
     const METERS_PER_MILE = 1609.344;
     const MM_PER_INCH = 25.4;
     let activeLocation = null;
@@ -598,6 +561,9 @@
     let narrativeDayOffset = null;
     let latestForecastData = null;
     let latestAlertsData = null;
+    let latestHistoryData = null;
+    let recapLoadKey = "";
+    let recapState = { observedRain: null, pollen: { status: "idle", message: "Pollen loads when this section is viewed." }, rainLoading: false };
     const outlookSeries = loadOutlookSeries();
 
     function hasSavedLocation() { const saved = loadSavedLocation(); return Boolean(saved?.lat && saved?.lon); }
@@ -638,9 +604,32 @@
     function recentKey(location) {
       return location.zip ? `zip:${location.zip}` : `${Number(location.lat).toFixed(3)},${Number(location.lon).toFixed(3)}`;
     }
+    function loadStorageMap(key) {
+      try {
+        const value = JSON.parse(localStorage.getItem(key) || "{}");
+        return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+      } catch {
+        return {};
+      }
+    }
+    function saveStorageMap(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+    }
+    function pruneLocationCaches(recent) {
+      const keep = new Set((recent || []).slice(0, CACHE_LOCATION_LIMIT).map((item) => googleRainLocationKey(item.lat, item.lon)));
+      [FORECAST_CACHE_KEY, DAILY_OUTLOOK_CACHE_KEY, POLLEN_CACHE_KEY, GOOGLE_RAIN_CACHE_KEY, VISUAL_CROSSING_RAIN_CACHE_KEY, VISUAL_CROSSING_HISTORY_CACHE_KEY].forEach((storageKey) => {
+        const cache = loadStorageMap(storageKey);
+        let changed = false;
+        Object.keys(cache).forEach((locationKey) => {
+          if (!keep.has(locationKey)) { delete cache[locationKey]; changed = true; }
+        });
+        if (changed) saveStorageMap(storageKey, cache);
+      });
+    }
     function saveRecentLocation(location) {
-      const recent = [location, ...loadRecentLocations().filter((item) => recentKey(item) !== recentKey(location))].slice(0, 5);
+      const recent = [location, ...loadRecentLocations().filter((item) => recentKey(item) !== recentKey(location))].slice(0, CACHE_LOCATION_LIMIT);
       localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(recent));
+      pruneLocationCaches(recent);
     }
     function clearSearchResults() {
       els.searchResultsWrap.classList.add("hidden");
@@ -673,7 +662,7 @@
     function formatHour(dateStr) { return new Date(dateStr).toLocaleTimeString([], { hour: "numeric" }); }
     function formatShortTime(dateLike) { return new Date(dateLike).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
     function tomorrowLabel(dateLike, now = new Date()) { const d = new Date(dateLike); const tomorrowStart = new Date(now); tomorrowStart.setHours(24,0,0,0); return d >= tomorrowStart ? "Tomorrow" : ""; }
-    function resetPanels() { els.hourlyStrip.scrollLeft = 0; const outlookScroll = document.querySelector('.outlook-scroll'); if (outlookScroll) outlookScroll.scrollLeft = 0; }
+    function resetPanels() { const outlookScroll = document.querySelector('.outlook-scroll'); if (outlookScroll) outlookScroll.scrollLeft = 0; }
     function forecastSourceLabel(source) {
       return source === "visual-crossing" ? "Visual Crossing Timeline API" : "Open-Meteo GFS fallback";
     }
@@ -808,16 +797,46 @@
       } catch (error) { console.warn(error); }
       return `Near ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
     }
-    async function getForecast(lat, lon) {
-      try {
-        return await getVisualCrossingForecast(lat, lon);
-      } catch (error) {
-        console.warn(error);
-      }
+    async function getOpenMeteoForecast(lat, lon) {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "auto";
-      const params = new URLSearchParams({ latitude: lat, longitude: lon, timezone: tz, temperature_unit: "fahrenheit", precipitation_unit: "inch", wind_speed_unit: "mph", current: "temperature_2m,weather_code,is_day", hourly: "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m", daily: "sunrise,sunset,daylight_duration", forecast_days: "10" });
-      const res = await fetch(`https://api.open-meteo.com/v1/gfs?${params.toString()}`); if (!res.ok) throw new Error("Forecast request failed");
-      return res.json();
+      const params = new URLSearchParams({
+        latitude: lat, longitude: lon, timezone: tz,
+        temperature_unit: "fahrenheit", precipitation_unit: "inch", wind_speed_unit: "mph",
+        current: "temperature_2m,weather_code,is_day",
+        hourly: "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m",
+        daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,daylight_duration",
+        forecast_days: "16"
+      });
+      const res = await fetch(`https://api.open-meteo.com/v1/gfs?${params.toString()}`);
+      if (!res.ok) throw new Error("Open-Meteo forecast unavailable");
+      const data = await res.json();
+      data.source = "open-meteo";
+      return data;
+    }
+    async function getForecast(lat, lon, forceFresh = false) {
+      const now = new Date();
+      const cache = loadStorageMap(FORECAST_CACHE_KEY);
+      const locationKey = googleRainLocationKey(lat, lon);
+      const cached = cache[locationKey];
+      const age = now.getTime() - new Date(cached?.updatedAt || 0).getTime();
+      const freshEnough = age >= 0 && age < CORE_FORECAST_TTL_MS;
+      const guardedRefresh = forceFresh && age >= 0 && age < MANUAL_REFRESH_GUARD_MS;
+      if (cached?.value && ((!forceFresh && freshEnough) || guardedRefresh)) return cached.value;
+      try {
+        let value;
+        try {
+          value = await getVisualCrossingForecast(lat, lon);
+        } catch (error) {
+          console.warn(error);
+          value = await getOpenMeteoForecast(lat, lon);
+        }
+        cache[locationKey] = { value, updatedAt: now.toISOString() };
+        saveStorageMap(FORECAST_CACHE_KEY, cache);
+        return value;
+      } catch (error) {
+        if (cached?.value) return { ...cached.value, stale: true };
+        throw error;
+      }
     }
     function visualCrossingLocation(lat, lon) {
       return `${Number(lat).toFixed(4)},${Number(lon).toFixed(4)}`;
@@ -866,6 +885,11 @@
         },
         hourly,
         daily: {
+          time: days.map((day) => day.datetime),
+          weather_code: days.map((day) => visualCrossingCode(day.icon, day.conditions)),
+          temperature_2m_max: days.map((day) => Number(day.tempmax ?? day.temp)),
+          temperature_2m_min: days.map((day) => Number(day.tempmin ?? day.temp)),
+          precipitation_probability_max: days.map((day) => Number(day.precipprob) || 0),
           sunrise: days.map((day) => combineVisualCrossingDate(day, day.sunrise)).filter(Boolean),
           sunset: days.map((day) => combineVisualCrossingDate(day, day.sunset)).filter(Boolean)
         },
@@ -878,7 +902,7 @@
       const params = new URLSearchParams({
         unitGroup: "us",
         include: "current,days,hours",
-        elements: "datetime,datetimeEpoch,temp,feelslike,humidity,precip,precipprob,conditions,icon,windspeed,windgust,winddir,sunrise,sunset",
+        elements: "datetime,datetimeEpoch,temp,tempmax,tempmin,feelslike,humidity,precip,precipprob,conditions,icon,windspeed,windgust,winddir,sunrise,sunset",
         key: VISUAL_CROSSING_API_KEY,
         contentType: "json"
       });
@@ -944,12 +968,26 @@
     async function getPollenForecast(lat, lon) {
       const key = pollenApiKey();
       if (!key) return { status: "not-configured", message: "No Google Pollen API key is configured." };
-      const params = new URLSearchParams({ key, days: "3", plantsDescription: "0", pageSize: "3" });
-      params.set("location.latitude", String(lat));
-      params.set("location.longitude", String(lon));
-      const res = await fetch(`https://pollen.googleapis.com/v1/forecast:lookup?${params.toString()}`);
-      if (res.ok === false) throw await providerResponseError(res, "Google Pollen");
-      return summarizePollen(await res.json());
+      const now = new Date();
+      const cache = loadStorageMap(POLLEN_CACHE_KEY);
+      const locationKey = googleRainLocationKey(lat, lon);
+      const cached = cache[locationKey];
+      const age = now.getTime() - new Date(cached?.updatedAt || 0).getTime();
+      if (cached?.value && age >= 0 && age < POLLEN_TTL_MS) return cached.value;
+      try {
+        const params = new URLSearchParams({ key, days: "3", plantsDescription: "0", pageSize: "3" });
+        params.set("location.latitude", String(lat));
+        params.set("location.longitude", String(lon));
+        const res = await fetch(`https://pollen.googleapis.com/v1/forecast:lookup?${params.toString()}`);
+        if (res.ok === false) throw await providerResponseError(res, "Google Pollen");
+        const value = summarizePollen(await res.json());
+        cache[locationKey] = { value, updatedAt: now.toISOString() };
+        saveStorageMap(POLLEN_CACHE_KEY, cache);
+        return value;
+      } catch (error) {
+        if (cached?.value) return { ...cached.value, stale: true };
+        throw error;
+      }
     }
     function summarizePollen(data) {
       const days = Array.isArray(data?.dailyInfo) ? data.dailyInfo : [];
@@ -1279,11 +1317,14 @@
         result.googleRainError = error?.message || "Google Weather unavailable";
         console.warn(error);
       }
-      try {
-        Object.assign(result, await getVisualCrossingRain(lat, lon));
-      } catch (error) {
-        result.visualCrossingRainError = error?.message || "Visual Crossing unavailable";
-        console.warn(error);
+      const googleMissingAWindow = !Number.isFinite(result.googleRain24) || !Number.isFinite(result.googleRain3d) || !Number.isFinite(result.googleRain7d);
+      if (googleMissingAWindow) {
+        try {
+          Object.assign(result, await getVisualCrossingRain(lat, lon));
+        } catch (error) {
+          result.visualCrossingRainError = error?.message || "Visual Crossing unavailable";
+          console.warn(error);
+        }
       }
       [
         { target: "rain24", google: "googleRain24", visual: "visualCrossingRain24" },
@@ -1715,20 +1756,107 @@
       if (event.peakProb >= 40) return `${Math.round(event.peakProb)}% ${type} ${when}, ${amountLabel}`;
       return `Slight ${type} ${when}, ${amountLabel}`;
     }
-    function renderHourly(times, temps, probs, codes, now, source) {
-      const items = times.map((time, i) => ({ time, date: new Date(time), temp: temps[i], prob: Number(probs[i]) || 0, code: Number(codes[i]) || 0 })).filter((x) => x.date >= now).slice(0, 12);
-      items.forEach((item, index) => {
-        latestSourceDetails[`hour-${index}`] = {
-          title: `${formatHour(item.time)} forecast`,
-          copy: "This hourly tile is forecast data, not an observation.",
-          rows: [
-            sourceRow("Source", forecastSourceLabel(source)),
-            sourceRow("Shows", `${Math.round(item.temp)}° and ${Math.round(item.prob)}% precip chance`),
-            sourceRow("Accuracy", "Best for the next few hours; timing and rain chance can shift.")
-          ]
+    function localDateKey(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+    function dateKeyAfter(days, now = new Date()) {
+      const date = new Date(now);
+      date.setHours(12, 0, 0, 0);
+      date.setDate(date.getDate() + days);
+      return localDateKey(date);
+    }
+    function dailyRecordsFromForecast(data) {
+      const daily = data?.daily || {};
+      return (daily.time || []).map((date, index) => ({
+        date: String(date).slice(0, 10),
+        high: Number(daily.temperature_2m_max?.[index]),
+        low: Number(daily.temperature_2m_min?.[index]),
+        precipProb: Number(daily.precipitation_probability_max?.[index]) || 0,
+        code: Number(daily.weather_code?.[index]) || 0,
+        source: data.source || "open-meteo"
+      })).filter((item) => item.date && Number.isFinite(item.high) && Number.isFinite(item.low));
+    }
+    function googleDailyCode(day) {
+      const condition = day?.daytimeForecast?.weatherCondition?.type || day?.nighttimeForecast?.weatherCondition?.type || "";
+      return visualCrossingCode(String(condition).replaceAll("_", " "));
+    }
+    async function getGoogleDailyForecast(lat, lon) {
+      const key = weatherApiKey();
+      if (!key) throw new Error("Google Weather API key is not configured");
+      const params = new URLSearchParams({ key, unitsSystem: "IMPERIAL", days: "10", pageSize: "10" });
+      params.set("location.latitude", String(lat));
+      params.set("location.longitude", String(lon));
+      const res = await fetch("https://weather.googleapis.com/v1/forecast/days:lookup?" + params.toString());
+      if (!res.ok) throw await providerResponseError(res, "Google Weather daily forecast");
+      const data = await res.json();
+      return (data.forecastDays || []).map((day) => {
+        const display = day.displayDate || {};
+        const date = `${display.year}-${String(display.month).padStart(2, "0")}-${String(display.day).padStart(2, "0")}`;
+        const dayProb = Number(day.daytimeForecast?.precipitation?.probability?.percent);
+        const nightProb = Number(day.nighttimeForecast?.precipitation?.probability?.percent);
+        return {
+          date,
+          high: Number(day.maxTemperature?.degrees),
+          low: Number(day.minTemperature?.degrees),
+          precipProb: Math.max(Number.isFinite(dayProb) ? dayProb : 0, Number.isFinite(nightProb) ? nightProb : 0),
+          code: googleDailyCode(day),
+          source: "google"
         };
-      });
-      els.hourlyStrip.innerHTML = items.map((item, index) => { const isDay = item.date.getHours() >= 7 && item.date.getHours() <= 19; return `<div class="hour-card source-tap ${item.prob >= 40 ? 'is-wet' : ''}" data-source-key="hour-${index}" role="button" tabindex="0"><div class="hour-time">${formatHour(item.time)}</div><div class="hour-icon">${glyph(item.code, isDay, 24)}</div><div class="hour-temp">${Math.round(item.temp)}\u00B0</div><div class="hour-rain">${Math.round(item.prob)}%</div></div>`; }).join("");
+      }).filter((item) => item.date && Number.isFinite(item.high) && Number.isFinite(item.low));
+    }
+    async function getDailyOutlook(lat, lon, coreForecast) {
+      const now = new Date();
+      const todayKey = localDateKey(now);
+      const cache = loadStorageMap(DAILY_OUTLOOK_CACHE_KEY);
+      const locationKey = googleRainLocationKey(lat, lon);
+      const cached = cache[locationKey];
+      const age = now.getTime() - new Date(cached?.updatedAt || 0).getTime();
+      if (cached?.value && cached.localDate === todayKey && age >= 0 && age < DAILY_OUTLOOK_TTL_MS) return cached.value;
+      const googlePromise = getGoogleDailyForecast(lat, lon).catch((error) => { console.warn(error); return []; });
+      const openMeteoPromise = coreForecast?.source === "open-meteo" ? Promise.resolve(coreForecast) : getOpenMeteoForecast(lat, lon).catch((error) => { console.warn(error); return null; });
+      const [googleDays, openMeteoForecast] = await Promise.all([googlePromise, openMeteoPromise]);
+      const googleByDate = new Map(googleDays.map((item) => [item.date, item]));
+      const visualByDate = new Map((coreForecast?.source === "visual-crossing" ? dailyRecordsFromForecast(coreForecast) : []).map((item) => [item.date, item]));
+      const openMeteoByDate = new Map(dailyRecordsFromForecast(openMeteoForecast).map((item) => [item.date, item]));
+      const value = [];
+      for (let offset = 1; offset <= 15; offset++) {
+        const date = dateKeyAfter(offset, now);
+        const preferred = offset <= 9
+          ? googleByDate.get(date) || visualByDate.get(date) || openMeteoByDate.get(date)
+          : offset <= 14
+            ? visualByDate.get(date) || openMeteoByDate.get(date)
+            : openMeteoByDate.get(date);
+        value.push(preferred || { date, high: null, low: null, precipProb: null, code: 0, source: "unavailable" });
+      }
+      if (value.some((item) => Number.isFinite(item.high))) {
+        cache[locationKey] = { value, updatedAt: now.toISOString(), localDate: todayKey };
+        saveStorageMap(DAILY_OUTLOOK_CACHE_KEY, cache);
+        return value;
+      }
+      if (cached?.value) return cached.value;
+      return value;
+    }
+    function dailySourceLabel(source) {
+      if (source === "google") return "Google Weather API";
+      if (source === "visual-crossing") return "Visual Crossing Timeline API";
+      if (source === "open-meteo") return "Open-Meteo GFS";
+      return "No provider data";
+    }
+    function renderDailyOutlook(items) {
+      els.dailyStrip.innerHTML = items.map((item, index) => {
+        const date = new Date(`${item.date}T12:00:00`);
+        const dayName = index === 0
+          ? "TOM"
+          : index >= 6
+            ? `${date.getMonth() + 1}/${date.getDate()}`
+            : date.toLocaleDateString([], { weekday: "short" });
+        const highLow = Number.isFinite(item.high) && Number.isFinite(item.low) ? `${Math.round(item.high)}°/${Math.round(item.low)}°` : "--/--";
+        const rain = Number.isFinite(item.precipProb) ? `${Math.round(item.precipProb)}%` : "--%";
+        return `<div class="day-card"><div class="day-name">${dayName}</div><div class="day-icon">${glyph(Number(item.code) || 0, true, 26)}</div><div class="day-temp">${highLow}</div><div class="day-rain">${rain}</div></div>`;
+      }).join("");
     }
     function nearestHourlyIndex(times, now) {
       let bestIndex = 0;
@@ -1955,7 +2083,6 @@
       els.lowSub.innerHTML = lowPoint ? `${formatShortTime(lowPoint.date)}${tomorrowLabel(lowPoint.date, now) ? `<br>${tomorrowLabel(lowPoint.date, now)}` : ""}` : "Later";
       const sunrise = daily.sunrise?.[0], sunset = daily.sunset?.[0], firstLight = sunrise ? new Date(new Date(sunrise).getTime() - 30 * 60 * 1000) : null, lastLight = sunset ? new Date(new Date(sunset).getTime() + 30 * 60 * 1000) : null;
       els.lightLine.innerHTML = `<span>First light ${firstLight ? formatShortTime(firstLight) : '--'}&nbsp;&nbsp;Rise ${sunrise ? formatShortTime(sunrise) : '--'}</span><span>Last light ${lastLight ? formatShortTime(lastLight) : '--'}&nbsp;&nbsp;Set ${sunset ? formatShortTime(sunset) : '--'}</span>`;
-      renderHourly(hourly.time, hourly.temperature_2m, hourly.precipitation_probability, hourly.weather_code, now, data.source);
       latestOutlookData = { hourly, daily };
       renderOutlookChart(hourly, daily);
     }
@@ -1991,7 +2118,11 @@
           let value = "No data";
           let shortReason = "No pollen forecast returned";
           let explanation = message;
-          if (status === "loading") {
+          if (status === "idle") {
+            value = "Not loaded";
+            shortReason = "Loads when this section is viewed";
+            explanation = message;
+          } else if (status === "loading") {
             value = "...";
             shortReason = "Loading pollen forecast";
             explanation = "The Google Pollen request is still in progress.";
@@ -2044,65 +2175,6 @@
         ]
       };
     }
-    function rainProviderState(value, error, updatedAt, loading, coverage = 0, needed = 0, stale = false) {
-      if (loading) return "Loading...";
-      if (Number.isFinite(value)) {
-        const updated = new Date(updatedAt || Date.now());
-        return (stale ? "Cached " : "Updated ") + updated.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-      }
-      const text = String(error || "");
-      if (text.toLowerCase().includes("app daily request limit")) return "App daily limit reached";
-      if (text.toLowerCase().includes("maximum daily cost") || text.toLowerCase().includes("quota")) return "Provider quota reached";
-      if (text.toLowerCase().includes("billing")) return "Billing is disabled";
-      if (text.includes("403") || text.toLowerCase().includes("permission") || text.toLowerCase().includes("referer")) return "Blocked for this site";
-      if (coverage > 0 && needed > 0) return coverage + " of " + needed + " hrs saved";
-      return "No data returned";
-    }
-    function renderRainComparison(observedRain, loading = false) {
-      const windows = [
-        { key: "24", label: "24 hours", google: "googleRain24", visual: "visualCrossingRain24", needed: 24 },
-        { key: "3d", label: "3 days", google: "googleRain3d", visual: "visualCrossingRain3d", needed: 72 },
-        { key: "7d", label: "7 days", google: "googleRain7d", visual: "visualCrossingRain7d", needed: 168 }
-      ];
-      windows.forEach((window) => {
-        const google = observedRain?.[window.google];
-        const visual = observedRain?.[window.visual];
-        const googleCoverage = observedRain?.[window.google + "Coverage"] || 0;
-        const visualCoverage = observedRain?.[window.visual + "Coverage"] || 0;
-        const googleValue = els["rain" + window.key + "Google"];
-        const visualValue = els["rain" + window.key + "VisualCrossing"];
-        const googleState = els["rain" + window.key + "GoogleState"];
-        const visualState = els["rain" + window.key + "VisualCrossingState"];
-        const differenceEl = els["rain" + window.key + "Difference"];
-        googleValue.textContent = loading ? "..." : formatRecapRain(google);
-        visualValue.textContent = loading ? "..." : formatRecapRain(visual);
-        googleState.textContent = rainProviderState(google, observedRain?.googleRainError, observedRain?.googleRainUpdatedAt, loading, googleCoverage, window.needed);
-        visualState.textContent = rainProviderState(visual, observedRain?.visualCrossingRainError, observedRain?.visualCrossingRainUpdatedAt, loading, visualCoverage, window.needed, observedRain?.visualCrossingRainStale === true);
-        if (loading) differenceEl.textContent = "Comparing providers...";
-        else if (Number.isFinite(google) && Number.isFinite(visual)) {
-          const difference = google - visual;
-          differenceEl.textContent = Math.abs(difference) < 0.005 ? "Providers agree within 0.01 in" : "Google is " + Math.abs(difference).toFixed(2) + " in " + (difference > 0 ? "higher" : "lower");
-        } else if (googleCoverage > 0 && googleCoverage < window.needed) {
-          differenceEl.textContent = "Google comparison builds as hourly history is saved";
-        } else {
-          differenceEl.textContent = "Both providers are needed for a comparison";
-        }
-        const googleSourceKey = window.google + "Source";
-        const visualSourceKey = window.visual + "Source";
-        const googleReason = observedRain?.googleRainError || (googleCoverage ? "Building local history: " + googleCoverage + " of " + window.needed + " hourly records saved." : "No usable total was returned.");
-        const visualReason = observedRain?.visualCrossingRainError || "Not enough hourly coverage was returned.";
-        latestSourceDetails["rain" + window.key + "Google"] = Number.isFinite(google) ? {
-          title: "Google rain - " + window.label,
-          copy: window.key === "24" ? "Sum of Google's hourly precipitation records." : "Google only returns 24 hours per request, so the app saves hourly records on this device to build this total.",
-          rows: [sourceRow("Source", observedRain[googleSourceKey]), sourceRow("Value", formatRecapRain(google)), sourceRow("Hourly coverage", String(googleCoverage) + " hours")]
-        } : unavailableSource("Google rain - " + window.label, "Google Weather API hourly history", googleReason);
-        latestSourceDetails["rain" + window.key + "VisualCrossing"] = Number.isFinite(visual) ? {
-          title: "Visual Crossing rain - " + window.label,
-          copy: "Sum of Visual Crossing hourly precipitation records in the same time window.",
-          rows: [sourceRow("Source", observedRain[visualSourceKey]), sourceRow("Value", formatRecapRain(visual)), sourceRow("Hourly coverage", String(visualCoverage) + " hours")]
-        } : unavailableSource("Visual Crossing rain - " + window.label, "Visual Crossing Timeline API", visualReason);
-      });
-    }
     function renderHistory(data, observedRain, pollen, rainLoading = false) {
       const now = new Date();
       const times = (data.hourly?.time || []).map((t) => new Date(t));
@@ -2120,7 +2192,6 @@
       els.rain24.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain24);
       els.rain3d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain3d);
       els.rain7d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain7d);
-      renderRainComparison(observedRain, rainLoading);
       latestSourceDetails.rain24 = rainLoading ? {
         title: "24-hour rain",
         copy: "Recent rain data is still loading.",
@@ -2146,7 +2217,7 @@
           sourceRow("Source", observedRain.rain3dSource || "Visual Crossing Timeline hourly precip"),
           sourceRow("Value", formatRecapRain(observedRain.rain3d)),
           sourceRow("Backup", "Visual Crossing Timeline hourly precip"),
-          sourceRow("Accuracy", "Hourly provider totals are useful for comparison, but exact totals can vary locally.")
+          sourceRow("Accuracy", "Hourly provider totals can differ from a rain gauge at the exact location.")
         ]
       } : unavailableSource("3-day rain", "Google Weather and Visual Crossing", "Neither provider returned enough hourly precipitation coverage.");
       latestSourceDetails.rain7d = rainLoading ? {
@@ -2160,24 +2231,72 @@
           sourceRow("Source", observedRain.rain7dSource || "Visual Crossing Timeline hourly precip"),
           sourceRow("Value", formatRecapRain(observedRain.rain7d)),
           sourceRow("Backup", "Visual Crossing Timeline hourly precip"),
-          sourceRow("Accuracy", "Weekly provider totals are useful for comparison, but are not a backyard rain gauge.")
+          sourceRow("Accuracy", "Weekly provider totals are useful for planning, but are not a backyard rain gauge.")
         ]
       } : unavailableSource("7-day rain", "Google Weather and Visual Crossing", "Neither provider returned enough hourly precipitation coverage.");
       renderSeasonalRecap(freezeCount, hasRecentFreeze, pollen);
     }
+    function activeLocationMatches(location) {
+      return activeLocation?.lat === location?.lat && activeLocation?.lon === location?.lon;
+    }
+    function loadSupplementalData() {
+      const location = activeLocation;
+      if (!location) return;
+      const locationKey = googleRainLocationKey(location.lat, location.lon);
+      if (recapLoadKey === locationKey) return;
+      recapLoadKey = locationKey;
+      recapState = { observedRain: null, pollen: { status: "loading" }, rainLoading: true };
+      renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, recapState.rainLoading);
+      getHistory(location.lat, location.lon).then((history) => {
+        latestHistoryData = history;
+        if (activeLocationMatches(location)) renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
+      }).catch((error) => console.warn(error));
+      getObservedRain(location.lat, location.lon).then((observedRain) => {
+        recapState.observedRain = observedRain;
+        recapState.rainLoading = false;
+        if (activeLocationMatches(location)) renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, recapState.rainLoading);
+      }).catch((error) => {
+        console.warn(error);
+        recapState.rainLoading = false;
+        if (activeLocationMatches(location)) renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, recapState.rainLoading);
+      });
+      getPollenForecast(location.lat, location.lon).then((pollen) => {
+        recapState.pollen = pollen;
+        if (activeLocationMatches(location)) renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, recapState.rainLoading);
+      }).catch((error) => {
+        console.warn(error);
+        recapState.pollen = { status: "error", message: error?.message || "Google Pollen request failed." };
+        if (activeLocationMatches(location)) renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, recapState.rainLoading);
+      });
+    }
+    function loadSupplementalIfNear() {
+      const rect = els.quickRecapSection?.getBoundingClientRect();
+      if (rect && rect.top <= window.innerHeight + 320 && rect.bottom >= -320) loadSupplementalData();
+    }
     async function loadWeather(location, forceFresh = false) {
       try {
         if (!location?.lat || !location?.lon) { setStatus("Use your location or enter a ZIP to get started."); showOnboarding(); return; }
-        activeLocation = location; updateRadarLink(location); setStatus(forceFresh ? "Refreshing weather\u2026" : "Updating weather\u2026"); els.placeName.textContent = location.label || "Loading\u2026";
+        const previousKey = activeLocation ? googleRainLocationKey(activeLocation.lat, activeLocation.lon) : "";
+        const nextKey = googleRainLocationKey(location.lat, location.lon);
+        if (previousKey !== nextKey) {
+          recapLoadKey = "";
+          recapState = { observedRain: null, pollen: { status: "idle", message: "Pollen loads when this section is viewed." }, rainLoading: false };
+          latestHistoryData = null;
+          els.dailyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="day-card"><div class="day-name">---</div><div class="day-icon">${glyph(1, true, 26)}</div><div class="day-temp">--/--</div><div class="day-rain">--%</div></div>`).join("");
+        }
+        activeLocation = location;
+        updateRadarLink(location);
+        setStatus(forceFresh ? "Refreshing weather…" : "Updating weather…");
+        els.placeName.textContent = location.label || "Loading…";
         latestAlertsData = null;
-        const [forecast, history, alerts] = await Promise.all([
-          getForecast(location.lat, location.lon),
-          getHistory(location.lat, location.lon),
+        const [forecast, alerts] = await Promise.all([
+          getForecast(location.lat, location.lon, forceFresh),
           getWeatherAlerts(location.lat, location.lon).catch((error) => {
             console.warn(error);
             return [];
           })
         ]);
+        if (!activeLocationMatches(location)) return;
         latestAlertsData = alerts;
         renderForecast(forecast, location.label || `Near ${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}`);
         latestSourceDetails.alerts = alerts.length ? {
@@ -2190,27 +2309,17 @@
             sourceRow("Accuracy", "Official NWS alert polygons and point matching; always follow local emergency guidance.")
           ]
         } : unavailableSource("NWS alerts", "National Weather Service active alerts API", "No active alerts were returned for this point.");
-        const recapState = { observedRain: null, pollen: { status: "loading" }, rainLoading: true };
-        renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
+        renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, recapState.rainLoading);
         setStatus(forceFresh ? "Refreshed" : "Updated", "ok");
-        getObservedRain(location.lat, location.lon).then((observedRain) => {
-          recapState.observedRain = observedRain;
-          recapState.rainLoading = false;
-          if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
-        }).catch((error) => {
-          console.warn(error);
-          recapState.rainLoading = false;
-          if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
-        });
-        getPollenForecast(location.lat, location.lon).then((pollen) => {
-          recapState.pollen = pollen;
-          if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
-        }).catch((error) => {
-          console.warn(error);
-          recapState.pollen = { status: "error", message: error?.message || "Google Pollen request failed." };
-          if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
-        });
-      } catch (error) { console.error(error); setStatus("Could not load weather data.", "error"); els.currentCondition.textContent = "Weather unavailable"; }
+        getDailyOutlook(location.lat, location.lon, forecast).then((items) => {
+          if (activeLocationMatches(location)) renderDailyOutlook(items);
+        }).catch((error) => console.warn(error));
+        loadSupplementalIfNear();
+      } catch (error) {
+        console.error(error);
+        setStatus("Could not load weather data.", "error");
+        els.currentCondition.textContent = "Weather unavailable";
+      }
     }
     async function refreshCurrentWeather() { const saved = activeLocation || loadSavedLocation(); if (!saved?.lat || !saved?.lon) { setStatus("No saved location yet.", "error"); showOnboarding(); return; } resetPanels(); await loadWeather(saved, true); }
     async function useBrowserLocation() {
@@ -2263,9 +2372,17 @@
       els.narrativeLabel.textContent = narrativeDayOffset === 0 ? "Today" : "Tomorrow";
       els.narrativePrevBtn.classList.toggle("is-hidden", narrativeDayOffset === 0);
       els.narrativeNextBtn.classList.toggle("is-hidden", narrativeDayOffset === 1);
-      els.placeName.textContent = "Set a ZIP or use location"; els.currentTemp.textContent = "--\u00B0"; els.currentCondition.textContent = "Waiting for location"; els.highValue.textContent = "--\u00B0"; els.lowValue.textContent = "--\u00B0"; els.rainLine.textContent = "Rain --"; if (els.todayOptions) { els.todayOptions.innerHTML = ""; els.todayOptions.classList.add("is-empty"); } els.lightLine.innerHTML = `<span>First light --  Rise --</span><span>Last light --  Set --</span>`; els.hourlyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="hour-card"><div class="hour-time">--</div><div class="hour-icon">${glyph(1, false, 24)}</div><div class="hour-temp">--\u00B0</div><div class="hour-rain">--%</div></div>`).join(""); [els.rain24, els.rain3d, els.rain7d, els.freezeHours].forEach(el => el.textContent = "--"); updateRadarLink(loadSavedLocation());
+      els.placeName.textContent = "Set a ZIP or use location"; els.currentTemp.textContent = "--\u00B0"; els.currentCondition.textContent = "Waiting for location"; els.highValue.textContent = "--\u00B0"; els.lowValue.textContent = "--\u00B0"; els.rainLine.textContent = "Rain --"; if (els.todayOptions) { els.todayOptions.innerHTML = ""; els.todayOptions.classList.add("is-empty"); } els.lightLine.innerHTML = `<span>First light --  Rise --</span><span>Last light --  Set --</span>`; els.dailyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="day-card"><div class="day-name">---</div><div class="day-icon">${glyph(1, true, 26)}</div><div class="day-temp">--/--</div><div class="day-rain">--%</div></div>`).join(""); [els.rain24, els.rain3d, els.rain7d, els.freezeHours].forEach(el => el.textContent = "--"); updateRadarLink(loadSavedLocation());
     }
-    els.locateBtn.addEventListener("click", () => showOnboarding()); els.refreshBtn.addEventListener("click", refreshCurrentWeather); els.startLocateBtn.addEventListener("click", useBrowserLocation); els.startZipInput.addEventListener("keydown", (e) => { if (e.key === "Enter") searchLocationInput(els.startZipInput.value); }); els.closeOnboardingBtn.addEventListener("click", () => { if (hasSavedLocation()) hideOnboarding(); }); els.recentList.addEventListener("click", async (e) => { const btn = e.target.closest("[data-recent-index]"); if (!btn) return; const recent = loadRecentLocations(); const item = recent[Number(btn.dataset.recentIndex)]; if (!item) return; saveLocation(item); await loadWeather(item, true); });
+    if ("IntersectionObserver" in window && els.quickRecapSection) {
+      const recapObserver = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) loadSupplementalData();
+      }, { rootMargin: "320px 0px" });
+      recapObserver.observe(els.quickRecapSection);
+    } else {
+      window.addEventListener("scroll", loadSupplementalIfNear, { passive: true });
+    }
+    els.locateBtn.addEventListener("click", () => showOnboarding()); els.refreshBtn.addEventListener("click", refreshCurrentWeather); els.startLocateBtn.addEventListener("click", useBrowserLocation); els.startZipInput.addEventListener("keydown", (e) => { if (e.key === "Enter") searchLocationInput(els.startZipInput.value); }); els.closeOnboardingBtn.addEventListener("click", () => { if (hasSavedLocation()) hideOnboarding(); }); els.recentList.addEventListener("click", async (e) => { const btn = e.target.closest("[data-recent-index]"); if (!btn) return; const recent = loadRecentLocations(); const item = recent[Number(btn.dataset.recentIndex)]; if (!item) return; saveLocation(item); await loadWeather(item); });
     els.searchResults.addEventListener("click", async (e) => {
       const btn = e.target.closest("[data-search-index]");
       if (!btn) return;
@@ -2292,11 +2409,34 @@
       if (!latestForecastData) return;
       renderHeroNarrative(latestForecastData, Math.min(2, (narrativeDayOffset ?? 0) + 1));
     });
-    els.hourlyStrip.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { els.hourlyStrip.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
-    let isDown = false, hourlyMoved = false, startX = 0, startScroll = 0; els.hourlyStrip.addEventListener("pointerdown", (e) => { isDown = true; hourlyMoved = false; startX = e.clientX; startScroll = els.hourlyStrip.scrollLeft; els.hourlyStrip.setPointerCapture(e.pointerId); }); els.hourlyStrip.addEventListener("pointermove", (e) => { if (!isDown) return; const dx = e.clientX - startX; if (Math.abs(dx) > 6) hourlyMoved = true; els.hourlyStrip.scrollLeft = startScroll - dx; }); const stopDragging = () => { isDown = false; }; els.hourlyStrip.addEventListener("pointerup", stopDragging); els.hourlyStrip.addEventListener("pointercancel", stopDragging); els.hourlyStrip.addEventListener("lostpointercapture", stopDragging);
+    els.dailyStrip.addEventListener("wheel", (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        els.dailyStrip.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    }, { passive: false });
+    let isDown = false, startX = 0, startScroll = 0;
+    els.dailyStrip.addEventListener("dragstart", (e) => e.preventDefault());
+    els.dailyStrip.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "mouse") return;
+      isDown = true;
+      startX = e.clientX;
+      startScroll = els.dailyStrip.scrollLeft;
+      els.dailyStrip.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    els.dailyStrip.addEventListener("pointermove", (e) => {
+      if (!isDown) return;
+      els.dailyStrip.scrollLeft = startScroll - (e.clientX - startX);
+      e.preventDefault();
+    });
+    const stopDragging = () => { isDown = false; };
+    els.dailyStrip.addEventListener("pointerup", stopDragging);
+    els.dailyStrip.addEventListener("pointercancel", stopDragging);
+    els.dailyStrip.addEventListener("lostpointercapture", stopDragging);
     document.addEventListener("click", (e) => {
       const target = e.target.closest("[data-source-key]");
-      if (!target || hourlyMoved) return;
+      if (!target) return;
       const detail = latestSourceDetails[target.dataset.sourceKey];
       if (detail) showSourceDetail(detail);
     });
