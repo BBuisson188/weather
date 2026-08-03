@@ -285,11 +285,13 @@
     .daily-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(76px, 82px); gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 2px 2px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; touch-action: pan-x; user-select: none; -webkit-user-select: none; overscroll-behavior-inline: contain; }
     .daily-strip:active, .outlook-scroll:active { cursor: grabbing; }
     .daily-strip::-webkit-scrollbar, .outlook-scroll::-webkit-scrollbar { display: none; }
-    .day-card { background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04)); border: 1px solid var(--line); box-shadow: var(--shadow-soft); border-radius: 20px; padding: 10px 7px 12px; text-align: center; }
-    .day-name { font-size: 12px; font-weight: 800; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
-    .day-icon { width: 26px; height: 26px; display: block; margin: 0 auto 8px; }
-    .day-temp { font-size: 16px; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 4px; white-space: nowrap; }
-    .day-rain { font-size: 12px; color: var(--rain); font-weight: 800; }
+    .day-card { --temp-rgb: 67,145,207; position: relative; isolation: isolate; min-height: 126px; overflow: hidden; background: linear-gradient(180deg, transparent 0 43%, rgba(8,16,30,0.08) 50%, rgba(10,19,34,0.62) 76%, rgba(6,12,23,0.94) 100%), linear-gradient(180deg, rgba(var(--temp-rgb),0.94) 0 58%, rgba(var(--temp-rgb),0.58) 100%); border: 1px solid rgba(244,248,255,0.27); box-shadow: 0 14px 28px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.10); border-radius: 20px; padding: 10px 7px 12px; text-align: center; }
+    .daily-weather-canvas { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; }
+    .day-card > :not(.daily-weather-canvas) { position: relative; z-index: 2; }
+    .day-name { font-size: 12px; font-weight: 800; color: rgba(247,250,255,0.90); margin-bottom: 4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-shadow: 0 1px 4px rgba(0,0,0,0.52); }
+    .day-icon { width: 26px; height: 26px; display: block; margin: 0 auto 8px; filter: drop-shadow(0 3px 5px rgba(0,0,0,0.32)); }
+    .day-temp { font-size: 16px; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 4px; white-space: nowrap; text-shadow: 0 1px 4px rgba(0,0,0,0.58); }
+    .day-rain { font-size: 12px; color: #b9d8ff; font-weight: 800; text-shadow: 0 1px 4px rgba(0,0,0,0.64); }
     .outlook-scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 2px 2px 4px; cursor: grab; touch-action: pan-x; }
     .outlook-chart-shell { min-width: 980px; height: 210px; position: relative; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.012)); border: 1px solid rgba(184,205,255,0.12); overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.03); }
     .outlook-chart { display: block; width: 100%; height: 100%; }
@@ -1839,6 +1841,279 @@
       if (cached?.value) return cached.value;
       return value;
     }
+    const dailyOutlookAnimationState = {
+      scenes: [],
+      frame: 0,
+      observer: null,
+      reducedMotion: window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false
+    };
+    function dailyWeatherKind(code) {
+      const value = Number(code) || 0;
+      if ([95,96,99].includes(value)) return "storm";
+      if ([71,73,75,77,85,86].includes(value)) return "snow";
+      if ([56,57,66,67].includes(value)) return "ice";
+      if ([51,53,55].includes(value)) return "drizzle";
+      if ([61,63,65,80,81,82].includes(value)) return "rain";
+      if ([45,48].includes(value)) return "fog";
+      if (value === 3) return "cloudy";
+      if (value === 2) return "partly";
+      return "clear";
+    }
+    function dailyOutlookGlyph(type) {
+      const open = '<svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke-linecap="round" stroke-linejoin="round">';
+      const close = '</svg>';
+      const sun = '<circle cx="17" cy="16" r="6.5" fill="rgba(255,220,127,.92)" stroke="rgba(255,239,186,.95)" stroke-width="1.7"/><path d="M17 4v4M17 24v4M5 16h4M25 16h4M8.5 7.5l3 3M25.5 7.5l-3 3" stroke="rgba(255,232,163,.9)" stroke-width="1.8"/>';
+      const cloud = '<path d="M11 33.5h25.5a7 7 0 0 0 .3-14 10.5 10.5 0 0 0-19.7-1.3A8 8 0 0 0 11 33.5Z" fill="rgba(224,235,247,.92)" stroke="rgba(250,253,255,.72)" stroke-width="1.4"/>';
+      if (type === "clear") return open + sun + close;
+      if (type === "partly") return open + sun + cloud + close;
+      if (type === "cloudy") return open + cloud + close;
+      if (type === "drizzle") return open + cloud + '<path d="M17 37l-1.5 4M25 37l-1.5 4M33 37l-1.5 4" stroke="#9cc9ff" stroke-width="1.8"/>' + close;
+      if (type === "rain") return open + cloud + '<path d="M16 37l-2 6M25 37l-2 6M34 37l-2 6" stroke="#78b5ff" stroke-width="2.2"/>' + close;
+      if (type === "storm") return open + cloud + '<path d="M27 32l-6 8h5l-2 6 9-11h-5l3-3" fill="#ffe893" stroke="none"/>' + close;
+      if (type === "snow") return open + cloud + '<path d="M17 38v6M14.5 39.5l5 3M19.5 39.5l-5 3M31 38v6M28.5 39.5l5 3M33.5 39.5l-5 3" stroke="#e7f7ff" stroke-width="1.4"/>' + close;
+      if (type === "ice") return open + cloud + '<path d="M18 37l3 4-3 4-3-4 3-4Zm13 0 3 4-3 4-3-4 3-4Z" fill="rgba(222,248,255,.9)" stroke="#f5fdff" stroke-width=".7"/>' + close;
+      return open + '<path d="M7 17h34M3 24h33M11 31h34" stroke="rgba(226,237,246,.92)" stroke-width="2.4"/>' + close;
+    }
+    function dailyAnimationHash(text) {
+      let result = 2166136261;
+      for (let index = 0; index < text.length; index++) result = Math.imul(result ^ text.charCodeAt(index), 16777619);
+      return result >>> 0;
+    }
+    function dailyAnimationRandom(seed) {
+      return () => {
+        seed |= 0;
+        seed = seed + 0x6D2B79F5 | 0;
+        let value = Math.imul(seed ^ seed >>> 15, 1 | seed);
+        value = value + Math.imul(value ^ value >>> 7, 61 | value) ^ value;
+        return ((value ^ value >>> 14) >>> 0) / 4294967296;
+      };
+    }
+    function dailyTemperatureRgb(value) {
+      const stops = [[20,[61,139,241]],[32,[91,197,248]],[48,[64,145,191]],[63,[59,155,139]],[76,[195,161,74]],[88,[232,122,61]],[95,[231,70,57]],[105,[176,38,53]]];
+      for (let index = 0; index < stops.length - 1; index++) {
+        const [start, startColor] = stops[index];
+        const [end, endColor] = stops[index + 1];
+        if (value <= end) {
+          const progress = Math.max(0, Math.min(1, (value - start) / (end - start)));
+          return startColor.map((channel, channelIndex) => Math.round(channel + (endColor[channelIndex] - channel) * progress));
+        }
+      }
+      return stops[stops.length - 1][1];
+    }
+    function dailyEllipse(ctx, x, y, radiusX, radiusY, color) {
+      ctx.beginPath();
+      ctx.ellipse(x, y, radiusX, radiusY, 0, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+    function dailySunBloom(ctx, x, y, radius, strength, time) {
+      ctx.save();
+      const pulse = 1 + Math.sin(time * 0.00065) * 0.04;
+      const glow = ctx.createRadialGradient(x, y, 1, x, y, radius * 2.8 * pulse);
+      glow.addColorStop(0, `rgba(255,249,216,${0.72 * strength})`);
+      glow.addColorStop(0.18, `rgba(255,220,135,${0.38 * strength})`);
+      glow.addColorStop(1, "rgba(255,190,90,0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, x + radius * 3.2, y + radius * 3.2);
+      ctx.globalCompositeOperation = "screen";
+      ctx.translate(x, y);
+      ctx.rotate(-0.42 + Math.sin(time * 0.00008) * 0.05);
+      const ray = ctx.createLinearGradient(0, 0, radius * 5, 0);
+      ray.addColorStop(0, `rgba(255,241,194,${0.11 * strength})`);
+      ray.addColorStop(1, "rgba(255,241,194,0)");
+      ctx.fillStyle = ray;
+      ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(radius * 5, -17); ctx.lineTo(radius * 5, 23); ctx.lineTo(0, 5); ctx.fill();
+      ctx.restore();
+    }
+    function dailyCloudCluster(ctx, x, y, scale, alpha, tone, blur) {
+      ctx.save();
+      ctx.filter = `blur(${blur}px)`;
+      const shadow = `rgba(${tone[0] - 28},${tone[1] - 24},${tone[2] - 16},${alpha * 0.36})`;
+      dailyEllipse(ctx, x, y + 5 * scale, 28 * scale, 10 * scale, shadow);
+      dailyEllipse(ctx, x - 15 * scale, y, 17 * scale, 10 * scale, `rgba(${tone.join(",")},${alpha * 0.7})`);
+      dailyEllipse(ctx, x + scale, y - 6 * scale, 21 * scale, 16 * scale, `rgba(${tone.join(",")},${alpha})`);
+      dailyEllipse(ctx, x + 20 * scale, y + scale, 19 * scale, 11 * scale, `rgba(${tone.join(",")},${alpha * 0.82})`);
+      const highlight = ctx.createLinearGradient(0, y - 18 * scale, 0, y + 12 * scale);
+      highlight.addColorStop(0, `rgba(255,255,255,${alpha * 0.24})`);
+      highlight.addColorStop(1, "rgba(255,255,255,0)");
+      dailyEllipse(ctx, x, y - 2 * scale, 31 * scale, 14 * scale, highlight);
+      ctx.restore();
+    }
+    function dailyCloudBanks(ctx, width, height, time, weather) {
+      const stormy = weather === "storm";
+      const coverage = weather === "partly" ? 0.62 : weather === "cloudy" ? 1.45 : 1;
+      for (let layer = 0; layer < 3; layer++) {
+        const speed = (0.0025 + layer * 0.0012) * 0.7;
+        const y = 28 + layer * 12 + Math.sin(time * 0.0002 + layer) * 2;
+        const tone = stormy ? [115 - layer * 12,127 - layer * 10,157 - layer * 7] : [220 - layer * 16,232 - layer * 14,245 - layer * 10];
+        const alpha = (stormy ? 0.34 + layer * 0.11 : 0.31 + layer * 0.1) + (coverage > 1.2 ? 0.07 : 0);
+        const spacing = 78 / coverage;
+        const loopSpan = spacing * 2;
+        const offset = (time * speed + layer * 19) % loopSpan;
+        const first = Math.floor(-3 - offset / spacing);
+        const last = Math.ceil((width + spacing * 3 - offset) / spacing);
+        for (let index = first; index <= last; index++) {
+          const pattern = ((index % 2) + 2) % 2;
+          const x = index * spacing + offset;
+          const scale = 0.7 + layer * 0.13 + pattern * 0.09;
+          dailyCloudCluster(ctx, x, y + (pattern ? 3 : -2), scale, alpha * (pattern ? 0.88 : 1), tone, 3.2 + layer * 1.15);
+        }
+      }
+    }
+    function dailyRain(ctx, width, height, time, scene, drizzle = false) {
+      const count = drizzle ? 32 : 48;
+      ctx.save();
+      ctx.lineCap = "round";
+      for (let index = 0; index < count; index++) {
+        const particle = scene.particles[index % scene.particles.length];
+        const speed = drizzle ? 18 + particle.speed * 22 : 42 + particle.speed * 55;
+        const y = ((particle.y * height + time * 0.001 * speed) % (height + 34)) - 16;
+        const x = (particle.x * width + y * -0.14 + Math.sin(particle.phase) * 4 + width) % width;
+        const depth = 0.45 + particle.size / 2.7;
+        ctx.strokeStyle = `rgba(179,218,255,${particle.alpha * (drizzle ? 0.25 : 0.42) * depth})`;
+        ctx.lineWidth = drizzle ? 0.45 + depth * 0.35 : 0.55 + depth * 0.55;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - (drizzle ? 2 : 4) * depth, y + (drizzle ? 6 : 12) * depth); ctx.stroke();
+      }
+      if (!drizzle) {
+        const mist = ctx.createLinearGradient(0, height * 0.58, 0, height);
+        mist.addColorStop(0, "rgba(175,211,240,0)"); mist.addColorStop(1, "rgba(175,211,240,.12)");
+        ctx.fillStyle = mist; ctx.fillRect(0, height * 0.55, width, height * 0.45);
+      }
+      ctx.restore();
+    }
+    function dailySnow(ctx, width, height, time, scene) {
+      for (let index = 0; index < 56; index++) {
+        const particle = scene.particles[index % scene.particles.length];
+        const depth = 0.35 + particle.size / 2.8;
+        const y = ((particle.y * height + time * 0.001 * (7 + particle.speed * 15) * depth) % (height + 12)) - 6;
+        const x = (particle.x * width + Math.sin(time * 0.00045 + particle.phase) * (2 + 5 * depth) + width) % width;
+        ctx.save();
+        ctx.globalAlpha = particle.alpha * (0.42 + depth * 0.32);
+        ctx.filter = depth < 0.65 ? "blur(.45px)" : "none";
+        dailyEllipse(ctx, x, y, Math.max(0.45, particle.size * depth), Math.max(0.45, particle.size * depth), "rgba(246,252,255,.95)");
+        ctx.restore();
+      }
+    }
+    function dailyFogBand(ctx, width, y, time, speed, alpha, thickness, reverse = false) {
+      const shift = Math.sin(time * speed) * 15 * (reverse ? -1 : 1);
+      ctx.save();
+      ctx.filter = `blur(${thickness * 0.55}px)`;
+      const gradient = ctx.createLinearGradient(-20, y, width + 20, y);
+      gradient.addColorStop(0, "rgba(230,239,246,0)"); gradient.addColorStop(0.22, `rgba(230,239,246,${alpha})`); gradient.addColorStop(0.7, `rgba(207,222,233,${alpha * 0.8})`); gradient.addColorStop(1, "rgba(207,222,233,0)");
+      ctx.fillStyle = gradient;
+      ctx.beginPath(); ctx.moveTo(-30, y + shift * 0.08);
+      ctx.bezierCurveTo(width * 0.22, y - 6 + shift * 0.12, width * 0.64, y + 8 - shift * 0.08, width + 30, y - 1);
+      ctx.lineTo(width + 30, y + thickness); ctx.bezierCurveTo(width * 0.7, y + thickness + 5, width * 0.25, y + thickness - 5, -30, y + thickness); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    function dailySleet(ctx, width, height, time, scene) {
+      dailyRain(ctx, width, height, time, scene, false);
+      const sheenX = ((time * 0.012) % (width * 2.5)) - width;
+      const gradient = ctx.createLinearGradient(sheenX, 0, sheenX + 42, height);
+      gradient.addColorStop(0, "rgba(240,253,255,0)"); gradient.addColorStop(0.5, "rgba(240,253,255,.18)"); gradient.addColorStop(1, "rgba(240,253,255,0)");
+      ctx.fillStyle = gradient; ctx.fillRect(0, 0, width, height);
+    }
+    function dailyStormFlash(ctx, width, height, time) {
+      const cycle = (time / 6400) % 1;
+      let alpha = 0;
+      if (cycle > 0.72 && cycle < 0.735) alpha = (cycle - 0.72) / 0.015;
+      else if (cycle >= 0.735 && cycle < 0.752) alpha = 1 - (cycle - 0.735) / 0.017;
+      else if (cycle > 0.775 && cycle < 0.79) alpha = 0.42 * (1 - Math.abs(cycle - 0.7825) / 0.0075);
+      if (alpha <= 0) return;
+      const glow = ctx.createRadialGradient(width * 0.66, height * 0.2, 2, width * 0.66, height * 0.2, width * 0.72);
+      glow.addColorStop(0, `rgba(230,235,255,${alpha * 0.55})`); glow.addColorStop(0.38, `rgba(147,158,213,${alpha * 0.2})`); glow.addColorStop(1, "rgba(110,120,190,0)");
+      ctx.fillStyle = glow; ctx.fillRect(0, 0, width, height * 0.78);
+    }
+    function dailyMotes(ctx, width, height, time, scene, count, alpha) {
+      for (let index = 0; index < count; index++) {
+        const particle = scene.particles[index];
+        const x = (particle.x * width + Math.sin(time * 0.00012 + particle.phase) * 5 + width) % width;
+        const y = (particle.y * height - time * 0.001 * (1 + particle.speed) * 0.8 + height) % height;
+        ctx.save(); ctx.globalAlpha = particle.alpha * alpha; ctx.filter = "blur(.35px)"; dailyEllipse(ctx, x, y, particle.size * 0.45, particle.size * 0.45, "#fff4cf"); ctx.restore();
+      }
+    }
+    function dailyVignette(ctx, width, height, strength) {
+      const gradient = ctx.createRadialGradient(width * 0.5, height * 0.42, width * 0.12, width * 0.5, height * 0.48, width * 0.82);
+      gradient.addColorStop(0.45, "rgba(0,0,0,0)"); gradient.addColorStop(1, `rgba(3,8,17,${strength})`);
+      ctx.fillStyle = gradient; ctx.fillRect(0, 0, width, height);
+    }
+    function sizeDailyAnimationCanvas(scene) {
+      const rect = scene.canvas.getBoundingClientRect();
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      const width = Math.max(1, Math.round(rect.width));
+      const height = Math.max(1, Math.round(rect.height));
+      if (scene.canvas.width !== width * ratio || scene.canvas.height !== height * ratio) {
+        scene.canvas.width = width * ratio;
+        scene.canvas.height = height * ratio;
+      }
+      scene.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      scene.ctx.clearRect(0, 0, width, height);
+      return { ctx: scene.ctx, width, height };
+    }
+    function drawDailyAnimation(scene, now) {
+      const { ctx, width, height } = sizeDailyAnimationCanvas(scene);
+      const time = dailyOutlookAnimationState.reducedMotion ? 1800 : now;
+      const weather = scene.weather;
+      if (weather === "clear") { dailySunBloom(ctx, width * 0.74, height * 0.14, 18, 1, time); dailyMotes(ctx, width, height, time, scene, 22, 0.3); }
+      if (["partly","cloudy","drizzle","rain","storm"].includes(weather)) dailyCloudBanks(ctx, width, height, time, weather);
+      if (weather === "partly") { dailySunBloom(ctx, width * 0.79, height * 0.13, 15, 0.9, time); dailyMotes(ctx, width, height, time, scene, 9, 0.18); }
+      if (weather === "drizzle") dailyRain(ctx, width, height, time, scene, true);
+      if (weather === "rain" || weather === "storm") dailyRain(ctx, width, height, time, scene, false);
+      if (weather === "storm") dailyStormFlash(ctx, width, height, time);
+      if (weather === "snow") dailySnow(ctx, width, height, time, scene);
+      if (weather === "ice") dailySleet(ctx, width, height, time, scene);
+      if (weather === "fog") {
+        dailyFogBand(ctx,width,20,time,0.00024,0.23,16); dailyFogBand(ctx,width,43,time,0.0002,0.32,19,true);
+        dailyFogBand(ctx,width,70,time,0.00016,0.28,20); dailyFogBand(ctx,width,94,time,0.00013,0.17,22,true);
+      }
+      if (weather === "cloudy") dailyVignette(ctx, width, height, 0.3);
+      else if (["rain","storm","fog"].includes(weather)) dailyVignette(ctx, width, height, 0.2);
+    }
+    function stopDailyOutlookAnimations(clearScenes = true) {
+      if (dailyOutlookAnimationState.frame) cancelAnimationFrame(dailyOutlookAnimationState.frame);
+      dailyOutlookAnimationState.frame = 0;
+      dailyOutlookAnimationState.observer?.disconnect();
+      dailyOutlookAnimationState.observer = null;
+      if (clearScenes) dailyOutlookAnimationState.scenes = [];
+    }
+    function runDailyOutlookAnimations(now) {
+      if (document.hidden || dailyOutlookAnimationState.reducedMotion) {
+        dailyOutlookAnimationState.frame = 0;
+        return;
+      }
+      dailyOutlookAnimationState.scenes.forEach((scene) => { if (scene.visible) drawDailyAnimation(scene, now); });
+      dailyOutlookAnimationState.frame = requestAnimationFrame(runDailyOutlookAnimations);
+    }
+    function startDailyOutlookAnimationLoop() {
+      if (dailyOutlookAnimationState.frame || document.hidden || dailyOutlookAnimationState.reducedMotion || !dailyOutlookAnimationState.scenes.length) return;
+      dailyOutlookAnimationState.frame = requestAnimationFrame(runDailyOutlookAnimations);
+    }
+    function initDailyOutlookAnimations() {
+      stopDailyOutlookAnimations();
+      const canvases = [...els.dailyStrip.querySelectorAll(".daily-weather-canvas")];
+      if (!canvases.length) return;
+      if ("IntersectionObserver" in window) {
+        dailyOutlookAnimationState.observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            const scene = dailyOutlookAnimationState.scenes.find((item) => item.canvas === entry.target);
+            if (scene) scene.visible = entry.isIntersecting;
+          });
+        }, { rootMargin: "120px" });
+      }
+      canvases.forEach((canvas, index) => {
+        const random = dailyAnimationRandom(dailyAnimationHash(`${canvas.dataset.weather}-${index}`));
+        const particles = Array.from({ length: 66 }, () => ({ x: random(), y: random(), size: 0.45 + random() * 2.2, speed: 0.15 + random() * 0.9, alpha: 0.25 + random() * 0.65, phase: random() * Math.PI * 2 }));
+        const scene = { canvas, ctx: canvas.getContext("2d"), weather: canvas.dataset.weather || "clear", particles, visible: true };
+        dailyOutlookAnimationState.scenes.push(scene);
+        dailyOutlookAnimationState.observer?.observe(canvas);
+      });
+      requestAnimationFrame((now) => dailyOutlookAnimationState.scenes.forEach((scene) => drawDailyAnimation(scene, now)));
+      startDailyOutlookAnimationLoop();
+    }
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) stopDailyOutlookAnimations(false);
+      else startDailyOutlookAnimationLoop();
+    });
     function dailySourceLabel(source) {
       if (source === "google") return "Google Weather API";
       if (source === "visual-crossing") return "Visual Crossing Timeline API";
@@ -1853,10 +2128,16 @@
           : index >= 6
             ? `${date.getMonth() + 1}/${date.getDate()}`
             : date.toLocaleDateString([], { weekday: "short" });
-        const highLow = Number.isFinite(item.high) && Number.isFinite(item.low) ? `${Math.round(item.high)}°/${Math.round(item.low)}°` : "--/--";
+        const hasTemperatures = Number.isFinite(item.high) && Number.isFinite(item.low);
+        const highLow = hasTemperatures ? `${Math.round(item.high)}°/${Math.round(item.low)}°` : "--/--";
         const rain = Number.isFinite(item.precipProb) ? `${Math.round(item.precipProb)}%` : "--%";
-        return `<div class="day-card"><div class="day-name">${dayName}</div><div class="day-icon">${glyph(Number(item.code) || 0, true, 26)}</div><div class="day-temp">${highLow}</div><div class="day-rain">${rain}</div></div>`;
+        const weather = dailyWeatherKind(item.code);
+        const temperatureColor = dailyTemperatureRgb(Number.isFinite(item.high) ? item.high : 60).join(",");
+        const animation = hasTemperatures ? `<canvas class="daily-weather-canvas" data-weather="${weather}" aria-hidden="true"></canvas>` : "";
+        const accessibleLabel = `${dayName}: ${codeToLabel(Number(item.code) || 0)}, ${highLow}, ${rain} chance of rain`;
+        return `<div class="day-card" style="--temp-rgb:${temperatureColor}" aria-label="${escapeHtml(accessibleLabel)}">${animation}<div class="day-name">${dayName}</div><div class="day-icon">${dailyOutlookGlyph(weather)}</div><div class="day-temp">${highLow}</div><div class="day-rain">${rain}</div></div>`;
       }).join("");
+      initDailyOutlookAnimations();
     }
     function nearestHourlyIndex(times, now) {
       let bestIndex = 0;
@@ -2282,7 +2563,7 @@
           recapLoadKey = "";
           recapState = { observedRain: null, pollen: { status: "idle", message: "Pollen loads when this section is viewed." }, rainLoading: false };
           latestHistoryData = null;
-          els.dailyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="day-card"><div class="day-name">---</div><div class="day-icon">${glyph(1, true, 26)}</div><div class="day-temp">--/--</div><div class="day-rain">--%</div></div>`).join("");
+          stopDailyOutlookAnimations(); els.dailyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="day-card"><div class="day-name">---</div><div class="day-icon">${glyph(1, true, 26)}</div><div class="day-temp">--/--</div><div class="day-rain">--%</div></div>`).join("");
         }
         activeLocation = location;
         updateRadarLink(location);
@@ -2372,7 +2653,7 @@
       els.narrativeLabel.textContent = narrativeDayOffset === 0 ? "Today" : "Tomorrow";
       els.narrativePrevBtn.classList.toggle("is-hidden", narrativeDayOffset === 0);
       els.narrativeNextBtn.classList.toggle("is-hidden", narrativeDayOffset === 1);
-      els.placeName.textContent = "Set a ZIP or use location"; els.currentTemp.textContent = "--\u00B0"; els.currentCondition.textContent = "Waiting for location"; els.highValue.textContent = "--\u00B0"; els.lowValue.textContent = "--\u00B0"; els.rainLine.textContent = "Rain --"; if (els.todayOptions) { els.todayOptions.innerHTML = ""; els.todayOptions.classList.add("is-empty"); } els.lightLine.innerHTML = `<span>First light --  Rise --</span><span>Last light --  Set --</span>`; els.dailyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="day-card"><div class="day-name">---</div><div class="day-icon">${glyph(1, true, 26)}</div><div class="day-temp">--/--</div><div class="day-rain">--%</div></div>`).join(""); [els.rain24, els.rain3d, els.rain7d, els.freezeHours].forEach(el => el.textContent = "--"); updateRadarLink(loadSavedLocation());
+      els.placeName.textContent = "Set a ZIP or use location"; els.currentTemp.textContent = "--\u00B0"; els.currentCondition.textContent = "Waiting for location"; els.highValue.textContent = "--\u00B0"; els.lowValue.textContent = "--\u00B0"; els.rainLine.textContent = "Rain --"; if (els.todayOptions) { els.todayOptions.innerHTML = ""; els.todayOptions.classList.add("is-empty"); } els.lightLine.innerHTML = `<span>First light --  Rise --</span><span>Last light --  Set --</span>`; stopDailyOutlookAnimations(); els.dailyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="day-card"><div class="day-name">---</div><div class="day-icon">${glyph(1, true, 26)}</div><div class="day-temp">--/--</div><div class="day-rain">--%</div></div>`).join(""); [els.rain24, els.rain3d, els.rain7d, els.freezeHours].forEach(el => el.textContent = "--"); updateRadarLink(loadSavedLocation());
     }
     if ("IntersectionObserver" in window && els.quickRecapSection) {
       const recapObserver = new IntersectionObserver((entries) => {
