@@ -309,6 +309,21 @@
     .outlook-readout { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); padding: 6px 10px; border-radius: 999px; background: rgba(7, 13, 24, 0.82); border: 1px solid rgba(184,205,255,0.18); box-shadow: var(--shadow-soft); font-size: 12px; color: var(--text); font-weight: 700; white-space: nowrap; pointer-events: none; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .recap-card { padding: 14px; background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04)); }
+    .rain-compare-card {
+      margin-top: 12px; padding: 14px; border: 1px solid rgba(115,167,255,0.2); border-radius: 18px;
+      background: linear-gradient(180deg, rgba(80,132,220,0.08), rgba(255,255,255,0.02));
+    }
+    .rain-compare-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+    .rain-compare-title { font-size: 13px; font-weight: 850; }
+    .rain-compare-note { color: var(--muted); font-size: 11px; font-weight: 700; text-align: right; }
+    .rain-compare-window + .rain-compare-window { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(184,205,255,0.1); }
+    .rain-compare-window-label { margin-bottom: 7px; color: var(--text); font-size: 12px; font-weight: 850; }
+    .rain-compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .rain-compare-source { min-width: 0; padding: 12px; border-radius: 15px; background: rgba(4,10,20,0.3); border: 1px solid rgba(184,205,255,0.1); }
+    .rain-compare-label { color: var(--muted); font-size: 11px; font-weight: 800; }
+    .rain-compare-value { margin-top: 4px; font-size: 22px; font-weight: 900; letter-spacing: -0.04em; }
+    .rain-compare-state { margin-top: 3px; color: var(--muted); font-size: 10px; font-weight: 700; overflow-wrap: anywhere; }
+    .rain-compare-delta { margin-top: 10px; color: var(--muted); font-size: 11px; font-weight: 750; text-align: center; }
     .recap-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.11em; font-weight: 800; color: var(--muted); margin-bottom: 4px; }
     .recap-value { font-size: 28px; letter-spacing: -0.05em; font-weight: 800; margin-bottom: 4px; }
     .recap-sub { font-size: 13px; color: var(--muted); font-weight: 600; }
@@ -475,10 +490,37 @@
       <section class="card section-card">
         <div class="section-head"><div class="section-title">Quick recap</div><div class="section-note">Recent conditions</div></div>
         <div class="grid-2">
-          <div class="recap-card source-tap" data-source-key="rain24" role="button" tabindex="0"><div class="recap-label">Rain 24h</div><div class="recap-value" id="rain24">--</div><div class="recap-sub">Accumulated precipitation</div></div>
-          <div class="recap-card source-tap" data-source-key="rain3d" role="button" tabindex="0"><div class="recap-label">Rain 3d</div><div class="recap-value" id="rain3d">--</div><div class="recap-sub">Daily observed total</div></div>
-          <div class="recap-card source-tap" data-source-key="rain7d" role="button" tabindex="0"><div class="recap-label">Rain 7d</div><div class="recap-value" id="rain7d">--</div><div class="recap-sub">Daily observed total</div></div>
+          <div class="recap-card source-tap" data-source-key="rain24" role="button" tabindex="0"><div class="recap-label">24-hour rain</div><div class="recap-value" id="rain24">--</div></div>
+          <div class="recap-card source-tap" data-source-key="rain3d" role="button" tabindex="0"><div class="recap-label">3-day rain</div><div class="recap-value" id="rain3d">--</div></div>
+          <div class="recap-card source-tap" data-source-key="rain7d" role="button" tabindex="0"><div class="recap-label">7-day rain</div><div class="recap-value" id="rain7d">--</div></div>
           <div class="recap-card source-tap" data-source-key="seasonal" role="button" tabindex="0"><div class="recap-label">Freeze last night</div><div class="recap-value" id="freezeHours">--</div><div class="recap-sub">Hours below 32° overnight</div></div>
+        </div>
+        <div class="rain-compare-card">
+          <div class="rain-compare-head"><div class="rain-compare-title">Rain data comparison</div><div class="rain-compare-note">Same time windows</div></div>
+          <div class="rain-compare-window">
+            <div class="rain-compare-window-label">24 hours</div>
+            <div class="rain-compare-grid">
+              <div class="rain-compare-source source-tap" data-source-key="rain24Google" role="button" tabindex="0"><div class="rain-compare-label">Google Weather</div><div class="rain-compare-value" id="rain24Google">--</div><div class="rain-compare-state" id="rain24GoogleState">Waiting for data</div></div>
+              <div class="rain-compare-source source-tap" data-source-key="rain24VisualCrossing" role="button" tabindex="0"><div class="rain-compare-label">Visual Crossing</div><div class="rain-compare-value" id="rain24VisualCrossing">--</div><div class="rain-compare-state" id="rain24VisualCrossingState">Waiting for data</div></div>
+            </div>
+            <div class="rain-compare-delta" id="rain24Difference">Difference --</div>
+          </div>
+          <div class="rain-compare-window">
+            <div class="rain-compare-window-label">3 days</div>
+            <div class="rain-compare-grid">
+              <div class="rain-compare-source source-tap" data-source-key="rain3dGoogle" role="button" tabindex="0"><div class="rain-compare-label">Google Weather</div><div class="rain-compare-value" id="rain3dGoogle">--</div><div class="rain-compare-state" id="rain3dGoogleState">Waiting for data</div></div>
+              <div class="rain-compare-source source-tap" data-source-key="rain3dVisualCrossing" role="button" tabindex="0"><div class="rain-compare-label">Visual Crossing</div><div class="rain-compare-value" id="rain3dVisualCrossing">--</div><div class="rain-compare-state" id="rain3dVisualCrossingState">Waiting for data</div></div>
+            </div>
+            <div class="rain-compare-delta" id="rain3dDifference">Difference --</div>
+          </div>
+          <div class="rain-compare-window">
+            <div class="rain-compare-window-label">7 days</div>
+            <div class="rain-compare-grid">
+              <div class="rain-compare-source source-tap" data-source-key="rain7dGoogle" role="button" tabindex="0"><div class="rain-compare-label">Google Weather</div><div class="rain-compare-value" id="rain7dGoogle">--</div><div class="rain-compare-state" id="rain7dGoogleState">Waiting for data</div></div>
+              <div class="rain-compare-source source-tap" data-source-key="rain7dVisualCrossing" role="button" tabindex="0"><div class="rain-compare-label">Visual Crossing</div><div class="rain-compare-value" id="rain7dVisualCrossing">--</div><div class="rain-compare-state" id="rain7dVisualCrossingState">Waiting for data</div></div>
+            </div>
+            <div class="rain-compare-delta" id="rain7dDifference">Difference --</div>
+          </div>
         </div>
       </section>
     </div>
@@ -527,7 +569,10 @@
       highValue: $("highValue"), highSub: $("highSub"), lowValue: $("lowValue"), lowSub: $("lowSub"),
       rainLine: $("rainLine"), todayOptions: $("todayOptions"), lightLine: $("lightLine"), hourlyStrip: $("hourlyStrip"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"), outlookLegend: $("outlookLegend"),
       rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"),
+      rain24Google: $("rain24Google"), rain24GoogleState: $("rain24GoogleState"), rain24VisualCrossing: $("rain24VisualCrossing"), rain24VisualCrossingState: $("rain24VisualCrossingState"), rain24Difference: $("rain24Difference"),
       locateBtn: $("locateBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink"), longRangeLink: $("longRangeLink"),
+      rain3dGoogle: $("rain3dGoogle"), rain3dGoogleState: $("rain3dGoogleState"), rain3dVisualCrossing: $("rain3dVisualCrossing"), rain3dVisualCrossingState: $("rain3dVisualCrossingState"), rain3dDifference: $("rain3dDifference"),
+      rain7dGoogle: $("rain7dGoogle"), rain7dGoogleState: $("rain7dGoogleState"), rain7dVisualCrossing: $("rain7dVisualCrossing"), rain7dVisualCrossingState: $("rain7dVisualCrossingState"), rain7dDifference: $("rain7dDifference"),
       sourceOverlay: $("sourceOverlay"), sourceTitle: $("sourceTitle"), sourceCopy: $("sourceCopy"), sourceRows: $("sourceRows"), sourceOkBtn: $("sourceOkBtn"),
       onboardingOverlay: $("onboardingOverlay"), startLocateBtn: $("startLocateBtn"), startZipInput: $("startZipInput"), onboardingNote: $("onboardingNote"),
       closeOnboardingBtn: $("closeOnboardingBtn"), searchResultsWrap: $("searchResultsWrap"), searchResults: $("searchResults"), recentWrap: $("recentWrap"), recentList: $("recentList")
@@ -537,7 +582,9 @@
     const OUTLOOK_SERIES_KEY = "weather-outlook-series-v1";
     const POLLEN_API_KEY_STORAGE = "weather-google-pollen-key-v1";
     const GOOGLE_POLLEN_API_KEY = "AIzaSyDvi2i_SmPm5lwa9WNJVP0lifkW8c3Aik8";
+    const GOOGLE_WEATHER_API_KEY = ""; // Optional separate key; falls back to the pollen key when blank.
     const VISUAL_CROSSING_API_KEY = "2X477MLGHNP262WUPP74HXM8D";
+    const GOOGLE_RAIN_CACHE_KEY = "weather-google-rain-history-v1";
     const NWS_MAX_STATION_DISTANCE_MILES = 25;
     const METERS_PER_MILE = 1609.344;
     const MM_PER_INCH = 25.4;
@@ -890,6 +937,7 @@
     function pollenApiKey() {
       return GOOGLE_POLLEN_API_KEY || localStorage.getItem(POLLEN_API_KEY_STORAGE) || "";
     }
+    function weatherApiKey() { return GOOGLE_WEATHER_API_KEY || pollenApiKey(); }
     async function getPollenForecast(lat, lon) {
       const key = pollenApiKey();
       if (!key) return null;
@@ -970,25 +1018,93 @@
       return inchesFromMm(props.precipitationLastHour?.value);
     }
     function inchesFromQuantity(qpf) {
-      const quantity = Number(qpf?.quantity);
-      if (!Number.isFinite(quantity) || quantity <= 0) return 0;
-      const unit = String(qpf?.unit || "").toUpperCase();
+      if (qpf == null || qpf.quantity == null) return null;
+      const quantity = Number(qpf.quantity);
+      if (Number.isFinite(quantity) === false) return null;
+      const unit = String(qpf.unit || "").toUpperCase();
       return unit.includes("MILLI") ? quantity / MM_PER_INCH : quantity;
     }
-    async function getGoogleObservedRain(lat, lon) {
-      const key = pollenApiKey();
-      if (!key) return null;
-      const params = new URLSearchParams({ key, unitsSystem: "IMPERIAL" });
-      params.set("location.latitude", String(lat));
-      params.set("location.longitude", String(lon));
-      const res = await fetch(`https://weather.googleapis.com/v1/currentConditions:lookup?${params.toString()}`);
-      if (!res.ok) throw new Error("Google Weather rain unavailable");
-      const data = await res.json();
+    async function providerResponseError(res, label) {
+      let detail = "";
+      try {
+        const payload = await res.json();
+        detail = payload?.error?.message || payload?.message || payload?.reason || "";
+      } catch {}
+      return new Error(label + " (" + res.status + ")" + (detail ? ": " + detail : ""));
+    }
+    function loadGoogleRainCache() {
+      try {
+        const value = JSON.parse(localStorage.getItem(GOOGLE_RAIN_CACHE_KEY) || "{}");
+        return value && typeof value === "object" ? value : {};
+      } catch {
+        return {};
+      }
+    }
+    function saveGoogleRainCache(cache) {
+      try { localStorage.setItem(GOOGLE_RAIN_CACHE_KEY, JSON.stringify(cache)); } catch {}
+    }
+    function googleRainLocationKey(lat, lon) {
+      return Number(lat).toFixed(3) + "," + Number(lon).toFixed(3);
+    }
+    function rollingRainTotals(records, now = new Date()) {
+      const nowMs = now.getTime();
+      const totalFor = (hours, minCoverage) => {
+        const cutoff = nowMs - hours * 60 * 60 * 1000;
+        const covered = records.filter((record) => {
+          const time = new Date(record.time).getTime();
+          return Number.isFinite(time) && time > cutoff && time <= nowMs && Number.isFinite(Number(record.rain));
+        });
+        return {
+          value: covered.length >= minCoverage ? covered.reduce((sum, record) => sum + Number(record.rain), 0) : null,
+          coverage: covered.length
+        };
+      };
       return {
-        rain24: inchesFromQuantity(data.currentConditionsHistory?.qpf),
-        rain3d: null,
-        rain7d: null,
-        rain24Source: "Google Weather API current conditions history"
+        rain24: totalFor(24, 22),
+        rain3d: totalFor(72, 68),
+        rain7d: totalFor(168, 160)
+      };
+    }
+    async function getGoogleObservedRain(lat, lon) {
+      const key = weatherApiKey();
+      if (key === "") throw new Error("Google Weather API key is not configured");
+      const now = new Date();
+      const cache = loadGoogleRainCache();
+      const locationKey = googleRainLocationKey(lat, lon);
+      const cached = cache[locationKey] || { records: [], updatedAt: "" };
+      let records = Array.isArray(cached.records) ? cached.records : [];
+      const cacheAge = now.getTime() - new Date(cached.updatedAt || 0).getTime();
+      if (records.length === 0 || cacheAge >= 12 * 60 * 60 * 1000) {
+        const params = new URLSearchParams({ key, unitsSystem: "IMPERIAL", hours: "24", pageSize: "24" });
+        params.set("location.latitude", String(lat));
+        params.set("location.longitude", String(lon));
+        const res = await fetch("https://weather.googleapis.com/v1/history/hours:lookup?" + params.toString());
+        if (res.ok === false) throw await providerResponseError(res, "Google Weather");
+        const data = await res.json();
+        const incoming = (Array.isArray(data.historyHours) ? data.historyHours : []).map((hour) => ({
+          time: hour.interval?.startTime || "",
+          rain: inchesFromQuantity(hour.precipitation?.qpf)
+        })).filter((record) => Number.isFinite(new Date(record.time).getTime()) && Number.isFinite(record.rain));
+        const merged = new Map(records.map((record) => [record.time, record]));
+        incoming.forEach((record) => merged.set(record.time, record));
+        const oldest = now.getTime() - 8 * 24 * 60 * 60 * 1000;
+        records = Array.from(merged.values()).filter((record) => {
+          const time = new Date(record.time).getTime();
+          return Number.isFinite(time) && time >= oldest && time <= now.getTime();
+        }).sort((a, b) => new Date(a.time) - new Date(b.time));
+        cache[locationKey] = { records, updatedAt: now.toISOString() };
+        saveGoogleRainCache(cache);
+      }
+      const totals = rollingRainTotals(records, now);
+      const updatedAt = cache[locationKey]?.updatedAt || cached.updatedAt || now.toISOString();
+      return {
+        googleRain24: totals.rain24.value, googleRain24Coverage: totals.rain24.coverage,
+        googleRain3d: totals.rain3d.value, googleRain3dCoverage: totals.rain3d.coverage,
+        googleRain7d: totals.rain7d.value, googleRain7dCoverage: totals.rain7d.coverage,
+        googleRain24Source: "Google Weather API hourly history",
+        googleRain3dSource: "Google Weather API hourly history saved on this device",
+        googleRain7dSource: "Google Weather API hourly history saved on this device",
+        googleRainUpdatedAt: updatedAt
       };
     }
     async function getVisualCrossingRain(lat, lon) {
@@ -997,16 +1113,35 @@
       const start = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
       const ymd = (d) => d.toISOString().slice(0, 10);
       const location = `${Number(lat).toFixed(4)},${Number(lon).toFixed(4)}`;
-      const params = new URLSearchParams({ unitGroup: "us", include: "days", elements: "datetime,precip", key: VISUAL_CROSSING_API_KEY, contentType: "json" });
+      const params = new URLSearchParams({ unitGroup: "us", include: "hours", elements: "datetime,datetimeEpoch,precip", key: VISUAL_CROSSING_API_KEY, contentType: "json" });
       const res = await fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(location)}/${ymd(start)}/${ymd(today)}?${params.toString()}`);
-      if (!res.ok) throw new Error("Visual Crossing rain unavailable");
+      if (res.ok === false) throw await providerResponseError(res, "Visual Crossing");
       const data = await res.json();
       const days = Array.isArray(data.days) ? data.days : [];
-      const totals = days
-        .map((day) => ({ date: new Date(`${day.datetime}T12:00:00`), precip: Number(day.precip) || 0 }))
-        .filter((day) => Number.isFinite(day.date.getTime()));
-      const sumDays = (count) => totals.slice(-count).reduce((sum, day) => sum + day.precip, 0);
-      return { rain3d: sumDays(3), rain7d: sumDays(7), rain3dSource: "Visual Crossing Timeline daily precip", rain7dSource: "Visual Crossing Timeline daily precip" };
+      const nowEpoch = Math.floor(today.getTime() / 1000);
+      const hourlyTotals = days.flatMap((day) => Array.isArray(day.hours) ? day.hours : []).map((hour) => ({ epoch: Number(hour.datetimeEpoch), precip: hour.precip == null ? null : Number(hour.precip) })).filter((hour) => {
+        if (Number.isFinite(hour.epoch) === false) return false;
+        if (Number.isFinite(hour.precip) === false) return false;
+        return hour.epoch <= nowEpoch;
+      });
+      const rollingTotal = (hours, minCoverage) => {
+        const cutoffEpoch = nowEpoch - hours * 60 * 60;
+        const covered = hourlyTotals.filter((hour) => hour.epoch > cutoffEpoch);
+        return covered.length >= minCoverage ? covered.reduce((sum, hour) => sum + hour.precip, 0) : null;
+      };
+      const coverageFor = (hours) => hourlyTotals.filter((hour) => hour.epoch > nowEpoch - hours * 60 * 60).length;
+      const visualCrossingRain24 = rollingTotal(24, 22);
+      const visualCrossingRain3d = rollingTotal(72, 68);
+      const visualCrossingRain7d = rollingTotal(168, 160);
+      return {
+        visualCrossingRain24, visualCrossingRain24Coverage: coverageFor(24),
+        visualCrossingRain3d, visualCrossingRain3dCoverage: coverageFor(72),
+        visualCrossingRain7d, visualCrossingRain7dCoverage: coverageFor(168),
+        visualCrossingRain24Source: "Visual Crossing Timeline hourly precip",
+        visualCrossingRain3dSource: "Visual Crossing Timeline hourly precip",
+        visualCrossingRain7dSource: "Visual Crossing Timeline hourly precip",
+        visualCrossingRainUpdatedAt: today.toISOString()
+      };
     }
     function nwsDateTime(date) {
       return date.toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -1052,18 +1187,36 @@
       return observations;
     }
     async function getObservedRain(lat, lon) {
-      const result = { rain24: null, rain3d: null, rain7d: null, rain24Source: "", rain3dSource: "", rain7dSource: "" };
+      const result = {
+        rain24: null, rain3d: null, rain7d: null, rain24Source: "", rain3dSource: "", rain7dSource: "",
+        googleRainError: "", visualCrossingRainError: ""
+      };
       try {
         Object.assign(result, await getGoogleObservedRain(lat, lon));
       } catch (error) {
+        result.googleRainError = error?.message || "Google Weather unavailable";
         console.warn(error);
       }
       try {
         Object.assign(result, await getVisualCrossingRain(lat, lon));
       } catch (error) {
+        result.visualCrossingRainError = error?.message || "Visual Crossing unavailable";
         console.warn(error);
       }
-      return [result.rain24, result.rain3d, result.rain7d].some(Number.isFinite) ? result : null;
+      [
+        { target: "rain24", google: "googleRain24", visual: "visualCrossingRain24" },
+        { target: "rain3d", google: "googleRain3d", visual: "visualCrossingRain3d" },
+        { target: "rain7d", google: "googleRain7d", visual: "visualCrossingRain7d" }
+      ].forEach((window) => {
+        if (Number.isFinite(result[window.google])) {
+          result[window.target] = result[window.google];
+          result[window.target + "Source"] = result[window.google + "Source"];
+        } else if (Number.isFinite(result[window.visual])) {
+          result[window.target] = result[window.visual];
+          result[window.target + "Source"] = result[window.visual + "Source"];
+        }
+      });
+      return result;
     }
     function precipTypeLabel(code) {
       const value = Number(code) || 0;
@@ -1770,6 +1923,63 @@
         ]
       };
     }
+    function rainProviderState(value, error, updatedAt, loading, coverage = 0, needed = 0) {
+      if (loading) return "Loading...";
+      if (Number.isFinite(value)) {
+        const updated = new Date(updatedAt || Date.now());
+        return "Updated " + updated.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      }
+      const text = String(error || "");
+      if (text.toLowerCase().includes("billing")) return "Billing is disabled";
+      if (text.includes("403") || text.toLowerCase().includes("permission")) return "Permission denied";
+      if (coverage > 0 && needed > 0) return coverage + " of " + needed + " hrs saved";
+      return "Unavailable";
+    }
+    function renderRainComparison(observedRain, loading = false) {
+      const windows = [
+        { key: "24", label: "24 hours", google: "googleRain24", visual: "visualCrossingRain24", needed: 24 },
+        { key: "3d", label: "3 days", google: "googleRain3d", visual: "visualCrossingRain3d", needed: 72 },
+        { key: "7d", label: "7 days", google: "googleRain7d", visual: "visualCrossingRain7d", needed: 168 }
+      ];
+      windows.forEach((window) => {
+        const google = observedRain?.[window.google];
+        const visual = observedRain?.[window.visual];
+        const googleCoverage = observedRain?.[window.google + "Coverage"] || 0;
+        const visualCoverage = observedRain?.[window.visual + "Coverage"] || 0;
+        const googleValue = els["rain" + window.key + "Google"];
+        const visualValue = els["rain" + window.key + "VisualCrossing"];
+        const googleState = els["rain" + window.key + "GoogleState"];
+        const visualState = els["rain" + window.key + "VisualCrossingState"];
+        const differenceEl = els["rain" + window.key + "Difference"];
+        googleValue.textContent = loading ? "..." : formatRecapRain(google);
+        visualValue.textContent = loading ? "..." : formatRecapRain(visual);
+        googleState.textContent = rainProviderState(google, observedRain?.googleRainError, observedRain?.googleRainUpdatedAt, loading, googleCoverage, window.needed);
+        visualState.textContent = rainProviderState(visual, observedRain?.visualCrossingRainError, observedRain?.visualCrossingRainUpdatedAt, loading, visualCoverage, window.needed);
+        if (loading) differenceEl.textContent = "Comparing providers...";
+        else if (Number.isFinite(google) && Number.isFinite(visual)) {
+          const difference = google - visual;
+          differenceEl.textContent = Math.abs(difference) < 0.005 ? "Providers agree within 0.01 in" : "Google is " + Math.abs(difference).toFixed(2) + " in " + (difference > 0 ? "higher" : "lower");
+        } else if (googleCoverage > 0 && googleCoverage < window.needed) {
+          differenceEl.textContent = "Google comparison builds as hourly history is saved";
+        } else {
+          differenceEl.textContent = "Both providers are needed for a comparison";
+        }
+        const googleSourceKey = window.google + "Source";
+        const visualSourceKey = window.visual + "Source";
+        const googleReason = observedRain?.googleRainError || (googleCoverage ? "Building local history: " + googleCoverage + " of " + window.needed + " hourly records saved." : "No usable total was returned.");
+        const visualReason = observedRain?.visualCrossingRainError || "Not enough hourly coverage was returned.";
+        latestSourceDetails["rain" + window.key + "Google"] = Number.isFinite(google) ? {
+          title: "Google rain - " + window.label,
+          copy: window.key === "24" ? "Sum of Google's hourly precipitation records." : "Google only returns 24 hours per request, so the app saves hourly records on this device to build this total.",
+          rows: [sourceRow("Source", observedRain[googleSourceKey]), sourceRow("Value", formatRecapRain(google)), sourceRow("Hourly coverage", String(googleCoverage) + " hours")]
+        } : unavailableSource("Google rain - " + window.label, "Google Weather API hourly history", googleReason);
+        latestSourceDetails["rain" + window.key + "VisualCrossing"] = Number.isFinite(visual) ? {
+          title: "Visual Crossing rain - " + window.label,
+          copy: "Sum of Visual Crossing hourly precipitation records in the same time window.",
+          rows: [sourceRow("Source", observedRain[visualSourceKey]), sourceRow("Value", formatRecapRain(visual)), sourceRow("Hourly coverage", String(visualCoverage) + " hours")]
+        } : unavailableSource("Visual Crossing rain - " + window.label, "Visual Crossing Timeline API", visualReason);
+      });
+    }
     function renderHistory(data, observedRain, pollen, rainLoading = false) {
       const now = new Date();
       const times = (data.hourly?.time || []).map((t) => new Date(t));
@@ -1787,48 +1997,49 @@
       els.rain24.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain24);
       els.rain3d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain3d);
       els.rain7d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain7d);
+      renderRainComparison(observedRain, rainLoading);
       latestSourceDetails.rain24 = rainLoading ? {
-        title: "Rain 24h",
+        title: "24-hour rain",
         copy: "Recent rain data is still loading.",
-        rows: [sourceRow("Primary source", "Google Weather API current conditions history"), sourceRow("Backup", "None currently for 24-hour observed rain")]
+        rows: [sourceRow("Primary source", "Google Weather API hourly history"), sourceRow("Backup", "Visual Crossing Timeline hourly precip")]
       } : Number.isFinite(observedRain?.rain24) ? {
-        title: "Rain 24h",
-        copy: "This is recent accumulated precipitation from the provider's current-condition history.",
+        title: "24-hour rain",
+        copy: "Google is preferred when available; Visual Crossing is the fallback.",
         rows: [
-          sourceRow("Source", observedRain.rain24Source || "Google Weather API current conditions history"),
+          sourceRow("Source", observedRain.rain24Source || "Google Weather API hourly history"),
           sourceRow("Value", formatRecapRain(observedRain.rain24)),
-          sourceRow("Backup", "None currently for 24-hour observed rain"),
-          sourceRow("Accuracy", "Observed/analysis-style recent rain; usually better than modeled archive rain, but can still miss very local differences.")
+          sourceRow("Backup", "Visual Crossing Timeline hourly precip"),
+          sourceRow("Accuracy", "Recent provider precipitation can still differ from a rain gauge at the exact location.")
         ]
-      } : unavailableSource("Rain 24h", "Google Weather API current conditions history", "The API did not return a usable 24-hour precipitation total.");
+      } : unavailableSource("24-hour rain", "Google Weather and Visual Crossing", "Neither provider returned a usable 24-hour precipitation total.");
       latestSourceDetails.rain3d = rainLoading ? {
-        title: "Rain 3d",
+        title: "3-day rain",
         copy: "Recent rain data is still loading.",
-        rows: [sourceRow("Primary source", "Visual Crossing Timeline daily precip")]
+        rows: [sourceRow("Primary source", "Google Weather saved hourly history"), sourceRow("Backup", "Visual Crossing Timeline hourly precip")]
       } : Number.isFinite(observedRain?.rain3d) ? {
-        title: "Rain 3d",
-        copy: "This sums daily precipitation totals for the last 3 days.",
+        title: "3-day rain",
+        copy: "Google is preferred once enough hourly history has been saved; Visual Crossing is the fallback.",
         rows: [
-          sourceRow("Source", observedRain.rain3dSource || "Visual Crossing Timeline daily precip"),
+          sourceRow("Source", observedRain.rain3dSource || "Visual Crossing Timeline hourly precip"),
           sourceRow("Value", formatRecapRain(observedRain.rain3d)),
-          sourceRow("Backup", "None currently displayed"),
-          sourceRow("Accuracy", "Daily observed/model blend; good for recent trend, but exact totals can vary locally.")
+          sourceRow("Backup", "Visual Crossing Timeline hourly precip"),
+          sourceRow("Accuracy", "Hourly provider totals are useful for comparison, but exact totals can vary locally.")
         ]
-      } : unavailableSource("Rain 3d", "Visual Crossing Timeline daily precip", "Visual Crossing did not return enough daily precipitation data.");
+      } : unavailableSource("3-day rain", "Google Weather and Visual Crossing", "Neither provider returned enough hourly precipitation coverage.");
       latestSourceDetails.rain7d = rainLoading ? {
-        title: "Rain 7d",
+        title: "7-day rain",
         copy: "Recent rain data is still loading.",
-        rows: [sourceRow("Primary source", "Visual Crossing Timeline daily precip")]
+        rows: [sourceRow("Primary source", "Google Weather saved hourly history"), sourceRow("Backup", "Visual Crossing Timeline hourly precip")]
       } : Number.isFinite(observedRain?.rain7d) ? {
-        title: "Rain 7d",
-        copy: "This sums daily precipitation totals for the last 7 days.",
+        title: "7-day rain",
+        copy: "Google is preferred once enough hourly history has been saved; Visual Crossing is the fallback.",
         rows: [
-          sourceRow("Source", observedRain.rain7dSource || "Visual Crossing Timeline daily precip"),
+          sourceRow("Source", observedRain.rain7dSource || "Visual Crossing Timeline hourly precip"),
           sourceRow("Value", formatRecapRain(observedRain.rain7d)),
-          sourceRow("Backup", "None currently displayed"),
-          sourceRow("Accuracy", "Daily observed/model blend; useful for weekly totals, but not a backyard rain gauge.")
+          sourceRow("Backup", "Visual Crossing Timeline hourly precip"),
+          sourceRow("Accuracy", "Weekly provider totals are useful for comparison, but are not a backyard rain gauge.")
         ]
-      } : unavailableSource("Rain 7d", "Visual Crossing Timeline daily precip", "Visual Crossing did not return enough daily precipitation data.");
+      } : unavailableSource("7-day rain", "Google Weather and Visual Crossing", "Neither provider returned enough hourly precipitation coverage.");
       renderSeasonalRecap(freezeCount, hasRecentFreeze, pollen);
     }
     async function loadWeather(location, forceFresh = false) {
