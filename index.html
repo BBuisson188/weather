@@ -586,6 +586,9 @@
     const VISUAL_CROSSING_API_KEY = "2X477MLGHNP262WUPP74HXM8D";
     const GOOGLE_RAIN_CACHE_KEY = "weather-google-rain-history-v1";
     const NWS_MAX_STATION_DISTANCE_MILES = 25;
+    const VISUAL_CROSSING_RAIN_CACHE_KEY = "weather-visual-crossing-rain-v1";
+    const VISUAL_CROSSING_RAIN_BUDGET_KEY = "weather-visual-crossing-rain-budget-v1";
+    const VISUAL_CROSSING_HISTORY_CACHE_KEY = "weather-visual-crossing-history-v1";
     const METERS_PER_MILE = 1609.344;
     const MM_PER_INCH = 25.4;
     let activeLocation = null;
@@ -940,16 +943,19 @@
     function weatherApiKey() { return GOOGLE_WEATHER_API_KEY || pollenApiKey(); }
     async function getPollenForecast(lat, lon) {
       const key = pollenApiKey();
-      if (!key) return null;
+      if (!key) return { status: "not-configured", message: "No Google Pollen API key is configured." };
       const params = new URLSearchParams({ key, days: "3", plantsDescription: "0", pageSize: "3" });
       params.set("location.latitude", String(lat));
       params.set("location.longitude", String(lon));
       const res = await fetch(`https://pollen.googleapis.com/v1/forecast:lookup?${params.toString()}`);
-      if (!res.ok) throw new Error("Pollen request failed");
+      if (res.ok === false) throw await providerResponseError(res, "Google Pollen");
       return summarizePollen(await res.json());
     }
     function summarizePollen(data) {
       const days = Array.isArray(data?.dailyInfo) ? data.dailyInfo : [];
+      if (days.length === 0) return { status: "no-forecast", message: "Google returned no pollen forecast days for this location." };
+      const reportedTypes = Array.from(new Set(days.flatMap((day) => day?.pollenTypeInfo || []).map((item) => item.displayName || item.code).filter(Boolean)));
+      const inSeasonTypes = Array.from(new Set(days.flatMap((day) => day?.pollenTypeInfo || []).filter((item) => item.inSeason === true).map((item) => item.displayName || item.code).filter(Boolean)));
       const pick = (day) => {
         const items = (day?.pollenTypeInfo || [])
           .map((item) => ({ name: item.displayName || item.code || "Pollen", value: Number(item.indexInfo?.value), category: item.indexInfo?.category || "" }))
@@ -957,11 +963,18 @@
         return items.sort((a, b) => b.value - a.value)[0] || null;
       };
       const today = pick(days[0]);
-      if (!today) return null;
+      if (!today) {
+        return {
+          status: "no-index",
+          reportedTypes,
+          inSeasonTypes,
+          message: "Google returned forecast data, but no numeric pollen index for this location today."
+        };
+      }
       const tomorrow = pick(days[1]);
       const delta = tomorrow ? tomorrow.value - today.value : 0;
       const trend = delta > 0 ? "worse" : delta < 0 ? "better" : "steady";
-      return { ...today, trend };
+      return { status: "available", ...today, trend, reportedTypes, inSeasonTypes };
     }
     async function getHistory(lat, lon) {
       try {
@@ -991,15 +1004,34 @@
         source: "visual-crossing"
       };
     }
+    function loadVisualCrossingHistoryCache() {
+      try {
+        const value = JSON.parse(localStorage.getItem(VISUAL_CROSSING_HISTORY_CACHE_KEY) || "{}");
+        return value && typeof value === "object" ? value : {};
+      } catch {
+        return {};
+      }
+    }
+    function saveVisualCrossingHistoryCache(cache) {
+      try { localStorage.setItem(VISUAL_CROSSING_HISTORY_CACHE_KEY, JSON.stringify(cache)); } catch {}
+    }
     async function getVisualCrossingHistory(lat, lon) {
       if (!VISUAL_CROSSING_API_KEY) throw new Error("Visual Crossing key missing");
       const today = new Date();
+      const cache = loadVisualCrossingHistoryCache();
+      const locationKey = googleRainLocationKey(lat, lon);
+      const cached = cache[locationKey];
+      const cacheAge = today.getTime() - new Date(cached?.updatedAt || 0).getTime();
+      if (cached?.value && cacheAge >= 0 && cacheAge < 24 * 60 * 60 * 1000) return cached.value;
       const start = new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000);
       const ymd = (d) => d.toISOString().slice(0, 10);
       const params = new URLSearchParams({ unitGroup: "us", include: "days", elements: "datetime,tempmin", key: VISUAL_CROSSING_API_KEY, contentType: "json" });
       const res = await fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(visualCrossingLocation(lat, lon))}/${ymd(start)}/${ymd(today)}?${params.toString()}`);
-      if (!res.ok) throw new Error("Visual Crossing history unavailable");
-      return normalizeVisualCrossingHistory(await res.json());
+      if (res.ok === false) throw await providerResponseError(res, "Visual Crossing history");
+      const result = normalizeVisualCrossingHistory(await res.json());
+      cache[locationKey] = { value: result, updatedAt: today.toISOString() };
+      saveVisualCrossingHistoryCache(cache);
+      return result;
     }
     function milesFromMeters(value) {
       const meters = Number(value);
@@ -1027,8 +1059,13 @@
     async function providerResponseError(res, label) {
       let detail = "";
       try {
-        const payload = await res.json();
-        detail = payload?.error?.message || payload?.message || payload?.reason || "";
+        const body = await res.text();
+        try {
+          const payload = JSON.parse(body);
+          detail = payload?.error?.message || payload?.message || payload?.reason || "";
+        } catch {
+          detail = body.trim().slice(0, 240);
+        }
       } catch {}
       return new Error(label + " (" + res.status + ")" + (detail ? ": " + detail : ""));
     }
@@ -1107,15 +1144,57 @@
         googleRainUpdatedAt: updatedAt
       };
     }
+    function loadVisualCrossingRainCache() {
+      try {
+        const value = JSON.parse(localStorage.getItem(VISUAL_CROSSING_RAIN_CACHE_KEY) || "{}");
+        return value && typeof value === "object" ? value : {};
+      } catch {
+        return {};
+      }
+    }
+    function saveVisualCrossingRainCache(cache) {
+      try { localStorage.setItem(VISUAL_CROSSING_RAIN_CACHE_KEY, JSON.stringify(cache)); } catch {}
+    }
+    let visualCrossingRainRequestClaimed = false;
+    function claimVisualCrossingRainBudget(now = new Date()) {
+      if (visualCrossingRainRequestClaimed) return false;
+      const date = now.toISOString().slice(0, 10);
+      try {
+        const saved = JSON.parse(localStorage.getItem(VISUAL_CROSSING_RAIN_BUDGET_KEY) || "{}");
+        if (saved.date === date && Number(saved.requests) >= 1) return false;
+        localStorage.setItem(VISUAL_CROSSING_RAIN_BUDGET_KEY, JSON.stringify({ date, requests: 1 }));
+      } catch {}
+      visualCrossingRainRequestClaimed = true;
+      return true;
+    }
+    function visualCrossingBudgetFallback(cached) {
+      const error = new Error("Visual Crossing app daily request limit reached");
+      if (cached?.value) {
+        return { ...cached.value, visualCrossingRainUpdatedAt: cached.updatedAt, visualCrossingRainStale: true, visualCrossingRainError: error.message };
+      }
+      throw error;
+    }
     async function getVisualCrossingRain(lat, lon) {
-      if (!VISUAL_CROSSING_API_KEY) return null;
+      if (!VISUAL_CROSSING_API_KEY) throw new Error("Visual Crossing API key is not configured");
       const today = new Date();
+      const cache = loadVisualCrossingRainCache();
+      const locationKey = googleRainLocationKey(lat, lon);
+      const cached = cache[locationKey];
+      const cacheAge = today.getTime() - new Date(cached?.updatedAt || 0).getTime();
+      if (cached?.value && cacheAge >= 0 && cacheAge < 24 * 60 * 60 * 1000) return cached.value;
+      if (claimVisualCrossingRainBudget(today) === false) return visualCrossingBudgetFallback(cached);
       const start = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
       const ymd = (d) => d.toISOString().slice(0, 10);
       const location = `${Number(lat).toFixed(4)},${Number(lon).toFixed(4)}`;
       const params = new URLSearchParams({ unitGroup: "us", include: "hours", elements: "datetime,datetimeEpoch,precip", key: VISUAL_CROSSING_API_KEY, contentType: "json" });
       const res = await fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(location)}/${ymd(start)}/${ymd(today)}?${params.toString()}`);
-      if (res.ok === false) throw await providerResponseError(res, "Visual Crossing");
+      if (res.ok === false) {
+        const error = await providerResponseError(res, "Visual Crossing");
+        if (cached?.value) {
+          return { ...cached.value, visualCrossingRainUpdatedAt: cached.updatedAt, visualCrossingRainStale: true, visualCrossingRainError: error.message };
+        }
+        throw error;
+      }
       const data = await res.json();
       const days = Array.isArray(data.days) ? data.days : [];
       const nowEpoch = Math.floor(today.getTime() / 1000);
@@ -1133,7 +1212,7 @@
       const visualCrossingRain24 = rollingTotal(24, 22);
       const visualCrossingRain3d = rollingTotal(72, 68);
       const visualCrossingRain7d = rollingTotal(168, 160);
-      return {
+      const result = {
         visualCrossingRain24, visualCrossingRain24Coverage: coverageFor(24),
         visualCrossingRain3d, visualCrossingRain3dCoverage: coverageFor(72),
         visualCrossingRain7d, visualCrossingRain7dCoverage: coverageFor(168),
@@ -1142,6 +1221,9 @@
         visualCrossingRain7dSource: "Visual Crossing Timeline hourly precip",
         visualCrossingRainUpdatedAt: today.toISOString()
       };
+      cache[locationKey] = { value: result, updatedAt: today.toISOString() };
+      saveVisualCrossingRainCache(cache);
+      return result;
     }
     function nwsDateTime(date) {
       return date.toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -1888,13 +1970,13 @@
       const sub = card?.querySelector(".recap-sub");
       if (!hasRecentFreeze) {
         if (label) label.textContent = "Pollen";
-        if (pollen) {
+        if (pollen?.status === "available") {
           const trendText = pollen.trend === "better" ? "falling tomorrow" : pollen.trend === "worse" ? "rising tomorrow" : "steady tomorrow";
           els.freezeHours.innerHTML = `<span class="pollen-value">${pollen.category || pollen.value}${pollenTrendMarkup(pollen.trend)}</span>`;
           if (sub) sub.textContent = `${pollen.name} pollen, ${trendText}`;
           latestSourceDetails.seasonal = {
             title: "Pollen",
-            copy: "This tile replaces freeze info when there has not been a recent freeze.",
+            copy: "Google returned a numeric pollen index for this location.",
             rows: [
               sourceRow("Source", "Google Pollen API"),
               sourceRow("Shows", `${pollen.name} pollen: ${pollen.category || pollen.value}`),
@@ -1903,9 +1985,48 @@
             ]
           };
         } else {
-          els.freezeHours.textContent = "--";
-          if (sub) sub.textContent = pollenApiKey() ? "Pollen unavailable" : "Pollen forecast not configured";
-          latestSourceDetails.seasonal = unavailableSource("Pollen", "Google Pollen API", pollenApiKey() ? "Google did not return pollen data here. This can happen outside supported areas or where pollen data coverage is limited." : "No Google Pollen API key is configured.");
+          const status = pollen?.status || "no-forecast";
+          const message = String(pollen?.message || "No pollen response was received.");
+          const lowerMessage = message.toLowerCase();
+          let value = "No data";
+          let shortReason = "No pollen forecast returned";
+          let explanation = message;
+          if (status === "loading") {
+            value = "...";
+            shortReason = "Loading pollen forecast";
+            explanation = "The Google Pollen request is still in progress.";
+          } else if (status === "no-index") {
+            value = "No index";
+            shortReason = "Google reported no numeric index today";
+          } else if (status === "no-forecast") {
+            value = "No forecast";
+            shortReason = "Google returned no forecast days";
+          } else if (status === "not-configured") {
+            value = "Not set";
+            shortReason = "Pollen API key is not configured";
+          } else if (status === "error" && (lowerMessage.includes("referer") || lowerMessage.includes("403"))) {
+            value = "Blocked";
+            shortReason = "API key blocks this site address";
+            explanation = "The Google key works on the live GitHub Pages site but does not currently allow this local website address.";
+          } else if (status === "error" && lowerMessage.includes("billing")) {
+            value = "Billing";
+            shortReason = "Google reports billing is disabled";
+          } else if (status === "error") {
+            value = "API error";
+            shortReason = "Google Pollen request failed";
+          }
+          els.freezeHours.textContent = value;
+          if (sub) sub.textContent = shortReason;
+          latestSourceDetails.seasonal = {
+            title: "Pollen status",
+            copy: explanation,
+            rows: [
+              sourceRow("Source", "Google Pollen API"),
+              sourceRow("Status", shortReason),
+              sourceRow("Types returned", pollen?.reportedTypes?.length ? pollen.reportedTypes.join(", ") : "None with an index"),
+              sourceRow("Technical detail", status === "error" ? message : "Tap Refresh later to check for a new daily forecast.")
+            ]
+          };
         }
         return;
       }
@@ -1923,17 +2044,19 @@
         ]
       };
     }
-    function rainProviderState(value, error, updatedAt, loading, coverage = 0, needed = 0) {
+    function rainProviderState(value, error, updatedAt, loading, coverage = 0, needed = 0, stale = false) {
       if (loading) return "Loading...";
       if (Number.isFinite(value)) {
         const updated = new Date(updatedAt || Date.now());
-        return "Updated " + updated.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        return (stale ? "Cached " : "Updated ") + updated.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
       }
       const text = String(error || "");
+      if (text.toLowerCase().includes("app daily request limit")) return "App daily limit reached";
+      if (text.toLowerCase().includes("maximum daily cost") || text.toLowerCase().includes("quota")) return "Provider quota reached";
       if (text.toLowerCase().includes("billing")) return "Billing is disabled";
-      if (text.includes("403") || text.toLowerCase().includes("permission")) return "Permission denied";
+      if (text.includes("403") || text.toLowerCase().includes("permission") || text.toLowerCase().includes("referer")) return "Blocked for this site";
       if (coverage > 0 && needed > 0) return coverage + " of " + needed + " hrs saved";
-      return "Unavailable";
+      return "No data returned";
     }
     function renderRainComparison(observedRain, loading = false) {
       const windows = [
@@ -1954,7 +2077,7 @@
         googleValue.textContent = loading ? "..." : formatRecapRain(google);
         visualValue.textContent = loading ? "..." : formatRecapRain(visual);
         googleState.textContent = rainProviderState(google, observedRain?.googleRainError, observedRain?.googleRainUpdatedAt, loading, googleCoverage, window.needed);
-        visualState.textContent = rainProviderState(visual, observedRain?.visualCrossingRainError, observedRain?.visualCrossingRainUpdatedAt, loading, visualCoverage, window.needed);
+        visualState.textContent = rainProviderState(visual, observedRain?.visualCrossingRainError, observedRain?.visualCrossingRainUpdatedAt, loading, visualCoverage, window.needed, observedRain?.visualCrossingRainStale === true);
         if (loading) differenceEl.textContent = "Comparing providers...";
         else if (Number.isFinite(google) && Number.isFinite(visual)) {
           const difference = google - visual;
@@ -2067,7 +2190,7 @@
             sourceRow("Accuracy", "Official NWS alert polygons and point matching; always follow local emergency guidance.")
           ]
         } : unavailableSource("NWS alerts", "National Weather Service active alerts API", "No active alerts were returned for this point.");
-        const recapState = { observedRain: null, pollen: null, rainLoading: true };
+        const recapState = { observedRain: null, pollen: { status: "loading" }, rainLoading: true };
         renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
         setStatus(forceFresh ? "Refreshed" : "Updated", "ok");
         getObservedRain(location.lat, location.lon).then((observedRain) => {
@@ -2084,6 +2207,8 @@
           if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
         }).catch((error) => {
           console.warn(error);
+          recapState.pollen = { status: "error", message: error?.message || "Google Pollen request failed." };
+          if (activeLocation?.lat === location.lat && activeLocation?.lon === location.lon) renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
         });
       } catch (error) { console.error(error); setStatus("Could not load weather data.", "error"); els.currentCondition.textContent = "Weather unavailable"; }
     }
