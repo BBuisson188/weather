@@ -352,6 +352,9 @@
     .source-row { display: grid; gap: 2px; padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,0.055); border: 1px solid rgba(184,205,255,0.12); }
     .source-row-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 850; }
     .source-row-value { font-size: 14px; color: var(--text); font-weight: 750; line-height: 1.35; }
+    .source-action { width: 100%; margin-bottom: 8px; }
+    .source-action-note { min-height: 0; margin: -2px 2px 10px; color: var(--muted); font-size: 12px; font-weight: 700; line-height: 1.4; text-align: center; }
+    .source-action-note:empty { display: none; }
     .source-ok { width: 100%; }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(10px); }
@@ -518,6 +521,8 @@
       <div class="source-title" id="sourceTitle">Data source</div>
       <div class="source-copy" id="sourceCopy"></div>
       <div class="source-rows" id="sourceRows"></div>
+      <button class="input-btn source-action hidden" id="sourceActionBtn" type="button"></button>
+      <div class="source-action-note" id="sourceActionNote" aria-live="polite"></div>
       <button class="input-btn source-ok" id="sourceOkBtn" type="button">OK</button>
     </div>
   </div>
@@ -530,7 +535,7 @@
       rainLine: $("rainLine"), todayOptions: $("todayOptions"), lightLine: $("lightLine"), dailyStrip: $("dailyStrip"), dailyOutlookSection: $("dailyOutlookSection"), quickRecapSection: $("quickRecapSection"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"), outlookLegend: $("outlookLegend"),
       rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"),
       locateBtn: $("locateBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink"), longRangeLink: $("longRangeLink"),
-      sourceOverlay: $("sourceOverlay"), sourceTitle: $("sourceTitle"), sourceCopy: $("sourceCopy"), sourceRows: $("sourceRows"), sourceOkBtn: $("sourceOkBtn"),
+      sourceOverlay: $("sourceOverlay"), sourceTitle: $("sourceTitle"), sourceCopy: $("sourceCopy"), sourceRows: $("sourceRows"), sourceActionBtn: $("sourceActionBtn"), sourceActionNote: $("sourceActionNote"), sourceOkBtn: $("sourceOkBtn"),
       onboardingOverlay: $("onboardingOverlay"), startLocateBtn: $("startLocateBtn"), startZipInput: $("startZipInput"), onboardingNote: $("onboardingNote"),
       closeOnboardingBtn: $("closeOnboardingBtn"), searchResultsWrap: $("searchResultsWrap"), searchResults: $("searchResults"), recentWrap: $("recentWrap"), recentList: $("recentList")
     };
@@ -554,6 +559,7 @@
     const DAILY_OUTLOOK_TTL_MS = 6 * 60 * 60 * 1000;
     const POLLEN_TTL_MS = 24 * 60 * 60 * 1000;
     const CACHE_LOCATION_LIMIT = 5;
+    const VISUAL_CROSSING_RAIN_DAILY_RECORD_LIMIT = 250;
     const METERS_PER_MILE = 1609.344;
     const MM_PER_INCH = 25.4;
     let activeLocation = null;
@@ -566,6 +572,7 @@
     let latestHistoryData = null;
     let recapLoadKey = "";
     let recapState = { observedRain: null, pollen: { status: "idle", message: "Pollen loads when this section is viewed." }, rainLoading: false };
+    let activeSourceDetailKey = "";
     const outlookSeries = loadOutlookSeries();
 
     function hasSavedLocation() { const saved = loadSavedLocation(); return Boolean(saved?.lat && saved?.lon); }
@@ -679,6 +686,12 @@
       els.sourceTitle.textContent = detail.title || "Data source";
       els.sourceCopy.textContent = detail.copy || "";
       els.sourceRows.innerHTML = (detail.rows || []).map((row) => `<div class="source-row"><div class="source-row-label">${escapeHtml(row.label)}</div><div class="source-row-value">${escapeHtml(row.value)}</div></div>`).join("");
+      const action = detail.action;
+      els.sourceActionBtn.classList.toggle("hidden", !action);
+      els.sourceActionBtn.disabled = Boolean(action?.disabled);
+      els.sourceActionBtn.textContent = action?.label || "";
+      els.sourceActionBtn.dataset.hours = action?.hours || "";
+      els.sourceActionNote.textContent = action?.note || "";
       els.sourceOverlay.classList.remove("hidden");
     }
     function hideSourceDetail() {
@@ -1127,6 +1140,43 @@
       if (observedRain?.visualCrossingRainError) detail.rows.push(sourceRow("Visual Crossing issue", String(observedRain.visualCrossingRainError).slice(0, 200)));
       return detail;
     }
+    function rainGapAction(observedRain, windowKey, hours) {
+      if (Number.isFinite(observedRain?.[windowKey])) return null;
+      const missing = Math.max(0, Number(observedRain?.[windowKey + "MissingHours"]) || hours);
+      if (missing === 0) return null;
+      const remaining = Math.max(0, Number(observedRain?.visualCrossingRainRecordsRemainingToday) || 0);
+      const period = hours === 72 ? "3-day" : "7-day";
+      const disabled = !VISUAL_CROSSING_API_KEY || missing > remaining;
+      return {
+        hours,
+        disabled,
+        label: "Fill " + period + " gaps with Visual Crossing (~" + missing + " records)",
+        note: !VISUAL_CROSSING_API_KEY
+          ? "Visual Crossing is not configured."
+          : missing > remaining
+            ? "The app's rain safety limit has only " + remaining + " records remaining today."
+            : "Only missing hours will be requested. Previously cached hours will be reused."
+      };
+    }
+    function addRainGapDetails(detail, observedRain, windowKey, hours) {
+      const spec = rainWindowSpec(hours);
+      const googleHours = Math.max(0, Number(observedRain?.[windowKey + "GoogleHours"]) || 0);
+      const visualHours = Math.max(0, Number(observedRain?.[windowKey + "VisualHours"]) || 0);
+      const missingHours = Math.max(0, Number(observedRain?.[windowKey + "MissingHours"]) || hours);
+      detail.copy = Number.isFinite(observedRain?.[windowKey])
+        ? "Google is preferred hour by hour; cached Visual Crossing data fills only Google gaps."
+        : "Longer Visual Crossing history is not downloaded automatically. You can fill only the missing hours below.";
+      detail.rows = [
+        sourceRow("Google coverage", googleHours + " of " + hours + " hours"),
+        sourceRow("Visual Crossing cached", visualHours + " hours used"),
+        sourceRow("Still missing", missingHours + " hours"),
+        sourceRow("Coverage needed", spec.required + " of " + hours + " hours"),
+        ...(detail.rows || []),
+        sourceRow("Visual Crossing rain use today", (Number(observedRain?.visualCrossingRainRecordsUsedToday) || 0) + " of " + VISUAL_CROSSING_RAIN_DAILY_RECORD_LIMIT + " app-limited records")
+      ];
+      detail.action = rainGapAction(observedRain, windowKey, hours);
+      return detail;
+    }
     function rainObservationAmount(observation) {
       const props = observation?.properties || {};
       return inchesFromMm(props.precipitationLastHour?.value);
@@ -1217,6 +1267,7 @@
       const totals = rollingRainTotals(records, now);
       const updatedAt = cache[locationKey]?.updatedAt || cached.updatedAt || now.toISOString();
       return {
+        googleRainRecords: records,
         googleRain24: totals.rain24.value, googleRain24Coverage: totals.rain24.coverage,
         googleRain3d: totals.rain3d.value, googleRain3dCoverage: totals.rain3d.coverage,
         googleRain7d: totals.rain7d.value, googleRain7dCoverage: totals.rain7d.coverage,
@@ -1237,75 +1288,145 @@
     function saveVisualCrossingRainCache(cache) {
       try { localStorage.setItem(VISUAL_CROSSING_RAIN_CACHE_KEY, JSON.stringify(cache)); } catch {}
     }
-    let visualCrossingRainRequestClaimed = false;
-    function claimVisualCrossingRainBudget(now = new Date()) {
-      if (visualCrossingRainRequestClaimed) return false;
+    function rainHourEpoch(value) {
+      const numeric = Number(value);
+      const milliseconds = Number.isFinite(numeric) ? (numeric > 100000000000 ? numeric : numeric * 1000) : new Date(value).getTime();
+      return Number.isFinite(milliseconds) ? Math.floor(milliseconds / 3600000) * 3600 : null;
+    }
+    function rainWindowSpec(hours) {
+      if (hours === 24) return { key: "rain24", required: 22, label: "24-hour" };
+      if (hours === 72) return { key: "rain3d", required: 68, label: "3-day" };
+      return { key: "rain7d", required: 160, label: "7-day" };
+    }
+    function expectedRainHourEpochs(hours, now = new Date()) {
+      const currentHour = Math.floor(now.getTime() / 3600000) * 3600;
+      return Array.from({ length: hours }, (_, index) => currentHour - (hours - 1 - index) * 3600);
+    }
+    function normalizedGoogleRainRecords(records) {
+      return (Array.isArray(records) ? records : []).map((record) => ({
+        epoch: rainHourEpoch(record.epoch ?? record.time),
+        precip: Number(record.precip ?? record.rain)
+      })).filter((record) => Number.isFinite(record.epoch) && Number.isFinite(record.precip));
+    }
+    function cachedGoogleRainRecords(lat, lon) {
+      const cached = loadGoogleRainCache()[googleRainLocationKey(lat, lon)];
+      return normalizedGoogleRainRecords(cached?.records);
+    }
+    function cachedVisualCrossingRainRecords(lat, lon) {
+      const cached = loadVisualCrossingRainCache()[googleRainLocationKey(lat, lon)];
+      return (Array.isArray(cached?.records) ? cached.records : []).map((record) => ({
+        epoch: rainHourEpoch(record.epoch),
+        precip: Number(record.precip)
+      })).filter((record) => Number.isFinite(record.epoch) && Number.isFinite(record.precip));
+    }
+    function combinedRainCoverage(googleRecords, visualRecords, hours, now = new Date()) {
+      const spec = rainWindowSpec(hours);
+      const google = new Map(normalizedGoogleRainRecords(googleRecords).map((record) => [record.epoch, record.precip]));
+      const visual = new Map((Array.isArray(visualRecords) ? visualRecords : []).map((record) => [rainHourEpoch(record.epoch), Number(record.precip)]).filter(([epoch, precip]) => Number.isFinite(epoch) && Number.isFinite(precip)));
+      let total = 0, googleHours = 0, visualHours = 0;
+      const missingEpochs = [];
+      expectedRainHourEpochs(hours, now).forEach((epoch) => {
+        if (google.has(epoch)) {
+          total += google.get(epoch);
+          googleHours += 1;
+        } else if (visual.has(epoch)) {
+          total += visual.get(epoch);
+          visualHours += 1;
+        } else {
+          missingEpochs.push(epoch);
+        }
+      });
+      const coverage = googleHours + visualHours;
+      return {
+        value: coverage >= spec.required ? total : null,
+        coverage, googleHours, visualHours, missingEpochs,
+        required: spec.required, label: spec.label
+      };
+    }
+    function visualCrossingRainBudget(now = new Date()) {
       const date = now.toISOString().slice(0, 10);
       try {
         const saved = JSON.parse(localStorage.getItem(VISUAL_CROSSING_RAIN_BUDGET_KEY) || "{}");
-        if (saved.date === date && Number(saved.requests) >= 1) return false;
-        localStorage.setItem(VISUAL_CROSSING_RAIN_BUDGET_KEY, JSON.stringify({ date, requests: 1 }));
-      } catch {}
-      visualCrossingRainRequestClaimed = true;
-      return true;
-    }
-    function visualCrossingBudgetFallback(cached) {
-      const error = new Error("Visual Crossing app daily request limit reached");
-      if (cached?.value) {
-        return { ...cached.value, visualCrossingRainUpdatedAt: cached.updatedAt, visualCrossingRainStale: true, visualCrossingRainError: error.message };
+        const used = saved.date === date ? Math.max(0, Number(saved.records) || 0) : 0;
+        return { date, used, remaining: Math.max(0, VISUAL_CROSSING_RAIN_DAILY_RECORD_LIMIT - used) };
+      } catch {
+        return { date, used: 0, remaining: VISUAL_CROSSING_RAIN_DAILY_RECORD_LIMIT };
       }
-      throw error;
     }
-    async function getVisualCrossingRain(lat, lon) {
-      if (!VISUAL_CROSSING_API_KEY) throw new Error("Visual Crossing API key is not configured");
-      const today = new Date();
+    function addVisualCrossingRainCost(cost, now = new Date()) {
+      const budget = visualCrossingRainBudget(now);
+      const used = budget.used + Math.max(0, Number(cost) || 0);
+      try { localStorage.setItem(VISUAL_CROSSING_RAIN_BUDGET_KEY, JSON.stringify({ date: budget.date, records: used })); } catch {}
+      return { used, remaining: Math.max(0, VISUAL_CROSSING_RAIN_DAILY_RECORD_LIMIT - used) };
+    }
+    function groupRainHourGaps(epochs) {
+      const sorted = Array.from(new Set(epochs)).sort((a, b) => a - b);
+      const groups = [];
+      sorted.forEach((epoch) => {
+        const current = groups[groups.length - 1];
+        if (current && epoch === current.end + 3600) current.end = epoch;
+        else groups.push({ start: epoch, end: epoch });
+      });
+      return groups;
+    }
+    function saveVisualCrossingRainRecords(lat, lon, records, updatedAt = new Date()) {
       const cache = loadVisualCrossingRainCache();
       const locationKey = googleRainLocationKey(lat, lon);
-      const cached = cache[locationKey];
-      const cacheAge = today.getTime() - new Date(cached?.updatedAt || 0).getTime();
-      if (cached?.value && cacheAge >= 0 && cacheAge < 24 * 60 * 60 * 1000) return cached.value;
-      if (claimVisualCrossingRainBudget(today) === false) return visualCrossingBudgetFallback(cached);
-      const start = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const ymd = (d) => d.toISOString().slice(0, 10);
-      const location = `${Number(lat).toFixed(4)},${Number(lon).toFixed(4)}`;
-      const params = new URLSearchParams({ unitGroup: "us", include: "hours", elements: "datetime,datetimeEpoch,precip", key: VISUAL_CROSSING_API_KEY, contentType: "json" });
-      const res = await fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(location)}/${ymd(start)}/${ymd(today)}?${params.toString()}`);
-      if (res.ok === false) {
-        const error = await providerResponseError(res, "Visual Crossing");
-        if (cached?.value) {
-          return { ...cached.value, visualCrossingRainUpdatedAt: cached.updatedAt, visualCrossingRainStale: true, visualCrossingRainError: error.message };
-        }
-        throw error;
-      }
-      const data = await res.json();
-      const days = Array.isArray(data.days) ? data.days : [];
-      const nowEpoch = Math.floor(today.getTime() / 1000);
-      const hourlyTotals = days.flatMap((day) => Array.isArray(day.hours) ? day.hours : []).map((hour) => ({ epoch: Number(hour.datetimeEpoch), precip: hour.precip == null ? null : Number(hour.precip) })).filter((hour) => {
-        if (Number.isFinite(hour.epoch) === false) return false;
-        if (Number.isFinite(hour.precip) === false) return false;
-        return hour.epoch <= nowEpoch;
-      });
-      const rollingTotal = (hours, minCoverage) => {
-        const cutoffEpoch = nowEpoch - hours * 60 * 60;
-        const covered = hourlyTotals.filter((hour) => hour.epoch > cutoffEpoch);
-        return covered.length >= minCoverage ? covered.reduce((sum, hour) => sum + hour.precip, 0) : null;
+      const cutoff = Math.floor((updatedAt.getTime() - 8 * 24 * 60 * 60 * 1000) / 3600000) * 3600;
+      const merged = new Map(cachedVisualCrossingRainRecords(lat, lon).map((record) => [record.epoch, record]));
+      records.forEach((record) => merged.set(record.epoch, record));
+      cache[locationKey] = {
+        records: Array.from(merged.values()).filter((record) => record.epoch >= cutoff).sort((a, b) => a.epoch - b.epoch),
+        updatedAt: updatedAt.toISOString()
       };
-      const coverageFor = (hours) => hourlyTotals.filter((hour) => hour.epoch > nowEpoch - hours * 60 * 60).length;
-      const visualCrossingRain24 = rollingTotal(24, 22);
-      const visualCrossingRain3d = rollingTotal(72, 68);
-      const visualCrossingRain7d = rollingTotal(168, 160);
-      const result = {
-        visualCrossingRain24, visualCrossingRain24Coverage: coverageFor(24),
-        visualCrossingRain3d, visualCrossingRain3dCoverage: coverageFor(72),
-        visualCrossingRain7d, visualCrossingRain7dCoverage: coverageFor(168),
-        visualCrossingRain24Source: "Visual Crossing Timeline hourly precip",
-        visualCrossingRain3dSource: "Visual Crossing Timeline hourly precip",
-        visualCrossingRain7dSource: "Visual Crossing Timeline hourly precip",
-        visualCrossingRainUpdatedAt: today.toISOString()
-      };
-      cache[locationKey] = { value: result, updatedAt: today.toISOString() };
+      Object.entries(cache).sort((a, b) => new Date(b[1]?.updatedAt || 0) - new Date(a[1]?.updatedAt || 0)).slice(CACHE_LOCATION_LIMIT).forEach(([key]) => delete cache[key]);
       saveVisualCrossingRainCache(cache);
-      return result;
+    }
+    async function requestVisualCrossingRainRange(lat, lon, range) {
+      const location = Number(lat).toFixed(4) + "," + Number(lon).toFixed(4);
+      const params = new URLSearchParams({
+        unitGroup: "us", include: "hours", elements: "datetime,datetimeEpoch,precip",
+        key: VISUAL_CROSSING_API_KEY, contentType: "json"
+      });
+      const url = "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/" +
+        encodeURIComponent(location) + "/" + range.start + "/" + range.end + "?" + params.toString();
+      const res = await fetch(url);
+      if (res.ok === false) throw await providerResponseError(res, "Visual Crossing rain gap fill");
+      const data = await res.json();
+      const records = (Array.isArray(data.days) ? data.days : []).flatMap((day) => Array.isArray(day.hours) ? day.hours : []).map((hour) => ({
+        epoch: rainHourEpoch(hour.datetimeEpoch),
+        precip: hour.precip == null ? null : Number(hour.precip)
+      })).filter((record) => Number.isFinite(record.epoch) && Number.isFinite(record.precip) && record.epoch >= range.start && record.epoch <= range.end);
+      const queryCost = Number.isFinite(Number(data.queryCost)) ? Number(data.queryCost) : records.length;
+      addVisualCrossingRainCost(queryCost);
+      return { records, queryCost };
+    }
+    async function fillVisualCrossingRainGaps(lat, lon, hours) {
+      if (!VISUAL_CROSSING_API_KEY) throw new Error("Visual Crossing API key is not configured");
+      const now = new Date();
+      const googleRecords = cachedGoogleRainRecords(lat, lon);
+      let visualRecords = cachedVisualCrossingRainRecords(lat, lon);
+      const before = combinedRainCoverage(googleRecords, visualRecords, hours, now);
+      const estimatedCost = before.missingEpochs.length;
+      if (estimatedCost === 0) return { filled: 0, queryCost: 0, coverage: before };
+      const budget = visualCrossingRainBudget(now);
+      if (estimatedCost > budget.remaining) {
+        throw new Error("This gap fill needs about " + estimatedCost + " records, but the app's Visual Crossing rain limit has only " + budget.remaining + " remaining today.");
+      }
+      let queryCost = 0;
+      for (const range of groupRainHourGaps(before.missingEpochs)) {
+        const rangeEstimate = Math.floor((range.end - range.start) / 3600) + 1;
+        const currentBudget = visualCrossingRainBudget();
+        if (rangeEstimate > currentBudget.remaining) {
+          throw new Error("The Visual Crossing rain safety limit was reached before all gaps could be filled. Previously downloaded hours were kept.");
+        }
+        const response = await requestVisualCrossingRainRange(lat, lon, range);
+        queryCost += response.queryCost;
+        saveVisualCrossingRainRecords(lat, lon, response.records, now);
+        visualRecords = cachedVisualCrossingRainRecords(lat, lon);
+      }
+      const after = combinedRainCoverage(googleRecords, visualRecords, hours, now);
+      return { filled: Math.max(0, before.missingEpochs.length - after.missingEpochs.length), queryCost, coverage: after };
     }
     function nwsDateTime(date) {
       return date.toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -1353,36 +1474,52 @@
     async function getObservedRain(lat, lon) {
       const result = {
         rain24: null, rain3d: null, rain7d: null, rain24Source: "", rain3dSource: "", rain7dSource: "",
-        googleRainError: "", visualCrossingRainError: ""
+        googleRainRecords: [], googleRainError: "", visualCrossingRainError: ""
       };
       try {
         Object.assign(result, await getGoogleObservedRain(lat, lon));
       } catch (error) {
         result.googleRainError = error?.message || "Google Weather unavailable";
+        result.googleRainRecords = cachedGoogleRainRecords(lat, lon).map((record) => ({ time: record.epoch * 1000, rain: record.precip }));
         console.warn(error);
       }
-      const googleMissingAWindow = !Number.isFinite(result.googleRain24) || !Number.isFinite(result.googleRain3d) || !Number.isFinite(result.googleRain7d);
-      if (googleMissingAWindow) {
+      let visualRecords = cachedVisualCrossingRainRecords(lat, lon);
+      if (!Number.isFinite(result.googleRain24)) {
         try {
-          Object.assign(result, await getVisualCrossingRain(lat, lon));
+          await fillVisualCrossingRainGaps(lat, lon, 24);
+          visualRecords = cachedVisualCrossingRainRecords(lat, lon);
         } catch (error) {
           result.visualCrossingRainError = error?.message || "Visual Crossing unavailable";
           console.warn(error);
         }
       }
       [
-        { target: "rain24", google: "googleRain24", visual: "visualCrossingRain24" },
-        { target: "rain3d", google: "googleRain3d", visual: "visualCrossingRain3d" },
-        { target: "rain7d", google: "googleRain7d", visual: "visualCrossingRain7d" }
+        { target: "rain24", google: "googleRain24", hours: 24 },
+        { target: "rain3d", google: "googleRain3d", hours: 72 },
+        { target: "rain7d", google: "googleRain7d", hours: 168 }
       ].forEach((window) => {
+        const coverage = combinedRainCoverage(result.googleRainRecords, visualRecords, window.hours);
+        const prefix = window.target;
+        result[prefix + "Coverage"] = coverage.coverage;
+        result[prefix + "GoogleHours"] = coverage.googleHours;
+        result[prefix + "VisualHours"] = coverage.visualHours;
+        result[prefix + "MissingHours"] = coverage.missingEpochs.length;
+        result[prefix + "EstimatedVisualCost"] = coverage.missingEpochs.length;
+        const googleCoverageKey = prefix === "rain24" ? "googleRain24Coverage" : prefix === "rain3d" ? "googleRain3dCoverage" : "googleRain7dCoverage";
+        if (!Number.isFinite(result[googleCoverageKey])) result[googleCoverageKey] = coverage.googleHours;
         if (Number.isFinite(result[window.google])) {
           result[window.target] = result[window.google];
           result[window.target + "Source"] = result[window.google + "Source"];
-        } else if (Number.isFinite(result[window.visual])) {
-          result[window.target] = result[window.visual];
-          result[window.target + "Source"] = result[window.visual + "Source"];
+        } else if (Number.isFinite(coverage.value)) {
+          result[prefix] = coverage.value;
+          result[prefix + "Source"] = coverage.visualHours > 0 && coverage.googleHours > 0
+            ? "Google Weather + Visual Crossing gap fill"
+            : coverage.visualHours > 0 ? "Visual Crossing Timeline hourly gap fill" : "Google Weather saved hourly history";
         }
       });
+      const budget = visualCrossingRainBudget();
+      result.visualCrossingRainRecordsUsedToday = budget.used;
+      result.visualCrossingRainRecordsRemainingToday = budget.remaining;
       return result;
     }
     function precipTypeLabel(code) {
@@ -2543,6 +2680,7 @@
           sourceRow("Accuracy", "Hourly provider totals can differ from a rain gauge at the exact location.")
         ], observedRain, "rain3d")
       } : unavailableRainSource("3-day rain", "Neither provider returned enough hourly precipitation coverage.", observedRain, "rain3d");
+      if (!rainLoading) latestSourceDetails.rain3d = addRainGapDetails(latestSourceDetails.rain3d, observedRain, "rain3d", 72);
       latestSourceDetails.rain7d = rainLoading ? {
         title: "7-day rain",
         copy: "Recent rain data is still loading.",
@@ -2557,6 +2695,7 @@
           sourceRow("Accuracy", "Weekly provider totals are useful for planning, but are not a backyard rain gauge.")
         ], observedRain, "rain7d")
       } : unavailableRainSource("7-day rain", "Neither provider returned enough hourly precipitation coverage.", observedRain, "rain7d");
+      if (!rainLoading) latestSourceDetails.rain7d = addRainGapDetails(latestSourceDetails.rain7d, observedRain, "rain7d", 168);
       renderSeasonalRecap(freezeCount, hasRecentFreeze, pollen);
     }
     function activeLocationMatches(location) {
@@ -2760,6 +2899,7 @@
     document.addEventListener("click", (e) => {
       const target = e.target.closest("[data-source-key]");
       if (!target) return;
+      activeSourceDetailKey = target.dataset.sourceKey;
       const detail = latestSourceDetails[target.dataset.sourceKey];
       if (detail) showSourceDetail(detail);
     });
@@ -2769,8 +2909,33 @@
       const target = e.target.closest?.("[data-source-key]");
       if (!target) return;
       e.preventDefault();
+      activeSourceDetailKey = target.dataset.sourceKey;
       const detail = latestSourceDetails[target.dataset.sourceKey];
       if (detail) showSourceDetail(detail);
+    });
+    els.sourceActionBtn.addEventListener("click", async () => {
+      const hours = Number(els.sourceActionBtn.dataset.hours);
+      const location = activeLocation;
+      if (!location || ![72, 168].includes(hours)) return;
+      const originalLabel = els.sourceActionBtn.textContent;
+      els.sourceActionBtn.disabled = true;
+      els.sourceActionBtn.textContent = "Fetching only missing hours...";
+      els.sourceActionNote.textContent = "Visual Crossing will not re-download hours already cached.";
+      try {
+        const response = await fillVisualCrossingRainGaps(location.lat, location.lon, hours);
+        if (!activeLocationMatches(location)) return;
+        recapState.observedRain = await getObservedRain(location.lat, location.lon);
+        recapState.rainLoading = false;
+        renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, false);
+        const detail = latestSourceDetails[activeSourceDetailKey];
+        if (detail) showSourceDetail(detail);
+        els.sourceActionNote.textContent = "Filled " + response.filled + " missing hours. Visual Crossing reported a query cost of " + response.queryCost + ".";
+      } catch (error) {
+        console.warn(error);
+        els.sourceActionBtn.disabled = false;
+        els.sourceActionBtn.textContent = originalLabel;
+        els.sourceActionNote.textContent = error?.message || "The Visual Crossing gap fill failed.";
+      }
     });
     els.sourceOkBtn.addEventListener("click", hideSourceDetail);
     els.sourceOverlay.addEventListener("click", (e) => { if (e.target === els.sourceOverlay) hideSourceDetail(); });

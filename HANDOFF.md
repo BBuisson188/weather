@@ -23,7 +23,7 @@
   - Open-Meteo GFS fallback for forecast.
 - Main-page active alerts use the National Weather Service active alerts API by point.
 - Radar page also has NWS alert overlays, implemented separately.
-- Recent rain recap prefers saved Google Weather hourly history for each complete rolling total; Visual Crossing is requested only when Google lacks sufficient coverage.
+- Recent rain recap prefers saved Google Weather data hour by hour. Visual Crossing automatically fills only missing 24-hour records; 3-day and 7-day gaps require an explicit user action from the rain detail card.
 - Daily outlook source order is Google for days 1-9, Visual Crossing for days 10-14, and Open-Meteo for day 15, with per-day fallback where available.
 
 ## Cache and Provider Policy
@@ -33,7 +33,10 @@
 - The 15-day daily outlook is cached for six hours and is invalidated when the local calendar day changes.
 - Quick recap data—rain history, freeze/history, and pollen—is lazy-loaded only when the user approaches that section.
 - Google rainfall history is refreshed at most every 12 hours and retains eight days of hourly records on that browser so 3-day and 7-day rolling totals can build over time.
-- Visual Crossing rainfall is cached for 24 hours and remains limited to one new rain-history request per browser per day. It is only requested when one or more Google totals are incomplete or unavailable.
+- Visual Crossing rain is stored as individual UTC-hour records for eight days. Google always wins for an hour where both providers have data.
+- Missing Visual Crossing hours are grouped into exact contiguous ranges. A later 7-day request reuses records downloaded for a prior 3-day request and asks only for remaining gaps.
+- The app never automatically downloads 3-day or 7-day Visual Crossing rain history. Their detail cards show provider coverage, estimated record cost, and a manual gap-fill button when needed.
+- Automatic 24-hour gap fill and manual longer-period fills share a conservative 250-record daily browser safety limit, tracked from Visual Crossing's returned `queryCost`. This is a per-browser guard, not an account-wide quota.
 - Pollen responses, including valid no-index/no-forecast responses, are cached for 24 hours.
 - NWS alerts are intentionally not persistently cached.
 - These caches live in browser `localStorage`; clearing site data or using another browser/device starts a separate history.
