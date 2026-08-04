@@ -344,18 +344,27 @@
     .recent-btn { width: 100%; justify-content: flex-start; min-height: 44px; height: auto; padding: 10px 12px; border-radius: 16px; white-space: normal; text-align: left; line-height: 1.25; }
     .recent-btn strong { display: block; font-size: 13px; font-weight: 800; color: var(--text); }
     .recent-btn span { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); font-weight: 700; }
-    .source-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(3, 7, 14, 0.62); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 50; }
-    .source-modal { width: min(100%, 360px); background: linear-gradient(180deg, rgba(12, 22, 37, 0.98), rgba(9, 17, 30, 0.96)); border: 1px solid var(--line); border-radius: 26px; box-shadow: var(--shadow); padding: 18px; }
-    .source-title { font-size: 20px; font-weight: 850; letter-spacing: -0.03em; margin-bottom: 6px; }
-    .source-copy { color: var(--muted); font-size: 13px; line-height: 1.45; font-weight: 650; margin-bottom: 12px; }
-    .source-rows { display: grid; gap: 8px; margin-bottom: 14px; }
+    .source-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 12px; background: rgba(3, 7, 14, 0.62); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 50; }
+    .source-modal { width: min(100%, 360px); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); display: flex; flex-direction: column; overflow: hidden; background: linear-gradient(180deg, rgba(12, 22, 37, 0.98), rgba(9, 17, 30, 0.96)); border: 1px solid var(--line); border-radius: 26px; box-shadow: var(--shadow); padding: 16px; }
+    .source-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+    .source-close { width: 36px; min-width: 36px; height: 36px; padding: 0; border-radius: 999px; }
+    .source-title { font-size: 20px; font-weight: 850; letter-spacing: -0.03em; }
+    .source-copy { flex-shrink: 0; color: var(--muted); font-size: 13px; line-height: 1.45; font-weight: 650; margin: 6px 0 10px; }
+    .source-rows { min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; display: grid; gap: 8px; margin-bottom: 12px; padding-right: 3px; }
     .source-row { display: grid; gap: 2px; padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,0.055); border: 1px solid rgba(184,205,255,0.12); }
     .source-row-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 850; }
     .source-row-value { font-size: 14px; color: var(--text); font-weight: 750; line-height: 1.35; }
     .source-action { width: 100%; margin-bottom: 8px; }
-    .source-action-note { min-height: 0; margin: -2px 2px 10px; color: var(--muted); font-size: 12px; font-weight: 700; line-height: 1.4; text-align: center; }
+    .source-actions { flex-shrink: 0; }
+    .source-action-note { min-height: 0; max-height: 52px; overflow-y: auto; margin: -2px 2px 10px; color: var(--muted); font-size: 12px; font-weight: 700; line-height: 1.4; text-align: center; }
     .source-action-note:empty { display: none; }
     .source-ok { width: 100%; }
+    @media (max-height: 620px) {
+      .source-modal { padding: 12px; border-radius: 20px; }
+      .source-copy { font-size: 12px; line-height: 1.35; margin-bottom: 8px; }
+      .source-row { padding: 8px 10px; }
+      .source-action-note { font-size: 11px; line-height: 1.3; margin-bottom: 7px; }
+    }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
@@ -518,12 +527,17 @@
 
   <div class="source-overlay hidden" id="sourceOverlay">
     <div class="source-modal" role="dialog" aria-modal="true" aria-labelledby="sourceTitle">
-      <div class="source-title" id="sourceTitle">Data source</div>
+      <div class="source-header">
+        <div class="source-title" id="sourceTitle">Data source</div>
+        <button class="icon-btn source-close" id="sourceCloseBtn" type="button" aria-label="Close information panel">&times;</button>
+      </div>
       <div class="source-copy" id="sourceCopy"></div>
       <div class="source-rows" id="sourceRows"></div>
-      <button class="input-btn source-action hidden" id="sourceActionBtn" type="button"></button>
-      <div class="source-action-note" id="sourceActionNote" aria-live="polite"></div>
-      <button class="input-btn source-ok" id="sourceOkBtn" type="button">OK</button>
+      <div class="source-actions">
+        <button class="input-btn source-action hidden" id="sourceActionBtn" type="button"></button>
+        <div class="source-action-note" id="sourceActionNote" aria-live="polite"></div>
+        <button class="input-btn source-ok" id="sourceOkBtn" type="button">OK</button>
+      </div>
     </div>
   </div>
 
@@ -535,7 +549,7 @@
       rainLine: $("rainLine"), todayOptions: $("todayOptions"), lightLine: $("lightLine"), dailyStrip: $("dailyStrip"), dailyOutlookSection: $("dailyOutlookSection"), quickRecapSection: $("quickRecapSection"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"), outlookLegend: $("outlookLegend"),
       rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"),
       locateBtn: $("locateBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink"), longRangeLink: $("longRangeLink"),
-      sourceOverlay: $("sourceOverlay"), sourceTitle: $("sourceTitle"), sourceCopy: $("sourceCopy"), sourceRows: $("sourceRows"), sourceActionBtn: $("sourceActionBtn"), sourceActionNote: $("sourceActionNote"), sourceOkBtn: $("sourceOkBtn"),
+      sourceOverlay: $("sourceOverlay"), sourceTitle: $("sourceTitle"), sourceCopy: $("sourceCopy"), sourceRows: $("sourceRows"), sourceCloseBtn: $("sourceCloseBtn"), sourceActionBtn: $("sourceActionBtn"), sourceActionNote: $("sourceActionNote"), sourceOkBtn: $("sourceOkBtn"),
       onboardingOverlay: $("onboardingOverlay"), startLocateBtn: $("startLocateBtn"), startZipInput: $("startZipInput"), onboardingNote: $("onboardingNote"),
       closeOnboardingBtn: $("closeOnboardingBtn"), searchResultsWrap: $("searchResultsWrap"), searchResults: $("searchResults"), recentWrap: $("recentWrap"), recentList: $("recentList")
     };
@@ -1145,12 +1159,11 @@
       const missing = Math.max(0, Number(observedRain?.[windowKey + "MissingHours"]) || hours);
       if (missing === 0) return null;
       const remaining = Math.max(0, Number(observedRain?.visualCrossingRainRecordsRemainingToday) || 0);
-      const period = hours === 72 ? "3-day" : "7-day";
       const disabled = !VISUAL_CROSSING_API_KEY || missing > remaining;
       return {
         hours,
         disabled,
-        label: "Fill " + period + " gaps with Visual Crossing (~" + missing + " records)",
+        label: "Fill missing rain hours",
         note: !VISUAL_CROSSING_API_KEY
           ? "Visual Crossing is not configured."
           : missing > remaining
@@ -1159,21 +1172,28 @@
       };
     }
     function addRainGapDetails(detail, observedRain, windowKey, hours) {
-      const spec = rainWindowSpec(hours);
+      const hasTotal = Number.isFinite(observedRain?.[windowKey]);
       const googleHours = Math.max(0, Number(observedRain?.[windowKey + "GoogleHours"]) || 0);
       const visualHours = Math.max(0, Number(observedRain?.[windowKey + "VisualHours"]) || 0);
       const missingHours = Math.max(0, Number(observedRain?.[windowKey + "MissingHours"]) || hours);
-      detail.copy = Number.isFinite(observedRain?.[windowKey])
-        ? "Google is preferred hour by hour; cached Visual Crossing data fills only Google gaps."
-        : "Longer Visual Crossing history is not downloaded automatically. You can fill only the missing hours below.";
-      detail.rows = [
-        sourceRow("Google coverage", googleHours + " of " + hours + " hours"),
-        sourceRow("Visual Crossing cached", visualHours + " hours used"),
-        sourceRow("Still missing", missingHours + " hours"),
-        sourceRow("Coverage needed", spec.required + " of " + hours + " hours"),
-        ...(detail.rows || []),
-        sourceRow("Visual Crossing rain use today", (Number(observedRain?.visualCrossingRainRecordsUsedToday) || 0) + " of " + VISUAL_CROSSING_RAIN_DAILY_RECORD_LIMIT + " app-limited records")
-      ];
+      detail.copy = hasTotal
+        ? "Google is preferred; Visual Crossing fills only missing Google hours."
+        : "Longer rain history is retrieved only when you request it.";
+      const existingRows = detail.rows || [];
+      if (hasTotal) {
+        const source = existingRows.find((row) => row.label === "Source");
+        const value = existingRows.find((row) => row.label === "Value");
+        const accuracy = existingRows.find((row) => row.label === "Accuracy");
+        detail.rows = [source, value, sourceRow("Hourly coverage", "Google " + googleHours + "; Visual Crossing " + visualHours), accuracy].filter(Boolean);
+      } else {
+        const diagnostic = existingRows.find((row) => row.label === "Visual Crossing issue") || (observedRain?.googleRainError ? existingRows.find((row) => row.label === "Why not Google") : null);
+        detail.rows = [
+          sourceRow("Cached coverage", "Google " + googleHours + " hours; Visual Crossing " + visualHours + " hours"),
+          sourceRow("Manual request", missingHours + " missing hours; about " + missingHours + " Visual Crossing records"),
+          diagnostic,
+          sourceRow("Rain-data limit today", (Number(observedRain?.visualCrossingRainRecordsUsedToday) || 0) + " of " + VISUAL_CROSSING_RAIN_DAILY_RECORD_LIMIT + " records used")
+        ].filter(Boolean);
+      }
       detail.action = rainGapAction(observedRain, windowKey, hours);
       return detail;
     }
@@ -2937,6 +2957,7 @@
         els.sourceActionNote.textContent = error?.message || "The Visual Crossing gap fill failed.";
       }
     });
+    els.sourceCloseBtn.addEventListener("click", hideSourceDetail);
     els.sourceOkBtn.addEventListener("click", hideSourceDetail);
     els.sourceOverlay.addEventListener("click", (e) => { if (e.target === els.sourceOverlay) hideSourceDetail(); });
     const outlookScroll = document.querySelector('.outlook-scroll');
