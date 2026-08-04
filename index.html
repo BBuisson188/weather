@@ -1085,6 +1085,48 @@
     function formatRecapRain(value) {
       return Number.isFinite(value) ? `${value.toFixed(2)} in` : "--";
     }
+    function conciseGoogleRainIssue(message) {
+      const raw = String(message || "").trim();
+      const lower = raw.toLowerCase();
+      if (!raw) return "Google Weather did not return a usable result.";
+      if (lower.includes("not configured")) return "No Google Weather API key is configured in this app.";
+      if (lower.includes("billing")) return "Google rejected the request because billing is not active for the API project.";
+      if (lower.includes("api key not valid") || lower.includes("invalid api key")) return "Google rejected the API key. Check that the saved key is correct and active.";
+      if (lower.includes("(403)") || lower.includes("permission") || lower.includes("forbidden")) return "Google denied the request (403). Check that Weather API is enabled, billing is attached, and the key restrictions allow weather.googleapis.com.";
+      if (lower.includes("(429)") || lower.includes("quota") || lower.includes("resource_exhausted")) return "Google's request quota was reached (429). Check the daily request limit and wait for the quota window to reset.";
+      if (lower.includes("(400)") || lower.includes("invalid argument")) return "Google rejected the request (400). Check the Weather API configuration and requested location.";
+      if (lower.includes("failed to fetch") || lower.includes("network") || lower.includes("load failed")) return "The browser could not reach Google Weather. Check the connection, browser privacy tools, and API key website restrictions.";
+      return raw.length > 200 ? raw.slice(0, 197) + "..." : raw;
+    }
+    function googleRainFallbackReason(observedRain, windowKey) {
+      if (!observedRain) return "Google Weather did not return a usable result.";
+      const selectedSource = String(observedRain[windowKey + "Source"] || "");
+      if (selectedSource.startsWith("Google Weather")) return "";
+      if (observedRain.googleRainError) return conciseGoogleRainIssue(observedRain.googleRainError);
+      const config = {
+        rain24: { coverage: "googleRain24Coverage", required: 22, period: "24-hour" },
+        rain3d: { coverage: "googleRain3dCoverage", required: 68, period: "3-day" },
+        rain7d: { coverage: "googleRain7dCoverage", required: 160, period: "7-day" }
+      }[windowKey];
+      const coverage = Number(observedRain[config?.coverage]);
+      if (config && Number.isFinite(coverage)) {
+        const deviceNote = windowKey === "rain24" ? "" : " saved on this device";
+        return `Google has ${coverage} of ${config.required} usable hourly records${deviceNote} for the ${config.period} total. This is a history-coverage gap, not necessarily an API failure.`;
+      }
+      return "Google Weather returned no usable total for this time period.";
+    }
+    function addGoogleRainReason(rows, observedRain, windowKey) {
+      const reason = googleRainFallbackReason(observedRain, windowKey);
+      if (!reason) return rows;
+      const insertAt = Math.min(2, rows.length);
+      return [...rows.slice(0, insertAt), sourceRow("Why not Google", reason), ...rows.slice(insertAt)];
+    }
+    function unavailableRainSource(title, reason, observedRain, windowKey) {
+      const detail = unavailableSource(title, "Google Weather and Visual Crossing", reason);
+      detail.rows = addGoogleRainReason(detail.rows, observedRain, windowKey);
+      if (observedRain?.visualCrossingRainError) detail.rows.push(sourceRow("Visual Crossing issue", String(observedRain.visualCrossingRainError).slice(0, 200)));
+      return detail;
+    }
     function rainObservationAmount(observation) {
       const props = observation?.properties || {};
       return inchesFromMm(props.precipitationLastHour?.value);
@@ -2480,13 +2522,13 @@
       } : Number.isFinite(observedRain?.rain24) ? {
         title: "24-hour rain",
         copy: "Google is preferred when available; Visual Crossing is the fallback.",
-        rows: [
+        rows: addGoogleRainReason([
           sourceRow("Source", observedRain.rain24Source || "Google Weather API hourly history"),
           sourceRow("Value", formatRecapRain(observedRain.rain24)),
           sourceRow("Backup", "Visual Crossing Timeline hourly precip"),
           sourceRow("Accuracy", "Recent provider precipitation can still differ from a rain gauge at the exact location.")
-        ]
-      } : unavailableSource("24-hour rain", "Google Weather and Visual Crossing", "Neither provider returned a usable 24-hour precipitation total.");
+        ], observedRain, "rain24")
+      } : unavailableRainSource("24-hour rain", "Neither provider returned a usable 24-hour precipitation total.", observedRain, "rain24");
       latestSourceDetails.rain3d = rainLoading ? {
         title: "3-day rain",
         copy: "Recent rain data is still loading.",
@@ -2494,13 +2536,13 @@
       } : Number.isFinite(observedRain?.rain3d) ? {
         title: "3-day rain",
         copy: "Google is preferred once enough hourly history has been saved; Visual Crossing is the fallback.",
-        rows: [
+        rows: addGoogleRainReason([
           sourceRow("Source", observedRain.rain3dSource || "Visual Crossing Timeline hourly precip"),
           sourceRow("Value", formatRecapRain(observedRain.rain3d)),
           sourceRow("Backup", "Visual Crossing Timeline hourly precip"),
           sourceRow("Accuracy", "Hourly provider totals can differ from a rain gauge at the exact location.")
-        ]
-      } : unavailableSource("3-day rain", "Google Weather and Visual Crossing", "Neither provider returned enough hourly precipitation coverage.");
+        ], observedRain, "rain3d")
+      } : unavailableRainSource("3-day rain", "Neither provider returned enough hourly precipitation coverage.", observedRain, "rain3d");
       latestSourceDetails.rain7d = rainLoading ? {
         title: "7-day rain",
         copy: "Recent rain data is still loading.",
@@ -2508,13 +2550,13 @@
       } : Number.isFinite(observedRain?.rain7d) ? {
         title: "7-day rain",
         copy: "Google is preferred once enough hourly history has been saved; Visual Crossing is the fallback.",
-        rows: [
+        rows: addGoogleRainReason([
           sourceRow("Source", observedRain.rain7dSource || "Visual Crossing Timeline hourly precip"),
           sourceRow("Value", formatRecapRain(observedRain.rain7d)),
           sourceRow("Backup", "Visual Crossing Timeline hourly precip"),
           sourceRow("Accuracy", "Weekly provider totals are useful for planning, but are not a backyard rain gauge.")
-        ]
-      } : unavailableSource("7-day rain", "Google Weather and Visual Crossing", "Neither provider returned enough hourly precipitation coverage.");
+        ], observedRain, "rain7d")
+      } : unavailableRainSource("7-day rain", "Neither provider returned enough hourly precipitation coverage.", observedRain, "rain7d");
       renderSeasonalRecap(freezeCount, hasRecentFreeze, pollen);
     }
     function activeLocationMatches(location) {
