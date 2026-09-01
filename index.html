@@ -285,7 +285,9 @@
     .daily-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(76px, 82px); gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 2px 2px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; touch-action: pan-x; user-select: none; -webkit-user-select: none; overscroll-behavior-inline: contain; }
     .daily-strip:active, .outlook-scroll:active { cursor: grabbing; }
     .daily-strip::-webkit-scrollbar, .outlook-scroll::-webkit-scrollbar { display: none; }
-    .day-card { --temp-rgb: 67,145,207; position: relative; isolation: isolate; min-height: 126px; overflow: hidden; background: linear-gradient(180deg, transparent 0 43%, rgba(8,16,30,0.08) 50%, rgba(10,19,34,0.62) 76%, rgba(6,12,23,0.94) 100%), linear-gradient(180deg, rgba(var(--temp-rgb),0.94) 0 58%, rgba(var(--temp-rgb),0.58) 100%); border: 1px solid rgba(244,248,255,0.27); box-shadow: 0 14px 28px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.10); border-radius: 20px; padding: 10px 7px 12px; text-align: center; }
+    .day-card { --temp-rgb: 67,145,207; position: relative; isolation: isolate; min-height: 126px; width: 100%; overflow: hidden; appearance: none; color: inherit; font: inherit; cursor: pointer; touch-action: manipulation; background: linear-gradient(180deg, transparent 0 43%, rgba(8,16,30,0.08) 50%, rgba(10,19,34,0.62) 76%, rgba(6,12,23,0.94) 100%), linear-gradient(180deg, rgba(var(--temp-rgb),0.94) 0 58%, rgba(var(--temp-rgb),0.58) 100%); border: 1px solid rgba(244,248,255,0.27); box-shadow: 0 14px 28px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.10); border-radius: 20px; padding: 10px 7px 12px; text-align: center; }
+    .day-card:focus-visible { outline: 3px solid rgba(126,190,255,0.95); outline-offset: 2px; }
+    .day-card:active { transform: scale(0.985); }
     .daily-weather-canvas { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; }
     .day-card > :not(.daily-weather-canvas) { position: relative; z-index: 2; }
     .day-name { font-size: 12px; font-weight: 800; color: rgba(247,250,255,0.90); margin-bottom: 4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-shadow: 0 1px 4px rgba(0,0,0,0.52); }
@@ -359,12 +361,36 @@
     .source-action-note { min-height: 0; max-height: 52px; overflow-y: auto; margin: -2px 2px 10px; color: var(--muted); font-size: 12px; font-weight: 700; line-height: 1.4; text-align: center; }
     .source-action-note:empty { display: none; }
     .source-ok { width: 100%; }
+    .daily-detail-overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; padding: 12px; background: rgba(3,7,14,0.68); backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px); }
+    .daily-detail-modal { width: min(100%, 430px); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); display: flex; flex-direction: column; overflow: hidden; background: linear-gradient(180deg, rgba(15,27,45,0.99), rgba(8,16,29,0.99)); border: 1px solid rgba(184,205,255,0.18); border-radius: 28px 28px 22px 22px; box-shadow: 0 24px 70px rgba(0,0,0,0.52); }
+    .daily-detail-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; padding: 16px 16px 10px; border-bottom: 1px solid rgba(184,205,255,0.10); }
+    .daily-detail-heading { min-width: 0; }
+    .daily-detail-eyebrow { color: var(--muted); font-size: 11px; font-weight: 850; letter-spacing: 0.11em; text-transform: uppercase; margin-bottom: 3px; }
+    .daily-detail-date { font-size: 20px; font-weight: 850; letter-spacing: -0.03em; }
+    .daily-detail-close { width: 38px; min-width: 38px; height: 38px; padding: 0; border-radius: 999px; }
+    .daily-detail-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 14px 16px 18px; }
+    .daily-detail-summary { padding: 14px; border-radius: 20px; background: linear-gradient(145deg, rgba(85,149,230,0.15), rgba(255,255,255,0.045)); border: 1px solid rgba(184,205,255,0.14); }
+    .daily-detail-title { font-size: 19px; line-height: 1.15; font-weight: 850; letter-spacing: -0.025em; }
+    .daily-detail-copy { color: #d2deef; font-size: 14px; line-height: 1.48; font-weight: 650; margin-top: 7px; }
+    .daily-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 11px; }
+    .daily-detail-stat { min-width: 0; padding: 11px 12px; border-radius: 17px; background: rgba(255,255,255,0.05); border: 1px solid rgba(184,205,255,0.11); }
+    .daily-detail-stat-label { color: var(--muted); font-size: 10px; font-weight: 850; letter-spacing: 0.095em; text-transform: uppercase; }
+    .daily-detail-stat-value { color: var(--text); font-size: 14px; line-height: 1.3; font-weight: 800; margin-top: 4px; }
+    .daily-detail-change { margin-top: 11px; padding: 12px 13px; border-radius: 17px; background: rgba(111,190,255,0.08); border: 1px solid rgba(111,190,255,0.16); }
+    .daily-detail-change-label { color: #b9d8ff; font-size: 10px; font-weight: 850; letter-spacing: 0.095em; text-transform: uppercase; margin-bottom: 4px; }
+    .daily-detail-change-copy { color: #dce9f8; font-size: 13px; line-height: 1.42; font-weight: 700; }
+    .daily-detail-meta { display: flex; flex-wrap: wrap; gap: 5px 9px; color: var(--muted); font-size: 11px; line-height: 1.4; font-weight: 700; margin: 12px 2px 0; }
+    body.has-modal { overflow: hidden; }
     @media (max-height: 620px) {
       .source-modal { padding: 12px; border-radius: 20px; }
       .source-copy { font-size: 12px; line-height: 1.35; margin-bottom: 8px; }
       .source-row { padding: 8px 10px; }
       .source-action-note { font-size: 11px; line-height: 1.3; margin-bottom: 7px; }
+      .daily-detail-header { padding: 11px 12px 8px; }
+      .daily-detail-body { padding: 10px 12px 13px; }
+      .daily-detail-summary { padding: 11px 12px; }
     }
+    @media (min-width: 620px) { .daily-detail-overlay { align-items: center; } }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
@@ -541,6 +567,30 @@
     </div>
   </div>
 
+  <div class="daily-detail-overlay hidden" id="dailyDetailOverlay">
+    <div class="daily-detail-modal" role="dialog" aria-modal="true" aria-labelledby="dailyDetailDate">
+      <div class="daily-detail-header">
+        <div class="daily-detail-heading">
+          <div class="daily-detail-eyebrow">Daily outlook</div>
+          <div class="daily-detail-date" id="dailyDetailDate">Forecast details</div>
+        </div>
+        <button class="icon-btn daily-detail-close" id="dailyDetailCloseBtn" type="button" aria-label="Close daily forecast">&times;</button>
+      </div>
+      <div class="daily-detail-body">
+        <div class="daily-detail-summary">
+          <div class="daily-detail-title" id="dailyDetailTitle"></div>
+          <div class="daily-detail-copy" id="dailyDetailCopy"></div>
+        </div>
+        <div class="daily-detail-grid" id="dailyDetailGrid"></div>
+        <div class="daily-detail-change" id="dailyDetailChange">
+          <div class="daily-detail-change-label">Changed since last forecast</div>
+          <div class="daily-detail-change-copy" id="dailyDetailChangeCopy"></div>
+        </div>
+        <div class="daily-detail-meta" id="dailyDetailMeta"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const $ = (id) => document.getElementById(id);
     const els = {
@@ -550,6 +600,7 @@
       rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"),
       locateBtn: $("locateBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink"), longRangeLink: $("longRangeLink"),
       sourceOverlay: $("sourceOverlay"), sourceTitle: $("sourceTitle"), sourceCopy: $("sourceCopy"), sourceRows: $("sourceRows"), sourceCloseBtn: $("sourceCloseBtn"), sourceActionBtn: $("sourceActionBtn"), sourceActionNote: $("sourceActionNote"), sourceOkBtn: $("sourceOkBtn"),
+      dailyDetailOverlay: $("dailyDetailOverlay"), dailyDetailDate: $("dailyDetailDate"), dailyDetailTitle: $("dailyDetailTitle"), dailyDetailCopy: $("dailyDetailCopy"), dailyDetailGrid: $("dailyDetailGrid"), dailyDetailChange: $("dailyDetailChange"), dailyDetailChangeCopy: $("dailyDetailChangeCopy"), dailyDetailMeta: $("dailyDetailMeta"), dailyDetailCloseBtn: $("dailyDetailCloseBtn"),
       onboardingOverlay: $("onboardingOverlay"), startLocateBtn: $("startLocateBtn"), startZipInput: $("startZipInput"), onboardingNote: $("onboardingNote"),
       closeOnboardingBtn: $("closeOnboardingBtn"), searchResultsWrap: $("searchResultsWrap"), searchResults: $("searchResults"), recentWrap: $("recentWrap"), recentList: $("recentList")
     };
@@ -583,6 +634,7 @@
     let narrativeDayOffset = null;
     let latestForecastData = null;
     let latestAlertsData = null;
+    let latestDailyOutlookItems = [];
     let latestHistoryData = null;
     let recapLoadKey = "";
     let recapState = { observedRain: null, pollen: { status: "idle", message: "Pollen loads when this section is viewed." }, rainLoading: false };
@@ -1980,8 +2032,27 @@
         source: data.source || "open-meteo"
       })).filter((item) => item.date && Number.isFinite(item.high) && Number.isFinite(item.low));
     }
+    function precipitationInches(precipitation) {
+      const qpf = precipitation?.qpf || precipitation;
+      const quantity = Number(qpf?.quantity);
+      if (!Number.isFinite(quantity)) return 0;
+      return String(qpf?.unit || "").toUpperCase().includes("MILLIMETER") ? quantity / MM_PER_INCH : quantity;
+    }
+    function googleDayPartDetails(part) {
+      const probability = Number(part?.precipitation?.probability?.percent);
+      return {
+        probability: Number.isFinite(probability) ? probability : 0,
+        amount: precipitationInches(part?.precipitation),
+        condition: part?.weatherCondition?.description?.text || codeToLabel(visualCrossingCode(String(part?.weatherCondition?.type || "").replaceAll("_", " "))),
+        code: visualCrossingCode(String(part?.weatherCondition?.type || "").replaceAll("_", " ")),
+        humidity: Number(part?.relativeHumidity) || 0,
+        thunder: Number(part?.thunderstormProbability) || 0,
+        wind: Number(part?.wind?.speed?.value) || 0,
+        gust: Number(part?.wind?.gust?.value) || 0
+      };
+    }
     function googleDailyCode(day) {
-      const condition = day?.daytimeForecast?.weatherCondition?.type || day?.nighttimeForecast?.weatherCondition?.type || "";
+      const condition = [day?.daytimeForecast?.weatherCondition?.type, day?.nighttimeForecast?.weatherCondition?.type].filter(Boolean).join(" ");
       return visualCrossingCode(String(condition).replaceAll("_", " "));
     }
     async function getGoogleDailyForecast(lat, lon) {
@@ -2004,9 +2075,217 @@
           low: Number(day.minTemperature?.degrees),
           precipProb: Math.max(Number.isFinite(dayProb) ? dayProb : 0, Number.isFinite(nightProb) ? nightProb : 0),
           code: googleDailyCode(day),
-          source: "google"
+          source: "google",
+          dayParts: {
+            daytime: googleDayPartDetails(day.daytimeForecast),
+            nighttime: googleDayPartDetails(day.nighttimeForecast)
+          }
         };
       }).filter((item) => item.date && Number.isFinite(item.high) && Number.isFinite(item.low));
+    }
+    function googleDisplayDateTimeValue(display, fallbackTime) {
+      const year = Number(display?.year);
+      const month = Number(display?.month);
+      const day = Number(display?.day);
+      const hour = Number(display?.hours) || 0;
+      const offsetSeconds = Number.parseInt(String(display?.utcOffset || "0s"), 10) || 0;
+      if (![year, month, day].every(Number.isFinite)) return new Date(fallbackTime || "");
+      return new Date(Date.UTC(year, month - 1, day, hour) - offsetSeconds * 1000);
+    }
+    async function getGoogleHourlyDetailForecast(lat, lon) {
+      const key = weatherApiKey();
+      if (!key) throw new Error("Google Weather API key is not configured");
+      const records = [];
+      let pageToken = "";
+      for (let page = 0; page < 4; page++) {
+        const params = new URLSearchParams({ key, unitsSystem: "IMPERIAL", hours: "96", pageSize: "24" });
+        params.set("location.latitude", String(lat));
+        params.set("location.longitude", String(lon));
+        if (pageToken) params.set("pageToken", pageToken);
+        const res = await fetch("https://weather.googleapis.com/v1/forecast/hours:lookup?" + params.toString());
+        if (!res.ok) throw await providerResponseError(res, "Google Weather hourly forecast");
+        const data = await res.json();
+        (data.forecastHours || []).forEach((hour) => {
+          const display = hour.displayDateTime || {};
+          const date = `${display.year}-${String(display.month).padStart(2, "0")}-${String(display.day).padStart(2, "0")}`;
+          records.push({
+            date,
+            hour: Number(display.hours) || 0,
+            time: googleDisplayDateTimeValue(display, hour.interval?.startTime),
+            temp: Number(hour.temperature?.degrees),
+            feels: Number(hour.feelsLikeTemperature?.degrees ?? hour.temperature?.degrees),
+            humidity: Number(hour.relativeHumidity) || 0,
+            prob: Number(hour.precipitation?.probability?.percent) || 0,
+            amount: precipitationInches(hour.precipitation),
+            code: visualCrossingCode(String(hour.weatherCondition?.type || "").replaceAll("_", " ")),
+            wind: Number(hour.wind?.speed?.value) || 0,
+            gust: Number(hour.wind?.gust?.value) || 0,
+            thunder: Number(hour.thunderstormProbability) || 0
+          });
+        });
+        pageToken = data.nextPageToken || "";
+        if (!pageToken) break;
+      }
+      return records;
+    }
+    function hourlyRecordsForDate(data, date) {
+      const hourly = data?.hourly || {};
+      return (hourly.time || []).map((time, index) => {
+        const text = String(time);
+        const hour = Number(text.slice(11, 13));
+        return {
+          date: text.slice(0, 10),
+          hour: Number.isFinite(hour) ? hour : new Date(time).getHours(),
+          time: new Date(time),
+          temp: Number(hourly.temperature_2m?.[index]),
+          feels: Number(hourly.apparent_temperature?.[index] ?? hourly.temperature_2m?.[index]),
+          humidity: Number(hourly.relative_humidity_2m?.[index]) || 0,
+          prob: Number(hourly.precipitation_probability?.[index]) || 0,
+          amount: Number(hourly.precipitation?.[index]) || 0,
+          code: Number(hourly.weather_code?.[index]) || 0,
+          wind: Number(hourly.wind_speed_10m?.[index]) || 0,
+          gust: Number(hourly.wind_gusts_10m?.[index]) || 0
+        };
+      }).filter((record) => record.date === date && Number.isFinite(record.time.getTime()));
+    }
+    function forecastDayPart(hour) {
+      if (hour < 6) return { label: "overnight", rank: 0 };
+      if (hour < 12) return { label: "morning", rank: 1 };
+      if (hour < 17) return { label: "afternoon", rank: 2 };
+      if (hour < 21) return { label: "evening", rank: 3 };
+      return { label: "late night", rank: 4 };
+    }
+    function forecastHourLabel(hour) {
+      const normalized = ((Number(hour) || 0) + 24) % 24;
+      if (normalized === 0) return "midnight";
+      if (normalized === 12) return "noon";
+      return `${normalized % 12} ${normalized < 12 ? "AM" : "PM"}`;
+    }
+    function forecastWindowLabel(event, offset) {
+      if (!event) return "No meaningful rain window";
+      const startHour = Number(event.start?.hour);
+      const endHour = Number(event.end?.hour);
+      const part = forecastDayPart(startHour);
+      if (offset <= 3) return Number.isFinite(endHour) && endHour !== startHour
+        ? `${forecastHourLabel(startHour)}–${forecastHourLabel(endHour)}`
+        : `Around ${forecastHourLabel(startHour)}`;
+      return `Most likely ${part.label}`;
+    }
+    function normalizedDailyWeatherKind(code) {
+      const kind = dailyWeatherKind(code);
+      if (kind === "storm") return "storms";
+      if (kind === "drizzle") return "rain";
+      if (kind === "partly") return "partly cloudy";
+      return kind;
+    }
+    function dailyWeatherKindFromRecords(records, fallbackCode) {
+      const codes = records.map((record) => record.code);
+      if (codes.some((code) => [95,96,99].includes(code))) return "storms";
+      if (codes.some((code) => [71,73,75,77,85,86].includes(code))) return "snow";
+      if (codes.some((code) => [56,57,66,67].includes(code))) return "ice";
+      if (codes.some((code) => [51,53,55,61,63,65,80,81,82].includes(code))) return "rain";
+      if (codes.some((code) => [45,48].includes(code))) return "fog";
+      if (codes.filter((code) => code === 3).length >= Math.max(2, records.length * 0.45)) return "cloudy";
+      if (codes.some((code) => code === 2 || code === 3)) return "partly cloudy";
+      return normalizedDailyWeatherKind(fallbackCode);
+    }
+    function temperatureWord(high) {
+      if (high >= 92) return "Hot";
+      if (high >= 80) return "Warm";
+      if (high <= 40) return "Cold";
+      if (high <= 57) return "Cool";
+      return "Mild";
+    }
+    function dailySummaryTitle(item, weatherKind, timingLabel) {
+      const temperature = temperatureWord(Number(item.high));
+      if (weatherKind === "storms") return `${temperature} with thunderstorms`;
+      if (weatherKind === "snow") return `${temperature} with snow possible`;
+      if (weatherKind === "ice") return "Icy weather possible";
+      if (weatherKind === "rain") return `${temperature} with ${timingLabel || "periods of rain"}`;
+      if (weatherKind === "fog") return `${temperature} with some fog`;
+      if (weatherKind === "cloudy") return `${temperature} and cloudy`;
+      if (weatherKind === "partly cloudy") return `${temperature} with partial cloud cover`;
+      return `${temperature} with mostly clear skies`;
+    }
+    function dailyDetailFromHourly(records, item, offset, source) {
+      if (!records.length) return null;
+      const ordered = [...records].sort((a, b) => a.hour - b.hour);
+      const event = buildNextPrecipEvent(ordered);
+      const peak = ordered.reduce((best, record) => record.prob > best.prob ? record : best, ordered[0]);
+      const weatherKind = dailyWeatherKindFromRecords(ordered, item.code);
+      const timing = event ? forecastDayPart(event.start.hour) : null;
+      const total = ordered.reduce((sum, record) => sum + record.amount, 0);
+      const maxWind = Math.max(...ordered.map((record) => Math.max(record.wind, record.gust)), 0);
+      const windowLabel = forecastWindowLabel(event, offset);
+      const horizonCopy = offset <= 3
+        ? (event ? `Rain chances are focused from ${windowLabel}, peaking near ${forecastHourLabel(peak.hour)}.` : "No meaningful rain window is showing right now.")
+        : (event ? `Current guidance favors precipitation during the ${timing.label}. Expect the timing to shift as the date gets closer.` : "Current guidance keeps the day mostly dry, though details can still change.");
+      const skyCopy = weatherKind === "rain" || weatherKind === "storms" || weatherKind === "snow" || weatherKind === "ice"
+        ? horizonCopy
+        : `${codeToLabel(item.code)} conditions are favored. ${horizonCopy}`;
+      return {
+        title: dailySummaryTitle(item, weatherKind, event ? `${timing.label} ${weatherKind === "storms" ? "storms" : "showers"}` : ""),
+        copy: `${skyCopy} The forecast high is near ${Math.round(item.high)}° with a low near ${Math.round(item.low)}°.`,
+        rainTiming: windowLabel,
+        peakChance: `${Math.round(Math.max(Number(item.precipProb) || 0, peak.prob || 0))}%${event ? ` near ${offset <= 3 ? forecastHourLabel(peak.hour) : timing.label}` : ""}`,
+        expectedRain: total > 0 ? formatRainAmount(total) : "Little or none",
+        wind: maxWind >= 1 ? `Up to ${Math.round(maxWind)} mph` : "Light",
+        timingLabel: timing?.label || "dry",
+        timingRank: timing?.rank ?? null,
+        peakProb: Math.max(Number(item.precipProb) || 0, peak.prob || 0),
+        rainTotal: total,
+        maxWind,
+        weatherKind,
+        source,
+        guidance: offset <= 3 ? "Detailed timing" : offset <= 7 ? "General timing" : "Broad guidance"
+      };
+    }
+    function dailyDetailFromGoogleParts(item, offset) {
+      const daytime = item.dayParts?.daytime || {};
+      const nighttime = item.dayParts?.nighttime || {};
+      const wetPart = daytime.probability >= nighttime.probability ? { ...daytime, label: "daytime", rank: 2 } : { ...nighttime, label: "overnight", rank: 4 };
+      const peakProb = Math.max(daytime.probability || 0, nighttime.probability || 0, Number(item.precipProb) || 0);
+      const total = (daytime.amount || 0) + (nighttime.amount || 0);
+      const maxWind = Math.max(daytime.wind || 0, daytime.gust || 0, nighttime.wind || 0, nighttime.gust || 0);
+      const weatherKind = Math.max(daytime.thunder || 0, nighttime.thunder || 0) >= 20 ? "storms" : normalizedDailyWeatherKind(item.code);
+      const hasRain = peakProb >= 20 || total >= 0.01 || ["rain","storms","snow","ice"].includes(weatherKind);
+      const timingLabel = hasRain ? wetPart.label : "dry";
+      const dayCondition = daytime.condition || codeToLabel(item.code);
+      const nightCondition = nighttime.condition || dayCondition;
+      const timingCopy = hasRain
+        ? `Google currently favors the ${wetPart.label} for the higher precipitation chance. Timing should become more specific as the day gets closer.`
+        : "Google does not show a meaningful precipitation signal for this day right now.";
+      return {
+        title: dailySummaryTitle(item, weatherKind, hasRain ? `${wetPart.label} ${weatherKind === "storms" ? "storms" : "showers"}` : ""),
+        copy: `${dayCondition} during the day and ${nightCondition.toLowerCase()} overnight. ${timingCopy} High near ${Math.round(item.high)}°, low near ${Math.round(item.low)}°.`,
+        rainTiming: hasRain ? (wetPart.label === "daytime" ? "Daytime (7 AM–7 PM)" : "Overnight") : "No meaningful rain window",
+        peakChance: `${Math.round(peakProb)}%${hasRain ? ` ${wetPart.label}` : ""}`,
+        expectedRain: total > 0 ? formatRainAmount(total) : "Little or none",
+        wind: maxWind >= 1 ? `Up to ${Math.round(maxWind)} mph` : "Light",
+        timingLabel,
+        timingRank: hasRain ? wetPart.rank : null,
+        peakProb,
+        rainTotal: total,
+        maxWind,
+        weatherKind,
+        source: "google",
+        guidance: offset <= 7 ? "General timing" : "Broad guidance"
+      };
+    }
+    function forecastChangeText(item, previous) {
+      const current = item?.detail;
+      const prior = previous?.detail;
+      if (!current || !prior) return "This is the first saved outlook for this day.";
+      if (current.source !== prior.source) return `The detail source changed from ${dailySourceLabel(prior.source)} to ${dailySourceLabel(current.source)}, so some differences may come from the provider change.`;
+      if (current.timingLabel !== "dry" && prior.timingLabel !== "dry" && current.timingLabel !== prior.timingLabel) {
+        return `The favored precipitation timing shifted from ${prior.timingLabel} toward ${current.timingLabel}.`;
+      }
+      const chanceChange = Math.round(current.peakProb - prior.peakProb);
+      if (Math.abs(chanceChange) >= 10) return `The precipitation chance ${chanceChange > 0 ? "increased" : "decreased"} from about ${Math.round(prior.peakProb)}% to ${Math.round(current.peakProb)}%.`;
+      if (current.weatherKind !== prior.weatherKind) return `The overall signal changed from ${prior.weatherKind} toward ${current.weatherKind}.`;
+      const temperatureChange = Math.round(Number(item.high) - Number(previous.high));
+      if (Math.abs(temperatureChange) >= 3) return `The forecast high moved ${temperatureChange > 0 ? "warmer" : "cooler"} from ${Math.round(previous.high)}° to ${Math.round(item.high)}°.`;
+      return "No meaningful change since the previous saved outlook.";
     }
     async function getDailyOutlook(lat, lon, coreForecast) {
       const now = new Date();
@@ -2015,10 +2294,11 @@
       const locationKey = googleRainLocationKey(lat, lon);
       const cached = cache[locationKey];
       const age = now.getTime() - new Date(cached?.updatedAt || 0).getTime();
-      if (cached?.value && cached.localDate === todayKey && age >= 0 && age < DAILY_OUTLOOK_TTL_MS) return cached.value;
+      if (cached?.value && cached.detailVersion === 1 && cached.localDate === todayKey && age >= 0 && age < DAILY_OUTLOOK_TTL_MS) return cached.value;
       const googlePromise = getGoogleDailyForecast(lat, lon).catch((error) => { console.warn(error); return []; });
+      const googleHourlyPromise = googlePromise.then((days) => days.length ? getGoogleHourlyDetailForecast(lat, lon) : []).catch((error) => { console.warn(error); return []; });
       const openMeteoPromise = coreForecast?.source === "open-meteo" ? Promise.resolve(coreForecast) : getOpenMeteoForecast(lat, lon).catch((error) => { console.warn(error); return null; });
-      const [googleDays, openMeteoForecast] = await Promise.all([googlePromise, openMeteoPromise]);
+      const [googleDays, googleHourly, openMeteoForecast] = await Promise.all([googlePromise, googleHourlyPromise, openMeteoPromise]);
       const googleByDate = new Map(googleDays.map((item) => [item.date, item]));
       const visualByDate = new Map((coreForecast?.source === "visual-crossing" ? dailyRecordsFromForecast(coreForecast) : []).map((item) => [item.date, item]));
       const openMeteoByDate = new Map(dailyRecordsFromForecast(openMeteoForecast).map((item) => [item.date, item]));
@@ -2030,10 +2310,28 @@
           : offset <= 14
             ? visualByDate.get(date) || openMeteoByDate.get(date)
             : openMeteoByDate.get(date);
-        value.push(preferred || { date, high: null, low: null, precipProb: null, code: 0, source: "unavailable" });
+        const item = preferred || { date, high: null, low: null, precipProb: null, code: 0, source: "unavailable" };
+        let detail = null;
+        if (item.source === "google") {
+          const googleRecords = googleHourly.filter((record) => record.date === date);
+          detail = offset <= 3 ? dailyDetailFromHourly(googleRecords, item, offset, "google") : null;
+          detail ||= dailyDetailFromGoogleParts(item, offset);
+        } else if (item.source === "visual-crossing") {
+          detail = dailyDetailFromHourly(hourlyRecordsForDate(coreForecast, date), item, offset, "visual-crossing");
+        } else if (item.source === "open-meteo") {
+          detail = dailyDetailFromHourly(hourlyRecordsForDate(openMeteoForecast, date), item, offset, "open-meteo");
+        }
+        if (!detail) {
+          const fallbackData = coreForecast?.source === "visual-crossing" ? coreForecast : openMeteoForecast;
+          detail = dailyDetailFromHourly(hourlyRecordsForDate(fallbackData, date), item, offset, fallbackData?.source || "open-meteo");
+        }
+        const previous = (cached?.value || []).find((record) => record.date === date);
+        const nextItem = { ...item, dayParts: undefined, detail, updatedAt: now.toISOString() };
+        nextItem.change = forecastChangeText(nextItem, previous);
+        value.push(nextItem);
       }
       if (value.some((item) => Number.isFinite(item.high))) {
-        cache[locationKey] = { value, updatedAt: now.toISOString(), localDate: todayKey };
+        cache[locationKey] = { value, updatedAt: now.toISOString(), localDate: todayKey, detailVersion: 1 };
         saveStorageMap(DAILY_OUTLOOK_CACHE_KEY, cache);
         return value;
       }
@@ -2319,7 +2617,50 @@
       if (source === "open-meteo") return "Open-Meteo GFS";
       return "No provider data";
     }
+    let dailyDetailReturnFocus = null;
+    function showDailyDetail(item, trigger) {
+      if (!item || !els.dailyDetailOverlay) return;
+      const date = new Date(`${item.date}T12:00:00`);
+      const detail = item.detail || {
+        title: "Forecast details unavailable",
+        copy: "The daily high, low, and precipitation chance are available, but the supporting timing data was not returned.",
+        rainTiming: "Unavailable", peakChance: Number.isFinite(item.precipProb) ? `${Math.round(item.precipProb)}%` : "Unavailable",
+        expectedRain: "Unavailable", wind: "Unavailable", guidance: "Daily summary", source: item.source
+      };
+      els.dailyDetailDate.textContent = date.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+      els.dailyDetailTitle.textContent = detail.title;
+      els.dailyDetailCopy.textContent = detail.copy;
+      const stats = [
+        ["Temperature", Number.isFinite(item.high) ? `${Math.round(item.high)}° / ${Math.round(item.low)}°` : "Unavailable"],
+        ["Rain timing", detail.rainTiming],
+        ["Highest chance", detail.peakChance],
+        ["Expected rain", detail.expectedRain],
+        ["Wind", detail.wind],
+        ["Forecast detail", detail.guidance]
+      ];
+      els.dailyDetailGrid.innerHTML = stats.map(([label, value]) => `<div class="daily-detail-stat"><div class="daily-detail-stat-label">${escapeHtml(label)}</div><div class="daily-detail-stat-value">${escapeHtml(value || "Unavailable")}</div></div>`).join("");
+      els.dailyDetailChangeCopy.textContent = item.change || "This is the first saved outlook for this day.";
+      els.dailyDetailChange.classList.toggle("hidden", !item.change);
+      const summarySource = dailySourceLabel(item.source);
+      const detailSource = dailySourceLabel(detail.source || item.source);
+      const updated = new Date(item.updatedAt || "");
+      const updatedLabel = Number.isFinite(updated.getTime()) ? updated.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "recently";
+      const sourceText = summarySource === detailSource ? `Source: ${summarySource}` : `Daily: ${summarySource} · Detail: ${detailSource}`;
+      els.dailyDetailMeta.innerHTML = `<span>${escapeHtml(sourceText)}</span><span>Updated ${escapeHtml(updatedLabel)}</span>`;
+      dailyDetailReturnFocus = trigger || document.activeElement;
+      els.dailyDetailOverlay.classList.remove("hidden");
+      document.body.classList.add("has-modal");
+      els.dailyDetailCloseBtn.focus();
+    }
+    function hideDailyDetail() {
+      if (!els.dailyDetailOverlay || els.dailyDetailOverlay.classList.contains("hidden")) return;
+      els.dailyDetailOverlay.classList.add("hidden");
+      document.body.classList.remove("has-modal");
+      dailyDetailReturnFocus?.focus?.();
+      dailyDetailReturnFocus = null;
+    }
     function renderDailyOutlook(items) {
+      latestDailyOutlookItems = Array.isArray(items) ? items : [];
       els.dailyStrip.innerHTML = items.map((item, index) => {
         const date = new Date(`${item.date}T12:00:00`);
         const dayName = index === 0
@@ -2334,7 +2675,7 @@
         const temperatureColor = dailyTemperatureRgb(Number.isFinite(item.high) ? item.high : 60).join(",");
         const animation = hasTemperatures ? `<canvas class="daily-weather-canvas" data-weather="${weather}" aria-hidden="true"></canvas>` : "";
         const accessibleLabel = `${dayName}: ${codeToLabel(Number(item.code) || 0)}, ${highLow}, ${rain} chance of rain`;
-        return `<div class="day-card" style="--temp-rgb:${temperatureColor}" aria-label="${escapeHtml(accessibleLabel)}">${animation}<div class="day-name">${dayName}</div><div class="day-icon">${dailyOutlookGlyph(weather)}</div><div class="day-temp">${highLow}</div><div class="day-rain">${rain}</div></div>`;
+        return `<button class="day-card" type="button" data-daily-index="${index}" style="--temp-rgb:${temperatureColor}" aria-label="${escapeHtml(accessibleLabel)}. Open forecast details.">${animation}<span class="day-name">${dayName}</span><span class="day-icon">${dailyOutlookGlyph(weather)}</span><span class="day-temp">${highLow}</span><span class="day-rain">${rain}</span></button>`;
       }).join("");
       initDailyOutlookAnimations();
     }
@@ -2764,6 +3105,8 @@
           recapLoadKey = "";
           recapState = { observedRain: null, pollen: { status: "idle", message: "Pollen loads when this section is viewed." }, rainLoading: false };
           latestHistoryData = null;
+          latestDailyOutlookItems = [];
+          hideDailyDetail();
           stopDailyOutlookAnimations(); els.dailyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="day-card"><div class="day-name">---</div><div class="day-icon">${glyph(1, true, 26)}</div><div class="day-temp">--/--</div><div class="day-rain">--%</div></div>`).join("");
         }
         activeLocation = location;
@@ -2897,11 +3240,13 @@
         e.preventDefault();
       }
     }, { passive: false });
-    let isDown = false, startX = 0, startScroll = 0;
+    let isDown = false, dailyMoved = false, suppressDailyClick = false, pressedDailyCard = null, startX = 0, startScroll = 0;
     els.dailyStrip.addEventListener("dragstart", (e) => e.preventDefault());
     els.dailyStrip.addEventListener("pointerdown", (e) => {
       if (e.pointerType !== "mouse") return;
       isDown = true;
+      dailyMoved = false;
+      pressedDailyCard = e.target.closest("[data-daily-index]");
       startX = e.clientX;
       startScroll = els.dailyStrip.scrollLeft;
       els.dailyStrip.setPointerCapture(e.pointerId);
@@ -2909,13 +3254,34 @@
     });
     els.dailyStrip.addEventListener("pointermove", (e) => {
       if (!isDown) return;
-      els.dailyStrip.scrollLeft = startScroll - (e.clientX - startX);
+      const distance = e.clientX - startX;
+      if (Math.abs(distance) > 6) dailyMoved = true;
+      els.dailyStrip.scrollLeft = startScroll - distance;
       e.preventDefault();
     });
-    const stopDragging = () => { isDown = false; };
-    els.dailyStrip.addEventListener("pointerup", stopDragging);
-    els.dailyStrip.addEventListener("pointercancel", stopDragging);
-    els.dailyStrip.addEventListener("lostpointercapture", stopDragging);
+    const stopDragging = (cancelled = false) => {
+      if (!isDown) return;
+      const card = pressedDailyCard;
+      const moved = dailyMoved;
+      isDown = false;
+      pressedDailyCard = null;
+      suppressDailyClick = true;
+      if (!cancelled && !moved && card) {
+        const item = latestDailyOutlookItems[Number(card.dataset.dailyIndex)];
+        if (item) showDailyDetail(item, card);
+      }
+      setTimeout(() => { suppressDailyClick = false; }, 0);
+    };
+    els.dailyStrip.addEventListener("pointerup", () => stopDragging(false));
+    els.dailyStrip.addEventListener("pointercancel", () => stopDragging(true));
+    els.dailyStrip.addEventListener("lostpointercapture", () => stopDragging(true));
+    els.dailyStrip.addEventListener("click", (e) => {
+      const card = e.target.closest("[data-daily-index]");
+      if (!card) return;
+      if (suppressDailyClick) { e.preventDefault(); return; }
+      const item = latestDailyOutlookItems[Number(card.dataset.dailyIndex)];
+      if (item) showDailyDetail(item, card);
+    });
     document.addEventListener("click", (e) => {
       const target = e.target.closest("[data-source-key]");
       if (!target) return;
@@ -2924,7 +3290,7 @@
       if (detail) showSourceDetail(detail);
     });
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") hideSourceDetail();
+      if (e.key === "Escape") { hideSourceDetail(); hideDailyDetail(); }
       if (e.key !== "Enter" && e.key !== " ") return;
       const target = e.target.closest?.("[data-source-key]");
       if (!target) return;
@@ -2960,6 +3326,8 @@
     els.sourceCloseBtn.addEventListener("click", hideSourceDetail);
     els.sourceOkBtn.addEventListener("click", hideSourceDetail);
     els.sourceOverlay.addEventListener("click", (e) => { if (e.target === els.sourceOverlay) hideSourceDetail(); });
+    els.dailyDetailCloseBtn.addEventListener("click", hideDailyDetail);
+    els.dailyDetailOverlay.addEventListener("click", (e) => { if (e.target === els.dailyDetailOverlay) hideDailyDetail(); });
     const outlookScroll = document.querySelector('.outlook-scroll');
     if (outlookScroll) {
       outlookScroll.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { outlookScroll.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });

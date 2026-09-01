@@ -9,6 +9,9 @@
 - Fixed tomorrow/midnight wording: rain or storms at `12 AM` are treated as continuing from the prior day, with taper/stop timing when available.
 - Added HTML escaping for source-detail rows and today-option rendering.
 - Replaced the Next 12 Hours strip with a compact 15-day daily outlook beginning tomorrow.
+- Daily outlook tiles are now buttons that open a scrollable, mobile-safe forecast detail sheet with a plain-English summary, precipitation timing, amount, wind, and forecast source.
+- Daily detail language becomes intentionally less precise with distance: exact windows for days 1-3, general dayparts for the middle range, and broad guidance for the longest range.
+- Each six-hour daily-outlook refresh compares with the prior saved snapshot and reports meaningful timing, precipitation-chance, condition, source, or high-temperature changes.
 - Removed the temporary Google/Visual Crossing rain comparison panel.
 
 ## Current Architecture
@@ -31,6 +34,9 @@
 - Current conditions and the detailed 10-day graph share one forecast response cached for 30 minutes.
 - The top Refresh button refreshes that core forecast, with a two-minute guard against repeated network requests; it does not invalidate the daily-outlook cache.
 - The 15-day daily outlook is cached for six hours and is invalidated when the local calendar day changes.
+- Opening a daily detail sheet never makes a network request; it reads compact detail already stored with the daily-outlook cache.
+- Google hourly detail is limited to the first 96 forecast hours (four 24-record pages) and is used only for days 1-3. Google day/night summaries cover later Google days. Visual Crossing and Open-Meteo detail reuses their already-downloaded hourly data.
+- Forecast-change snapshots are stored only for the five recent locations and rotate with the normal daily-outlook cache; no long-term forecast history is accumulated.
 - Quick recap data—rain history, freeze/history, and pollen—is lazy-loaded only when the user approaches that section.
 - Google rainfall history is refreshed at most every 12 hours and retains eight days of hourly records on that browser so 3-day and 7-day rolling totals can build over time.
 - Visual Crossing rain is stored as individual UTC-hour records for eight days. Google always wins for an hour where both providers have data.
