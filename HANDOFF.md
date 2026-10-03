@@ -1,6 +1,8 @@
 # Weather App Handoff
 
 ## What changed
+- Rain recap now automatically fills saved-history gaps only when actually visible, with a six-hour collection cooldown per location, shared request locking, and a daily record allowance. The manual rainfall fill button was removed.
+- The detailed 10-day chart keeps weekday labels in their original position and adds the day-of-month beneath the fourth visible daytime label onward; the first three remain weekday-only.
 - Added a richer `Today` hero section in `index.html`.
 - The hero narrative is forecast-led: it describes rain/storm timing rather than repeating official alert text.
 - Active NWS alerts now appear as formatted items below the hero narrative, prioritized by severity.
@@ -26,7 +28,7 @@
   - Open-Meteo GFS fallback for forecast.
 - Main-page active alerts use the National Weather Service active alerts API by point.
 - Radar page also has NWS alert overlays, implemented separately.
-- Recent rain recap prefers saved Google Weather data hour by hour. Visual Crossing automatically fills only missing 24-hour records; 3-day and 7-day gaps require an explicit user action from the rain detail card.
+- Recent rain recap combines saved hourly Google and Visual Crossing records, always preferring Google for overlapping hours. One automatic gap fill supplies the 24-hour, 3-day, and 7-day windows together.
 - Daily outlook source order is Google for days 1-9, Visual Crossing for days 10-14, and Open-Meteo for day 15, with per-day fallback where available.
 
 ## Cache and Provider Policy
@@ -37,12 +39,15 @@
 - Opening a daily detail sheet never makes a network request; it reads compact detail already stored with the daily-outlook cache.
 - Google hourly detail is limited to the first 96 forecast hours (four 24-record pages) and is used only for days 1-3. Google day/night summaries cover later Google days. Visual Crossing and Open-Meteo detail reuses their already-downloaded hourly data.
 - Forecast-change snapshots are stored only for the five recent locations and rotate with the normal daily-outlook cache; no long-term forecast history is accumulated.
-- Quick recap data—rain history, freeze/history, and pollen—is lazy-loaded only when the user approaches that section.
-- Google rainfall history is refreshed at most every 12 hours and retains eight days of hourly records on that browser so 3-day and 7-day rolling totals can build over time.
-- Visual Crossing rain is stored as individual UTC-hour records for eight days. Google always wins for an hour where both providers have data.
-- Missing Visual Crossing hours are grouped into exact contiguous ranges. A later 7-day request reuses records downloaded for a prior 3-day request and asks only for remaining gaps.
-- The app never automatically downloads 3-day or 7-day Visual Crossing rain history. Their detail cards show provider coverage, estimated record cost, and a manual gap-fill button when needed.
-- Automatic 24-hour gap fill and manual longer-period fills share a conservative 250-record daily browser safety limit, tracked from Visual Crossing's returned `queryCost`. This is a per-browser guard, not an account-wide quota.
+- Quick recap data—rain history, freeze/history, and pollen—loads only when the section intersects the viewport; there is no preloading margin or scheduled background collection.
+- Rain collection has a persistent six-hour cooldown per location, including failed attempts. Repeated refreshes, revisits, and reloads reuse the saved result, with its "Totals through" timestamp in the popup.
+- Google requests only the recent missing span (up to the endpoint's 24-hour limit). Existing Google hours are kept rather than deliberately refreshed. Google cannot recover gaps older than 24 hours.
+- Raw Google and Visual Crossing rainfall records are pruned to the last seven days when collection is accessed. Only completed UTC hours count; totals require all 24, 72, or 168 hours and never treat gaps as zero.
+- Visual Crossing fills contiguous missing ranges automatically, selecting the longest affordable window and otherwise prioritizing shorter totals. No more than three Visual Crossing requests are made in a collection. All valid returned completed-hour records are saved, even if the provider returns a wider range, to avoid downloading them again.
+- The shared 250-record daily browser allowance reserves a conservative whole-day cost before each Visual Crossing request and reconciles it with the actual returned `queryCost`. Failed requests retain their reservation to prevent free retries. This guards rainfall downloads on one browser, not the provider account or other devices/forecast requests.
+- Pending collections are shared per location and serialized across locations. Web Locks additionally serialize tabs where supported; other browsers still get same-page serialization and the persistent cooldown.
+- Rain popups identify Google/Visual Crossing coverage, the as-of time, provider errors, and why automatic filling paused. There is no manual download action or allowance override.
+- Location selection now lets `loadWeather()` detect the change before replacing the active location; late supplemental responses cannot mutate the new location's recap.
 - Pollen responses, including valid no-index/no-forecast responses, are cached for 24 hours.
 - NWS alerts are intentionally not persistently cached.
 - These caches live in browser `localStorage`; clearing site data or using another browser/device starts a separate history.
@@ -51,7 +56,7 @@
 - Main page and radar page duplicate some NWS alert logic; they could drift over time.
 - Weather alert cards show active alerts for today only; tomorrow view remains forecast-only.
 - Alert cards are concise and do not show the full NWS headline unless it is used as fallback text.
-- No automated browser/UI regression test exists.
+- No automated browser/UI regression test exists; offline rainfall integration checks are available with `node tests/rain-history.cjs` from the repo folder (fake responses only, no quota usage).
 - No bundled build step or package manager; validation is mostly syntax checks and manual browser testing.
 - GitHub publishing should avoid local `git push` unless explicitly requested by the user.
 
