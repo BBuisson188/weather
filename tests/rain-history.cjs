@@ -6,14 +6,14 @@ const vm = require('node:vm');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 for (const [, script] of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) new vm.Script(script);
 const names = ['loadStorageMap', 'saveStorageMap', 'loadGoogleRainCache', 'saveGoogleRainCache',
-  'googleRainLocationKey', 'fetchRainData', 'rollingRainTotals', 'getGoogleObservedRain',
+  'googleRainLocationKey', 'fetchWeatherData', 'fetchRainData', 'rollingRainTotals', 'getGoogleObservedRain',
   'loadVisualCrossingRainCache', 'saveVisualCrossingRainCache', 'rainHourEpoch', 'rainWindowSpec',
   'expectedRainHourEpochs', 'normalizedGoogleRainRecords', 'cachedGoogleRainRecords',
   'cachedVisualCrossingRainRecords', 'combinedRainCoverage', 'visualCrossingRainBudget',
   'addVisualCrossingRainCost', 'groupRainHourGaps', 'saveVisualCrossingRainRecords',
-  'requestVisualCrossingRainRange', 'estimateRainRangeCost', 'fillVisualCrossingRainGaps',
-  'pruneRainHistory', 'getObservedRain', 'collectObservedRain', 'summarizeSavedRain',
-  'loadSupplementalIfNear', 'loadSupplementalData', 'activeLocationMatches', 'inchesFromQuantity'];
+  'requestVisualCrossingRainRange', 'estimateRainRangeCost', 'planRainGapRequests', 'fillVisualCrossingRainGaps',
+  'pruneRainHistory', 'rainCollectionDecision', 'getObservedRain', 'collectObservedRain', 'summarizeSavedRain',
+  'addRainGapDetails', 'loadRainRecap', 'loadSupplementalIfNear', 'loadSupplementalData', 'activeLocationMatches', 'inchesFromQuantity'];
 function extract(name) {
   const pattern = new RegExp('^    (?:async )?function ' + name + '\\(', 'm');
   const start = html.search(pattern);
@@ -38,11 +38,12 @@ function environment(storage = new Map()) {
     localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) },
     GOOGLE_RAIN_CACHE_KEY: 'google', VISUAL_CROSSING_RAIN_CACHE_KEY: 'visual',
     VISUAL_CROSSING_RAIN_BUDGET_KEY: 'budget', RAIN_COLLECTION_CACHE_KEY: 'collection',
-    RAIN_COLLECTION_TTL_MS: 6 * HOUR, RAIN_MAX_AUTOMATIC_REQUESTS: 3,
+    RAIN_RETRY_COOLDOWN_MS: 40 * 60000, MANUAL_REFRESH_GUARD_MS: 2 * 60000, RAIN_MAX_AUTOMATIC_REQUESTS: 3,
     VISUAL_CROSSING_RAIN_DAILY_RECORD_LIMIT: 250, CACHE_LOCATION_LIMIT: 5,
     VISUAL_CROSSING_API_KEY: 'fake', MM_PER_INCH: 25.4, rainCollectionRequests: new Map(),
     rainCollectionQueue: Promise.resolve(), weatherApiKey: () => 'fake',
     providerResponseError: async (_, label) => new Error(label + ' unavailable'),
+    sourceRow: (label, value) => ({ label, value }),
     activeLocation: { lat: 33.8, lon: -84.4 }, locationViewSequence: 0, recapLoadKey: '', recapState: {}, latestHistoryData: null,
     document: { hidden: false }, window: { innerHeight: 800 },
     els: { quickRecapSection: { getBoundingClientRect: () => state.rect } },
@@ -84,10 +85,11 @@ async function main() {
   assert.equal(result.rain7dMissingHours, 0);
   assert.equal(first.context.visualCrossingRainBudget().used, 144, 'actual cost replaces reservation');
   assert.equal(result.rainAsOf, '2026-10-02T16:00:00.000Z', 'only completed hours');
+  const initialStorage = new Map(first.storage);
   const reload = environment(first.storage);
-  reload.state.now += 3 * HOUR;
+  reload.state.now += 20 * 60000;
   const saved = await reload.context.getObservedRain(33.8, -84.4);
-  assert.equal(reload.state.calls.length, 0, 'reload within cooldown never downloads');
+  assert.equal(reload.state.calls.length, 0, 'same completed hour never downloads');
   near(saved.rain7d, result.rain7d); assert.equal(saved.rainAsOf, result.rainAsOf);
   reload.state.now = initial + 6 * HOUR;
   const updated = await reload.context.getObservedRain(33.8, -84.4);
@@ -106,10 +108,42 @@ async function main() {
 
   const failure = environment(); failure.state.googleFail = true; failure.state.visualFail = true;
   await failure.context.getObservedRain(33.8, -84.4);
-  const failedReload = environment(failure.storage); failedReload.state.now += HOUR;
+  const failedReload = environment(failure.storage); failedReload.state.now += 30 * 60000;
   await failedReload.context.getObservedRain(33.8, -84.4);
   assert.equal(failedReload.state.calls.length, 0, 'failed providers do not retry on reload');
   assert(failure.context.visualCrossingRainBudget().used > 0, 'failed request reservation remains protective');
+  const retry = environment(failure.storage); retry.state.now += 41 * 60000;
+  await retry.context.getObservedRain(33.8, -84.4);
+  assert(retry.state.calls.length > 0, 'incomplete results retry after 40 minutes, not six hours');
+  const manual = environment(); manual.state.googleFail = true; manual.state.visualFail = true;
+  await manual.context.getObservedRain(33.8, -84.4);
+  const beforeManual = manual.state.calls.length;
+  await manual.context.getObservedRain(33.8, -84.4, true);
+  assert.equal(manual.state.calls.length, beforeManual, 'rapid manual taps cannot launch another request');
+  manual.state.now += 3 * 60000; manual.state.googleFail = false; manual.state.visualFail = false;
+  const manuallyUpdated = await manual.context.getObservedRain(33.8, -84.4, true);
+  assert(manual.state.calls.length > beforeManual, 'manual retry bypasses 40-minute wait after two-minute guard');
+  near(manuallyUpdated.rain24, 0.24);
+  assert(manual.context.visualCrossingRainBudget().used <= 250, 'manual retry retains budget protection');
+
+  const hourly = environment(new Map(initialStorage)); hourly.state.now = initial + HOUR;
+  const hourlyResult = await hourly.context.getObservedRain(33.8, -84.4);
+  assert.equal(hourly.state.calls.length, 1, 'complete collection updates after one new completed hour');
+  assert.equal(hourly.state.calls[0].searchParams.get('hours'), '1', 'only newest missing Google span is requested');
+  assert.equal(hourlyResult.rain7dStale, undefined);
+  const savedFailure = environment(new Map(initialStorage)); savedFailure.state.now = initial + HOUR;
+  savedFailure.state.googleFail = true; savedFailure.state.visualFail = true;
+  const savedFailureResult = await savedFailure.context.getObservedRain(33.8, -84.4);
+  near(savedFailureResult.rain7d, result.rain7d);
+  assert.equal(savedFailureResult.rain7dStale, true, 'failed refresh preserves last complete total and marks it saved');
+  assert.equal(savedFailureResult.rain7dAsOf, result.rainAsOf);
+  assert.equal(savedFailureResult.rain7dMissingHours, 1, 'latest missing hour remains visible, not treated as zero');
+  const staleDetail = savedFailure.context.addRainGapDetails({ rows: [] }, savedFailureResult, 'rain7d', 168);
+  assert.equal(staleDetail.action.label, 'Retry missing hours');
+  assert.match(staleDetail.copy, /last complete saved total/);
+  assert(staleDetail.rows.some(row => row.label === 'Latest window' && /1 hours/.test(row.value)));
+  const completeDetail = first.context.addRainGapDetails({ rows: [] }, result, 'rain7d', 168);
+  assert.equal(completeDetail.action, null, 'complete data does not offer unnecessary downloads');
 
   const overlap = environment();
   const epochs = overlap.context.expectedRainHourEpochs(24);
@@ -124,10 +158,16 @@ async function main() {
   const missing = new Set([seven[0], seven[25], seven[50], seven[75]]);
   fragmented.context.saveVisualCrossingRainRecords(33.8, -84.4, seven.filter(epoch => !missing.has(epoch)).map(epoch => ({ epoch, precip: 0.02 })));
   const fragmentedResult = await fragmented.context.getObservedRain(33.8, -84.4);
-  assert.equal(fragmented.state.calls.filter(url => url.hostname !== 'weather.googleapis.com').length, 3, 'fragmented gaps have a per-collection request cap');
-  assert.equal(fragmentedResult.rain7dMissingHours, 1);
-  assert.equal(fragmentedResult.rain7d, null);
-  assert.match(fragmentedResult.rainCollectionNote, /next collection/);
+  assert.equal(fragmented.state.calls.filter(url => url.hostname !== 'weather.googleapis.com').length, 1, 'nearby fragmented gaps share a cheaper range');
+  assert.equal(fragmentedResult.rain7dMissingHours, 0);
+  assert(Number.isFinite(fragmentedResult.rain7d));
+  const twoGaps = fragmented.context.planRainGapRequests([seven[5], seven[15]]);
+  assert.equal(twoGaps.ranges.length, 1, 'two gaps within a day share one request');
+  assert.equal(twoGaps.cost, 48, 'shared conservative cost is less than separate 48-record reservations');
+  const exhausted = environment(); exhausted.context.addVisualCrossingRainCost(250);
+  const exhaustedResult = await exhausted.context.getObservedRain(33.8, -84.4, true);
+  assert.equal(exhausted.state.calls.length, 1, 'manual retry cannot override exhausted Visual Crossing allowance');
+  assert.equal(exhaustedResult.rain7d, null);
 
   const shared = environment();
   const otherTab = environment(shared.storage);
@@ -167,6 +207,6 @@ async function main() {
   await Promise.resolve();
   assert.equal(switched.context.recapState.marker, 'new location', 'late old-location responses cannot change new-location recap');
 
-  console.log('Rain history checks passed: merged totals, Google priority, visibility, cooldown/reload, duplicate requests, gap reuse, retention, incomplete data, failures, and usage budget. No real API requests.');
+  console.log('Rain history checks passed: hourly success refresh, 40-minute incomplete retry, guarded manual retry, saved totals after failures, cheapest estimated gap grouping, Google priority, visibility, locking, retention, and daily allowance. No real API requests.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

@@ -1,0 +1,3 @@
+#!/bin/sh
+# Local repository hook: fail the push if any offline regression check fails.
+node scripts/check.cjs

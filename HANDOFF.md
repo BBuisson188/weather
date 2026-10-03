@@ -6,7 +6,7 @@
 - Hero titles own the weather condition and daypart. Supporting explanations add precipitation amount, precise clock time, easing time, temperatures, or practical impact rather than restating the title. This applies to Today, Tomorrow, and Next; forecast selection and API/cache behavior are unchanged.
 - Today/Tomorrow/Next hero text names the daypart before the clock time: "early Sunday morning, around midnight" versus "late Sunday night." Rain, storm, snow/ice, fog, wind, heat/cold, and supporting hazard-card wording follow this convention.
 - Midnight precipitation is described as continuing from the previous night only when the preceding forecast hour is wet; continuing storms also require storms in that preceding hour.
-- Rain recap now automatically fills saved-history gaps only when actually visible, with a six-hour collection cooldown per location, shared request locking, and a daily record allowance. The manual rainfall fill button was removed.
+- Rain recap fills saved-history gaps only when actually visible, with hourly-completeness checks, a 40-minute incomplete/failure cooldown, shared request locking, and a daily record allowance. Missing/stale totals offer a guarded "Retry missing hours" action using the same efficient collector, not the old full-history download path.
 - The detailed 10-day chart keeps weekday labels in their original position and adds the day-of-month beneath the fourth visible daytime label onward; the first three remain weekday-only.
 - Added a richer `Today` hero section in `index.html`.
 - The hero narrative is forecast-led: it describes rain/storm timing rather than repeating official alert text.
@@ -49,19 +49,23 @@
 - Google hourly detail is limited to the first 96 forecast hours (four 24-record pages) and is used only for days 1-3. Google day/night summaries cover later Google days. Visual Crossing and Open-Meteo detail reuses their already-downloaded hourly data.
 - Forecast-change snapshots are stored only for the five recent locations and rotate with the normal daily-outlook cache; no long-term forecast history is accumulated.
 - Quick recap data—rain history, freeze/history, and pollen—loads only when the section intersects the viewport; there is no preloading margin or scheduled background collection.
-- Rain collection has a persistent six-hour cooldown per location, including failed attempts. Repeated refreshes, revisits, and reloads reuse the saved result, with its "Totals through" timestamp in the popup.
+- Rain collection reuses a complete snapshot until a new completed UTC hour exists. Incomplete/failed/pending attempts wait 40 minutes before an automatic retry. Manual retries can bypass that wait after the two-minute repeated-tap guard, but never override the daily allowance. Checks require a visible recap plus a visit/scroll/visibility event; no scheduled or background requests.
+- Saved complete totals survive incomplete updates for up to seven days, with a "Saved" label on the tile, per-total as-of time, and the latest missing-hour count in the popup. Newly missing provider hours do not move the collection window backwards or count as zero.
 - Google requests only the recent missing span (up to the endpoint's 24-hour limit). Existing Google hours are kept rather than deliberately refreshed. Google cannot recover gaps older than 24 hours.
 - Raw Google and Visual Crossing rainfall records are pruned to the last seven days when collection is accessed. Only completed UTC hours count; totals require all 24, 72, or 168 hours and never treat gaps as zero.
-- Visual Crossing fills contiguous missing ranges automatically, selecting the longest affordable window and otherwise prioritizing shorter totals. No more than three Visual Crossing requests are made in a collection. All valid returned completed-hour records are saved, even if the provider returns a wider range, to avoid downloading them again.
+- Visual Crossing uses a dynamic-programming gap planner to minimize the conservative estimated record cost of at most three ranges (ties favor fewer requests). Nearby gaps may share a range if cheaper than separate day-expanded responses. The longest affordable total is selected, otherwise shorter totals are prioritized. Each range rechecks saved coverage before download, so wider provider responses can eliminate subsequent requests. Actual `queryCost` still reconciles the reservation; this is cost-aware planning, not a guarantee of exact provider cost.
 - The shared 250-record daily browser allowance reserves a conservative whole-day cost before each Visual Crossing request and reconciles it with the actual returned `queryCost`. Failed requests retain their reservation to prevent free retries. This guards rainfall downloads on one browser, not the provider account or other devices/forecast requests.
 - Pending collections are shared per location and serialized across locations. Web Locks additionally serialize tabs where supported; other browsers still get same-page serialization and the persistent cooldown.
-- Rain popups identify Google/Visual Crossing coverage, the as-of time, provider errors, and why automatic filling paused. There is no manual download action or allowance override.
+- Rain popups identify Google/Visual Crossing coverage, the as-of time, provider errors, and why filling paused. "Retry missing hours" appears only for missing or stale totals; there is no allowance override. The top Refresh button remains core-only.
 - Location selection now lets `loadWeather()` detect the change before replacing the active location; late supplemental responses cannot mutate the new location's recap.
 - Pollen responses, including valid no-index/no-forecast responses, are cached for 24 hours.
 - NWS alerts are intentionally not persistently cached.
 - These caches live in browser `localStorage`; clearing site data or using another browser/device starts a separate history.
 
 ## Testing and Publishing Workflow (User Preference)
+- Run `node scripts/check.cjs` for all page-script syntax checks, manifest parsing, whitespace checks, and all offline test suites. The local `.githooks/pre-push` runs it automatically and blocks a failed push. On another checkout, enable it with `git config --local core.hooksPath .githooks`; this repository-local setup is not shared automatically by Git.
+- All main-page provider and location lookup requests use `fetchWeatherData`: a 20-second limit covers both connection and response-body download, aborts stalled requests, and preserves provider diagnostics. Existing fallback/cache behavior handles failures; no automatic retry loop is added. Radar/ocean/long-range request plumbing is unchanged.
+- Removed the obsolete standalone Visual Crossing history-cache writer. Source-popup action plumbing is retained because the new guarded rainfall retry now uses it.
 - Beau tests Google API behavior on the live GitHub Pages site; local Google API testing is not useful for his setup.
 - When implementing requested changes that affect Google API requests or depend on Google data to verify, perform offline checks (syntax checks and mocked tests), then commit and push directly to GitHub `main` for live testing. This is standing user authorization for that workflow; do not stop to request another publishing confirmation.
 - Do not make live Google API calls locally just to test a change. Keep checks quota-free whenever possible.
@@ -97,5 +101,6 @@
 - Offline hero wording checks: `node tests/hero-wording.cjs`. No live provider requests are made.
 - Offline location/cache checks: `node tests/location-cache.cjs`. Covers immediate/stale cache display, A/B/A switches, late failures, concurrent cache writes, request sharing, five-location eviction, and core-only refresh; no live provider requests.
 - Offline popup/animation checks: `node tests/iphone-ui.cjs`. No live provider requests; actual iPhone Safari/keyboard behavior still needs user verification.
+- Offline provider-timeout checks: `node tests/provider-timeout.cjs` covers connection and response-body stalls, abort/cleanup, and error-response preservation.
 - Thunderstorm detection comes from normalized weather codes `95`, `96`, and `99`.
 - Keep edits targeted; this is a single-file app with tightly coupled UI/data logic.

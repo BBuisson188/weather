@@ -624,7 +624,7 @@
     const VISUAL_CROSSING_RAIN_CACHE_KEY = "weather-visual-crossing-rain-v1";
     const VISUAL_CROSSING_RAIN_BUDGET_KEY = "weather-visual-crossing-rain-budget-v1";
     const RAIN_COLLECTION_CACHE_KEY = "weather-rain-collection-v1";
-    const RAIN_COLLECTION_TTL_MS = 6 * 60 * 60 * 1000;
+    const RAIN_RETRY_COOLDOWN_MS = 40 * 60 * 1000;
     const RAIN_MAX_AUTOMATIC_REQUESTS = 3;
     const rainCollectionRequests = new Map();
     let rainCollectionQueue = Promise.resolve();
@@ -855,7 +855,7 @@
       }
     }
     async function getLocationNameFromZip(zip) {
-      const res = await fetch(`https://api.zippopotam.us/us/${zip}`); if (!res.ok) throw new Error("ZIP lookup failed");
+      const res = await fetchWeatherData(`https://api.zippopotam.us/us/${zip}`); if (!res.ok) throw new Error("ZIP lookup failed");
       const data = await res.json(); const place = data.places?.[0]; if (!place) throw new Error("ZIP not found");
       return { lat: Number(place.latitude), lon: Number(place.longitude), label: `${place['place name']}, ${place['state abbreviation']}`, detail: `ZIP ${zip}`, source: "zip", zip };
     }
@@ -872,7 +872,7 @@
     }
     async function searchOpenMeteoLocations(query) {
       const params = new URLSearchParams({ name: query, count: "8", language: "en", format: "json" });
-      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params.toString()}`);
+      const res = await fetchWeatherData(`https://geocoding-api.open-meteo.com/v1/search?${params.toString()}`);
       if (!res.ok) throw new Error("Open-Meteo search failed");
       const data = await res.json();
       return (data.results || []).map((item) => ({
@@ -888,7 +888,7 @@
     }
     async function searchNominatimLocations(query) {
       const params = new URLSearchParams({ q: query, format: "jsonv2", addressdetails: "1", limit: "8" });
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, { headers: { "Accept": "application/json" } });
+      const res = await fetchWeatherData(`https://nominatim.openstreetmap.org/search?${params.toString()}`, { headers: { "Accept": "application/json" } });
       if (!res.ok) throw new Error("Nominatim search failed");
       const data = await res.json();
       return data.map((item) => {
@@ -923,7 +923,7 @@
       try {
         const url = new URL("https://nominatim.openstreetmap.org/reverse");
         url.search = new URLSearchParams({ lat: String(lat), lon: String(lon), format: "jsonv2", zoom: "10", addressdetails: "1" }).toString();
-        const res = await fetch(url.toString(), { headers: { "Accept": "application/json" } }); if (!res.ok) throw new Error("Reverse geocoding failed");
+        const res = await fetchWeatherData(url.toString(), { headers: { "Accept": "application/json" } }); if (!res.ok) throw new Error("Reverse geocoding failed");
         const data = await res.json(); const addr = data.address || {}; const city = addr.city || addr.town || addr.village || addr.hamlet || addr.county; const state = addr.state || addr.region || "";
         if (city && state) return `${city}, ${state}`; if (city) return city;
       } catch (error) { console.warn(error); }
@@ -939,7 +939,7 @@
         daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,daylight_duration",
         forecast_days: "16"
       });
-      const res = await fetch(`https://api.open-meteo.com/v1/gfs?${params.toString()}`);
+      const res = await fetchWeatherData(`https://api.open-meteo.com/v1/gfs?${params.toString()}`);
       if (!res.ok) throw new Error("Open-Meteo forecast unavailable");
       const data = await res.json();
       data.source = "open-meteo";
@@ -1041,7 +1041,7 @@
         key: VISUAL_CROSSING_API_KEY,
         contentType: "json"
       });
-      const res = await fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(location)}?${params.toString()}`);
+      const res = await fetchWeatherData(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(location)}?${params.toString()}`);
       if (!res.ok) throw new Error("Visual Crossing forecast unavailable");
       return normalizeVisualCrossingForecast(await res.json());
     }
@@ -1088,7 +1088,7 @@
     }
     async function getWeatherAlerts(lat, lon) {
       const point = `${lat},${lon}`;
-      const res = await fetch(`https://api.weather.gov/alerts/active?status=actual&message_type=alert&point=${encodeURIComponent(point)}`, {
+      const res = await fetchWeatherData(`https://api.weather.gov/alerts/active?status=actual&message_type=alert&point=${encodeURIComponent(point)}`, {
         headers: { "Accept": "application/geo+json" },
         cache: "no-store"
       });
@@ -1116,7 +1116,7 @@
         const params = new URLSearchParams({ key, days: "3", plantsDescription: "0", pageSize: "3" });
         params.set("location.latitude", String(lat));
         params.set("location.longitude", String(lon));
-        const res = await fetch(`https://pollen.googleapis.com/v1/forecast:lookup?${params.toString()}`);
+        const res = await fetchWeatherData(`https://pollen.googleapis.com/v1/forecast:lookup?${params.toString()}`);
         if (res.ok === false) throw await providerResponseError(res, "Google Pollen");
         const value = summarizePollen(await res.json());
         saveLocationCacheEntry(POLLEN_CACHE_KEY, locationKey, { value, updatedAt: now.toISOString() });
@@ -1160,7 +1160,7 @@
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "auto";
       const today = new Date(); const start = new Date(today); start.setDate(start.getDate() - 10); const ymd = (d) => d.toISOString().slice(0, 10);
       const params = new URLSearchParams({ latitude: lat, longitude: lon, timezone: tz, temperature_unit: "fahrenheit", start_date: ymd(start), end_date: ymd(today), hourly: "temperature_2m" });
-      const res = await fetch(`https://archive-api.open-meteo.com/v1/archive?${params.toString()}`); if (!res.ok) throw new Error("History request failed");
+      const res = await fetchWeatherData(`https://archive-api.open-meteo.com/v1/archive?${params.toString()}`); if (!res.ok) throw new Error("History request failed");
       return res.json();
     }
     function normalizeVisualCrossingHistory(data) {
@@ -1187,9 +1187,6 @@
         return {};
       }
     }
-    function saveVisualCrossingHistoryCache(cache) {
-      try { localStorage.setItem(VISUAL_CROSSING_HISTORY_CACHE_KEY, JSON.stringify(cache)); } catch {}
-    }
     function getVisualCrossingHistory(lat, lon) {
       return sharedLocationRequest("history", lat, lon, () => fetchVisualCrossingHistory(lat, lon));
     }
@@ -1204,7 +1201,7 @@
       const start = new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000);
       const ymd = (d) => d.toISOString().slice(0, 10);
       const params = new URLSearchParams({ unitGroup: "us", include: "days", elements: "datetime,tempmin", key: VISUAL_CROSSING_API_KEY, contentType: "json" });
-      const res = await fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(visualCrossingLocation(lat, lon))}/${ymd(start)}/${ymd(today)}?${params.toString()}`);
+      const res = await fetchWeatherData(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(visualCrossingLocation(lat, lon))}/${ymd(start)}/${ymd(today)}?${params.toString()}`);
       if (res.ok === false) throw await providerResponseError(res, "Visual Crossing history");
       const result = normalizeVisualCrossingHistory(await res.json());
       saveLocationCacheEntry(VISUAL_CROSSING_HISTORY_CACHE_KEY, locationKey, { value: result, updatedAt: today.toISOString() });
@@ -1288,9 +1285,15 @@
           sourceRow("Rain-data limit today", (Number(observedRain?.visualCrossingRainRecordsUsedToday) || 0) + " of " + VISUAL_CROSSING_RAIN_DAILY_RECORD_LIMIT + " records used")
         ].filter(Boolean);
       }
-      if (observedRain?.rainAsOf) detail.rows.push(sourceRow("Totals through", new Date(observedRain.rainAsOf).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })));
+      const displayAsOf = observedRain?.[windowKey + "AsOf"] || observedRain?.rainAsOf;
+      if (displayAsOf) detail.rows.push(sourceRow("Totals through", new Date(displayAsOf).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })));
+      if (observedRain?.[windowKey + "Stale"]) {
+        detail.copy = "Showing the last complete saved total, not the latest window.";
+        detail.rows.push(sourceRow("Latest window", `${missingHours} hours are missing. Saved hours were kept.`));
+      }
       if (observedRain?.rainCollectionNote) detail.rows.push(sourceRow("History update", observedRain.rainCollectionNote));
-      detail.action = null;
+      detail.action = !hasTotal || observedRain?.[windowKey + "Stale"]
+        ? { label: "Retry missing hours", hours, note: "Uses saved hours; daily limits still apply." } : null;
       return detail;
     }
     function rainObservationAmount(observation) {
@@ -1331,12 +1334,22 @@
     function googleRainLocationKey(lat, lon) {
       return Number(lat).toFixed(3) + "," + Number(lon).toFixed(3);
     }
-    async function fetchRainData(url) {
+    async function fetchWeatherData(url, options = {}) {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
-      try { return await fetch(url, { signal: controller.signal }); }
+      let timeout;
+      const expired = new Promise((_, reject) => {
+        timeout = setTimeout(() => { controller.abort(); reject(new Error("Weather request timed out after 20 seconds.")); }, 20000);
+      });
+      const load = async () => {
+        const res = await fetch(url, { ...options, signal: controller.signal });
+        // Bound the response-body download too, not only the initial connection.
+        const body = typeof res.text === "function" ? await res.text() : JSON.stringify(await res.json());
+        return { ok: res.ok, status: res.status, json: async () => JSON.parse(body), text: async () => body };
+      };
+      try { return await Promise.race([load(), expired]); }
       finally { clearTimeout(timeout); }
     }
+    function fetchRainData(url) { return fetchWeatherData(url); }
     function rollingRainTotals(records, now = new Date()) {
       const nowMs = now.getTime();
       const totalFor = (hours, minCoverage) => {
@@ -1364,10 +1377,9 @@
       const locationKey = googleRainLocationKey(lat, lon);
       const cached = cache[locationKey] || { records: [], updatedAt: "" };
       let records = Array.isArray(cached.records) ? cached.records : [];
-      const cacheAge = now.getTime() - new Date(cached.updatedAt || 0).getTime();
-      if (records.length === 0 || !Number.isFinite(cacheAge) || cacheAge < 0 || cacheAge >= RAIN_COLLECTION_TTL_MS) {
+      const recentMissing = expectedRainHourEpochs(24, now).filter((epoch) => !cachedGoogleRainRecords(lat, lon).some((record) => record.epoch === epoch));
+      if (recentMissing.length) {
         const completedHour = Math.floor(now.getTime() / 3600000) * 3600000;
-        const recentMissing = expectedRainHourEpochs(24, now).filter((epoch) => !cachedGoogleRainRecords(lat, lon).some((record) => record.epoch === epoch));
         const requestedHours = recentMissing.length ? Math.min(24, Math.max(1, Math.ceil((completedHour - recentMissing[0] * 1000) / 3600000))) : 1;
         const params = new URLSearchParams({ key, unitsSystem: "IMPERIAL", hours: String(requestedHours), pageSize: "24" });
         params.set("location.latitude", String(lat));
@@ -1536,6 +1548,26 @@
       // Allow for whole local calendar days if the provider expands an hourly range.
       return (Math.ceil(((range.end - range.start) / 3600 + 1) / 24) + 1) * 24;
     }
+    function planRainGapRequests(epochs) {
+      const groups = groupRainHourGaps(epochs);
+      if (!groups.length) return { ranges: [], cost: 0 };
+      // Compare partitions by conservative record cost, then by request count.
+      // Joining nearby gaps can be cheaper than paying for overlapping day responses.
+      const best = Array.from({ length: groups.length + 1 }, () => Array(RAIN_MAX_AUTOMATIC_REQUESTS + 1).fill(null));
+      best[0][0] = { ranges: [], cost: 0 };
+      for (let end = 1; end <= groups.length; end++) {
+        for (let count = 1; count <= RAIN_MAX_AUTOMATIC_REQUESTS; count++) {
+          for (let start = 0; start < end; start++) {
+            const prior = best[start][count - 1];
+            if (!prior) continue;
+            const range = { start: groups[start].start, end: groups[end - 1].end };
+            const candidate = { ranges: [...prior.ranges, range], cost: prior.cost + estimateRainRangeCost(range) };
+            if (!best[end][count] || candidate.cost < best[end][count].cost) best[end][count] = candidate;
+          }
+        }
+      }
+      return best[groups.length].filter(Boolean).sort((a, b) => a.cost - b.cost || a.ranges.length - b.ranges.length)[0];
+    }
     async function fillVisualCrossingRainGaps(lat, lon, hours, asOf = new Date()) {
       if (!VISUAL_CROSSING_API_KEY) throw new Error("Visual Crossing API key is not configured");
       const now = new Date();
@@ -1544,8 +1576,11 @@
       const before = combinedRainCoverage(googleRecords, visualRecords, hours, asOf);
       if (!before.missingEpochs.length) return { filled: 0, queryCost: 0, coverage: before, note: "" };
       let queryCost = 0, requests = 0, note = "";
-      const ranges = groupRainHourGaps(before.missingEpochs).reverse();
+      const ranges = planRainGapRequests(before.missingEpochs).ranges.slice().reverse();
       for (const range of ranges) {
+        const stillMissing = combinedRainCoverage(googleRecords, visualRecords, hours, asOf).missingEpochs.filter((epoch) => epoch >= range.start && epoch <= range.end);
+        if (!stillMissing.length) continue;
+        range.start = stillMissing[0]; range.end = stillMissing[stillMissing.length - 1];
         if (requests >= RAIN_MAX_AUTOMATIC_REQUESTS) { note = "Some gaps remain. Further downloads wait for the next collection window."; break; }
         const rangeEstimate = estimateRainRangeCost(range);
         const currentBudget = visualCrossingRainBudget();
@@ -1600,7 +1635,7 @@
       let url = `https://api.weather.gov/stations/${encodeURIComponent(stationId)}/observations?${params.toString()}`;
       const observations = [];
       for (let page = 0; page < 6 && url; page++) {
-        const res = await fetch(url, { headers: { "Accept": "application/geo+json" } });
+        const res = await fetchWeatherData(url, { headers: { "Accept": "application/geo+json" } });
         if (!res.ok) throw new Error("NWS observations request failed");
         const data = await res.json();
         observations.push(...(Array.isArray(data.features) ? data.features : []));
@@ -1622,17 +1657,30 @@
         saveStorageMap(key, cache);
       });
     }
-    function getObservedRain(lat, lon) {
+    function rainCollectionDecision(collection, manual = false, now = new Date()) {
+      if (!collection) return { allowed: true, note: "" };
+      const age = now.getTime() - new Date(collection.attemptedAt || 0).getTime();
+      const complete = collection.status === "complete" || (!collection.status && ["rain24", "rain3d", "rain7d"].every((key) => Number.isFinite(collection.value?.[key])));
+      const currentHour = Math.floor(now.getTime() / 3600000) * 3600000;
+      if (complete && new Date(collection.rainAsOf || collection.value?.rainAsOf || 0).getTime() === currentHour) return { allowed: false, note: "All completed hours are already saved." };
+      const wait = manual ? MANUAL_REFRESH_GUARD_MS : complete ? 0 : RAIN_RETRY_COOLDOWN_MS;
+      if (age >= 0 && age < wait) {
+        const minutes = Math.ceil((wait - age) / 60000);
+        return { allowed: false, note: manual ? `Please wait ${minutes} minute${minutes === 1 ? "" : "s"} before retrying.` : `Another automatic attempt is available in ${minutes} minute${minutes === 1 ? "" : "s"}, when you view rainfall.` };
+      }
+      return { allowed: true, note: "" };
+    }
+    function getObservedRain(lat, lon, manual = false) {
       const locationKey = googleRainLocationKey(lat, lon);
       if (rainCollectionRequests.has(locationKey)) return rainCollectionRequests.get(locationKey);
       const collect = async () => {
-        if (!navigator.locks?.request) return collectObservedRain(lat, lon);
+        if (!navigator.locks?.request) return collectObservedRain(lat, lon, manual);
         let started = false;
         try {
-          return await navigator.locks.request("weather-rain-collection", () => { started = true; return collectObservedRain(lat, lon); });
+          return await navigator.locks.request("weather-rain-collection", () => { started = true; return collectObservedRain(lat, lon, manual); });
         } catch (error) {
           // Local file previews can expose Web Locks but reject lock acquisition.
-          if (!started && ["SecurityError", "NotSupportedError"].includes(error?.name)) return collectObservedRain(lat, lon);
+          if (!started && ["SecurityError", "NotSupportedError"].includes(error?.name)) return collectObservedRain(lat, lon, manual);
           throw error;
         }
       };
@@ -1642,7 +1690,7 @@
       request.finally(() => { if (rainCollectionRequests.get(locationKey) === request) rainCollectionRequests.delete(locationKey); }).catch(() => {});
       return request;
     }
-    async function collectObservedRain(lat, lon) {
+    async function collectObservedRain(lat, lon, manual = false) {
       const now = new Date();
       pruneRainHistory(now);
       const locationKey = googleRainLocationKey(lat, lon);
@@ -1651,12 +1699,24 @@
         return summarizeSavedRain(lat, lon, { rainAsOf: now.toISOString(), rainCollectionNote: "Location is no longer in Recent Locations; downloads skipped." });
       }
       const collection = loadStorageMap(RAIN_COLLECTION_CACHE_KEY)[locationKey];
-      const age = now.getTime() - new Date(collection?.attemptedAt || 0).getTime();
-      if (age >= 0 && age < RAIN_COLLECTION_TTL_MS) {
-        if (collection?.value) return collection.value;
-        return summarizeSavedRain(lat, lon, { rainAsOf: collection?.rainAsOf || now.toISOString(), rainCollectionNote: "The next history download waits for the six-hour collection window." });
+      const decision = rainCollectionDecision(collection, manual, now);
+      if (!decision.allowed) {
+        if (collection?.value) {
+          const saved = summarizeSavedRain(lat, lon, { rainAsOf: new Date(Math.floor(now.getTime() / 3600000) * 3600000).toISOString(), googleRainError: collection.value.googleRainError, visualCrossingRainError: collection.value.visualCrossingRainError, rainCollectionNote: decision.note });
+          ["rain24", "rain3d", "rain7d"].forEach((key) => {
+            if (!Number.isFinite(saved[key]) && Number.isFinite(collection.value[key])) {
+              const asOf = collection.value[key + "AsOf"] || collection.value.rainAsOf;
+              if (now.getTime() - new Date(asOf).getTime() < 7 * 24 * 3600000) {
+                saved[key] = collection.value[key]; saved[key + "Source"] = collection.value[key + "Source"];
+                saved[key + "AsOf"] = asOf; saved[key + "Stale"] = true;
+              }
+            } else if (Number.isFinite(saved[key])) saved[key + "AsOf"] = saved.rainAsOf;
+          });
+          return saved;
+        }
+        return summarizeSavedRain(lat, lon, { rainAsOf: collection?.rainAsOf || now.toISOString(), rainCollectionNote: decision.note });
       }
-      saveStorageMap(RAIN_COLLECTION_CACHE_KEY, { ...loadStorageMap(RAIN_COLLECTION_CACHE_KEY), [locationKey]: { attemptedAt: now.toISOString() } });
+      saveStorageMap(RAIN_COLLECTION_CACHE_KEY, { ...loadStorageMap(RAIN_COLLECTION_CACHE_KEY), [locationKey]: { ...collection, attemptedAt: now.toISOString(), status: "pending" } });
       if (loadStorageMap(RAIN_COLLECTION_CACHE_KEY)[locationKey]?.attemptedAt !== now.toISOString()) {
         return summarizeSavedRain(lat, lon, { rainAsOf: now.toISOString(), rainCollectionNote: "History downloads paused because this browser could not save its cache." });
       }
@@ -1671,7 +1731,8 @@
         result.googleRainRecords = cachedGoogleRainRecords(lat, lon).map((record) => ({ time: record.epoch * 1000, rain: record.precip }));
         console.warn(error);
       }
-      result.rainAsOf ||= new Date(Math.floor(now.getTime() / 3600000) * 3600000).toISOString();
+      // A delayed/missing provider hour must not move the requested window backwards.
+      result.rainAsOf = new Date(Math.floor(now.getTime() / 3600000) * 3600000).toISOString();
       const asOf = new Date(result.rainAsOf);
       // Prefer the longest affordable window; its saved hours also supply the shorter totals.
       const googleRecords = cachedGoogleRainRecords(lat, lon);
@@ -1679,7 +1740,7 @@
       const remaining = visualCrossingRainBudget().remaining;
       const targetHours = [168, 72, 24].find((hours) => {
         const gaps = combinedRainCoverage(googleRecords, visualRecords, hours, asOf).missingEpochs;
-        return groupRainHourGaps(gaps).reduce((sum, range) => sum + estimateRainRangeCost(range), 0) <= remaining;
+        return planRainGapRequests(gaps).cost <= remaining;
       });
       try {
         if (targetHours) {
@@ -1689,12 +1750,29 @@
         } else result.rainCollectionNote = "Automatic history fill paused to protect the daily rainfall allowance. Saved hours were kept.";
       } catch (error) {
         result.visualCrossingRainError = error?.message || "Visual Crossing unavailable";
-        result.rainCollectionNote = "History fill could not finish. Saved hours were kept; another attempt waits for the next collection window.";
+        result.rainCollectionNote = "History fill could not finish. Saved hours were kept. Automatic retries wait 40 minutes; you can retry manually sooner.";
         console.warn(error);
       }
       const summary = summarizeSavedRain(lat, lon, result);
+      const lastComplete = { ...(collection?.lastComplete || {}) };
+      ["rain24", "rain3d", "rain7d"].forEach((key) => {
+        if (Number.isFinite(summary[key])) {
+          summary[key + "AsOf"] = summary.rainAsOf;
+          lastComplete[key] = { value: summary[key], source: summary[key + "Source"], asOf: summary.rainAsOf };
+        } else {
+          const previous = lastComplete[key] || (Number.isFinite(collection?.value?.[key]) ? { value: collection.value[key], source: collection.value[key + "Source"], asOf: collection.value[key + "AsOf"] || collection.value.rainAsOf } : null);
+          if (previous && now.getTime() - new Date(previous.asOf).getTime() < 7 * 24 * 3600000) {
+            lastComplete[key] = previous;
+            summary[key] = previous.value;
+            summary[key + "Source"] = previous.source;
+            summary[key + "AsOf"] = previous.asOf;
+            summary[key + "Stale"] = true;
+          } else delete lastComplete[key];
+        }
+      });
+      const complete = ["rain24", "rain3d", "rain7d"].every((key) => summary[key + "MissingHours"] === 0);
       const cache = loadStorageMap(RAIN_COLLECTION_CACHE_KEY);
-      cache[locationKey] = { attemptedAt: now.toISOString(), rainAsOf: summary.rainAsOf, value: { ...summary, googleRainRecords: undefined } };
+      cache[locationKey] = { attemptedAt: now.toISOString(), status: complete ? "complete" : "incomplete", lastComplete, rainAsOf: summary.rainAsOf, value: { ...summary, googleRainRecords: undefined } };
       saveStorageMap(RAIN_COLLECTION_CACHE_KEY, cache);
       const retained = loadRecentLocations();
       if (retained.length) pruneLocationCaches(retained);
@@ -1715,7 +1793,7 @@
         result[prefix + "GoogleHours"] = coverage.googleHours;
         result[prefix + "VisualHours"] = coverage.visualHours;
         result[prefix + "MissingHours"] = coverage.missingEpochs.length;
-        result[prefix + "EstimatedVisualCost"] = coverage.missingEpochs.length;
+        result[prefix + "EstimatedVisualCost"] = planRainGapRequests(coverage.missingEpochs).cost;
         const googleCoverageKey = prefix === "rain24" ? "googleRain24Coverage" : prefix === "rain3d" ? "googleRain3dCoverage" : "googleRain7dCoverage";
         result[googleCoverageKey] = coverage.googleHours;
         result[prefix] = coverage.value;
@@ -2230,7 +2308,7 @@
       const params = new URLSearchParams({ key, unitsSystem: "IMPERIAL", days: "10", pageSize: "10" });
       params.set("location.latitude", String(lat));
       params.set("location.longitude", String(lon));
-      const res = await fetch("https://weather.googleapis.com/v1/forecast/days:lookup?" + params.toString());
+      const res = await fetchWeatherData("https://weather.googleapis.com/v1/forecast/days:lookup?" + params.toString());
       if (!res.ok) throw await providerResponseError(res, "Google Weather daily forecast");
       const data = await res.json();
       return (data.forecastDays || []).map((day) => {
@@ -2271,7 +2349,7 @@
         params.set("location.latitude", String(lat));
         params.set("location.longitude", String(lon));
         if (pageToken) params.set("pageToken", pageToken);
-        const res = await fetch("https://weather.googleapis.com/v1/forecast/hours:lookup?" + params.toString());
+        const res = await fetchWeatherData("https://weather.googleapis.com/v1/forecast/hours:lookup?" + params.toString());
         if (!res.ok) throw await providerResponseError(res, "Google Weather hourly forecast");
         const data = await res.json();
         (data.forecastHours || []).forEach((hour) => {
@@ -3193,9 +3271,9 @@
       const overnightStart = new Date(midnight.getTime() - 8 * 60 * 60 * 1000);
       const overnightTemps = times.map((t, i) => ({ t, temp: temp[i] })).filter(x => x.t >= overnightStart && x.t < midnight);
       const freezeCount = overnightTemps.length ? overnightTemps.filter(x => x.temp < 32).length : null;
-      els.rain24.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain24);
-      els.rain3d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain3d);
-      els.rain7d.textContent = rainLoading ? "..." : formatRecapRain(observedRain?.rain7d);
+      [[els.rain24, "rain24"], [els.rain3d, "rain3d"], [els.rain7d, "rain7d"]].forEach(([element, key]) => {
+        element.innerHTML = rainLoading ? "..." : formatRecapRain(observedRain?.[key]) + (observedRain?.[key + "Stale"] ? '<span style="display:block;font-size:10px;line-height:1.3;opacity:.7">Saved</span>' : "");
+      });
       latestSourceDetails.rain24 = rainLoading ? {
         title: "24-hour rain",
         copy: "Recent rain data is still loading.",
@@ -3251,29 +3329,19 @@
       const rect = els.quickRecapSection?.getBoundingClientRect();
       if (!location || document.hidden || !rect || rect.top >= window.innerHeight || rect.bottom <= 0) return;
       const locationKey = googleRainLocationKey(location.lat, location.lon);
-      const loadKey = locationKey + ":" + Math.floor(Date.now() / RAIN_COLLECTION_TTL_MS);
+      loadRainRecap();
+      const loadKey = locationKey + ":" + new Date().toISOString().slice(0, 10);
       if (recapLoadKey === loadKey) return;
       recapLoadKey = loadKey;
       const viewSequence = locationViewSequence;
       const isCurrent = () => viewSequence === locationViewSequence && activeLocationMatches(location) && recapLoadKey === loadKey;
-      recapState = { observedRain: recapState.observedRain, pollen: recapState.pollen?.status === "idle" ? { status: "loading" } : recapState.pollen, rainLoading: !recapState.observedRain };
+      recapState = { observedRain: recapState.observedRain, pollen: recapState.pollen?.status === "idle" ? { status: "loading" } : recapState.pollen, rainLoading: !recapState.observedRain, collecting: recapState.collecting };
       renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, recapState.rainLoading);
       getHistory(location.lat, location.lon).then((history) => {
         if (!isCurrent()) return;
         latestHistoryData = history;
         if (activeLocationMatches(location)) renderHistory(history, recapState.observedRain, recapState.pollen, recapState.rainLoading);
       }).catch((error) => console.warn(error));
-      getObservedRain(location.lat, location.lon).then((observedRain) => {
-        if (!isCurrent()) return;
-        recapState.observedRain = observedRain;
-        recapState.rainLoading = false;
-        if (activeLocationMatches(location)) renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, recapState.rainLoading);
-      }).catch((error) => {
-        console.warn(error);
-        if (!isCurrent()) return;
-        recapState.rainLoading = false;
-        if (activeLocationMatches(location)) renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, recapState.rainLoading);
-      });
       getPollenForecast(location.lat, location.lon).then((pollen) => {
         if (!isCurrent()) return;
         recapState.pollen = pollen;
@@ -3284,6 +3352,32 @@
         recapState.pollen = { status: "error", message: error?.message || "Google Pollen request failed." };
         if (activeLocationMatches(location)) renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, recapState.rainLoading);
       });
+    }
+    async function loadRainRecap(manual = false) {
+      const location = activeLocation;
+      if (!location || recapState.collecting) return;
+      const entry = loadStorageMap(RAIN_COLLECTION_CACHE_KEY)[googleRainLocationKey(location.lat, location.lon)];
+      if (!manual && recapState.observedRain && !rainCollectionDecision(entry).allowed) return;
+      const sequence = locationViewSequence;
+      const isCurrent = () => sequence === locationViewSequence && activeLocationMatches(location);
+      recapState.collecting = true;
+      recapState.rainLoading = !recapState.observedRain;
+      renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, recapState.rainLoading);
+      if (manual) { els.sourceActionBtn.disabled = true; els.sourceActionNote.textContent = "Checking saved hours and filling gaps…"; }
+      try {
+        const result = await getObservedRain(location.lat, location.lon, manual);
+        if (isCurrent()) recapState.observedRain = result;
+      } catch (error) {
+        console.warn(error);
+        if (isCurrent() && manual) els.sourceActionNote.textContent = "Could not finish. Saved data was kept; try again later.";
+      } finally {
+        if (isCurrent()) {
+          recapState.collecting = false;
+          recapState.rainLoading = false;
+          renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, false);
+          if (els.sourceOverlay && !els.sourceOverlay.classList.contains("hidden") && /^rain(24|3d|7d)$/.test(activeSourceDetailKey)) showSourceDetail(latestSourceDetails[activeSourceDetailKey]);
+        }
+      }
     }
     function loadSupplementalIfNear() {
       const rect = els.quickRecapSection?.getBoundingClientRect();
@@ -3429,6 +3523,8 @@
       window.addEventListener("scroll", loadSupplementalIfNear, { passive: true });
     }
     document.addEventListener("visibilitychange", () => { if (!document.hidden) loadSupplementalIfNear(); });
+    // Only user interaction/visibility triggers a check; no timer or background polling.
+    window.addEventListener("scroll", loadSupplementalIfNear, { passive: true });
     els.locateBtn.addEventListener("click", () => showOnboarding()); els.refreshBtn.addEventListener("click", refreshCurrentWeather); els.startLocateBtn.addEventListener("click", useBrowserLocation); els.startZipInput.addEventListener("keydown", (e) => { if (e.key === "Enter") searchLocationInput(els.startZipInput.value); }); els.closeOnboardingBtn.addEventListener("click", () => { if (hasSavedLocation()) hideOnboarding(); }); els.recentList.addEventListener("click", async (e) => { const btn = e.target.closest("[data-recent-index]"); if (!btn) return; const recent = loadRecentLocations(); const item = recent[Number(btn.dataset.recentIndex)]; if (!item) return; saveLocation(item); await loadWeather(item); });
     els.searchResults.addEventListener("click", async (e) => {
       const btn = e.target.closest("[data-search-index]");
@@ -3522,6 +3618,7 @@
       if (detail) showSourceDetail(detail);
     });
     els.sourceCloseBtn.addEventListener("click", hideSourceDetail);
+    els.sourceActionBtn.addEventListener("click", () => { if (/^rain(24|3d|7d)$/.test(activeSourceDetailKey)) loadRainRecap(true); });
     els.sourceOkBtn.addEventListener("click", hideSourceDetail);
     els.sourceOverlay.addEventListener("click", (e) => { if (e.target === els.sourceOverlay) hideSourceDetail(); });
     els.dailyDetailCloseBtn.addEventListener("click", hideDailyDetail);
