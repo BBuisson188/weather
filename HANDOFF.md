@@ -1,6 +1,8 @@
 # Weather App Handoff
 
 ## What changed
+- Today/Tomorrow/Next hero text names the daypart before the clock time: "early Sunday morning, around midnight" versus "late Sunday night." Rain, storm, snow/ice, fog, wind, heat/cold, and supporting hazard-card wording follow this convention.
+- Midnight precipitation is described as continuing from the previous night only when the preceding forecast hour is wet; continuing storms also require storms in that preceding hour.
 - Rain recap now automatically fills saved-history gaps only when actually visible, with a six-hour collection cooldown per location, shared request locking, and a daily record allowance. The manual rainfall fill button was removed.
 - The detailed 10-day chart keeps weekday labels in their original position and adds the day-of-month beneath the fourth visible daytime label onward; the first three remain weekday-only.
 - Added a richer `Today` hero section in `index.html`.
@@ -73,6 +75,7 @@
 - `getWeatherAlerts()` calls `https://api.weather.gov/alerts/active` with `point=lat,lon`.
 - `alertPriority()` controls display priority for warning/watch/advisory ordering.
 - `buildNextPrecipEvent()` now returns `start`, `end`, `startIndex`, `endIndex`, and `lastActiveIndex`.
-- Continuing precipitation detection currently checks tomorrow events where `startIndex === 0` and the first wet hour is midnight.
+- `isContinuingMidnightPrecip()` checks tomorrow's midnight start against the preceding forecast hour; midnight alone is not evidence of carryover.
+- Offline hero wording checks: `node tests/hero-wording.cjs`. No live provider requests are made.
 - Thunderstorm detection comes from normalized weather codes `95`, `96`, and `99`.
 - Keep edits targeted; this is a single-file app with tightly coupled UI/data logic.

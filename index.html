@@ -1772,12 +1772,36 @@
       return match ? new Date(match) : null;
     }
     function formatNarrativeWhen(date, offset, daily) {
-      if (offset === 0) return dayPartLabel(date);
-      const sunrise = sunTimeForDate(daily, date, "sunrise");
-      const sunset = sunTimeForDate(daily, date, "sunset");
-      if (sunrise && date < sunrise) return "overnight tonight";
-      if (sunset && date >= sunset) return "tomorrow overnight";
+      const hour = date.getHours();
+      if (offset === 0) {
+        if (hour < 6) return "early this morning";
+        if (hour >= 21) return "late tonight";
+        return dayPartLabel(date);
+      }
+      if (hour < 6) return "early tomorrow morning";
+      if (hour >= 21) return "late tomorrow night";
       return `tomorrow ${genericDayPart(date)}`;
+    }
+    function narrativeClockLabel(date) {
+      if (date.getMinutes() === 0 && date.getHours() === 0) return "midnight";
+      if (date.getMinutes() === 0 && date.getHours() === 12) return "noon";
+      return formatShortTime(date);
+    }
+    function narrativeTimingLabel(date, offset = null) {
+      const when = offset === null ? futureEventWhenLabel(date) : formatNarrativeWhen(date, offset);
+      return `${when}, around ${narrativeClockLabel(date)}`;
+    }
+    function narrativeRainExpectation(total) {
+      if (total <= 0.01) return "little accumulation expected";
+      if (total < 0.1) return "less than 0.1 inch expected";
+      return `about ${formatRainAmount(total)} expected`;
+    }
+    function isContinuingMidnightPrecip(hourly, event, type = "rain") {
+      if (!event || event.startIndex !== 0 || event.start.time.getHours() !== 0) return false;
+      const priorTime = event.start.time.getTime() - 60 * 60 * 1000;
+      const priorIndex = (hourly.time || []).findIndex((time) => new Date(time).getTime() === priorTime);
+      return priorIndex >= 0 && (Number(hourly.precipitation_probability?.[priorIndex]) >= 20 || Number(hourly.precipitation?.[priorIndex]) >= 0.01)
+        && (type !== "storms" || [95,96,99].includes(Number(hourly.weather_code?.[priorIndex])));
     }
     function summarizeDailyNarrative(hourly, daily, offset, now = new Date()) {
       const items = buildNarrativeItems(hourly, offset, now);
@@ -1799,46 +1823,46 @@
       const snowFirst = snowItems[0];
       const iceFirst = iceItems[0];
       if (iceFirst) {
-        return { title: "Icy weather possible", detail: `Freezing precip may show up ${formatNarrativeWhen(iceFirst.time, offset, daily)}. Check roads before heading out.` };
+        return { title: "Icy weather possible", detail: `Freezing rain is possible ${narrativeTimingLabel(iceFirst.time, offset)}. Check roads before heading out.` };
       }
       if (snowFirst) {
         const snowTime = formatNarrativeWhen(snowFirst.time, offset, daily);
-        return { title: `Snow possible ${snowTime}`, detail: `Expect highs near ${Math.round(high)}° with snow chances around ${formatHour(snowFirst.time)}.` };
+        return { title: `Snow possible ${snowTime}`, detail: `Snow is possible ${narrativeTimingLabel(snowFirst.time, offset)}. High near ${Math.round(high)}°.` };
       }
       if (fogFirst && meaningfulPrecipEvent && precipEvent.start.time > fogFirst.time) {
-        return { title: "Fog early, rain later", detail: `Fog may linger ${formatNarrativeWhen(fogFirst.time, offset, daily)}; rain chances build around ${formatHour(precipEvent.start.time)}.` };
+        return { title: "Fog first, rain later", detail: `Fog is possible ${formatNarrativeWhen(fogFirst.time, offset, daily)}. Rain chances build ${narrativeTimingLabel(precipEvent.start.time, offset)}.` };
       }
       if (stormFirst) {
-        const total = meaningfulPrecipEvent ? formatRainAmount(precipEvent.total) : "some rain";
+        const total = meaningfulPrecipEvent ? narrativeRainExpectation(precipEvent.total) : "some rain possible";
         const expected = stormFirst.prob >= 50 || precipEvent?.peakProb >= 60 || precipEvent?.total >= 0.1;
-        const continuing = offset > 0 && precipEvent?.startIndex === 0 && precipEvent.start.time.getHours() === 0;
+        const continuing = offset > 0 && isContinuingMidnightPrecip(hourly, precipEvent, "storms") && stormFirst.time.getTime() === precipEvent.start.time.getTime();
         if (continuing) {
-          const stop = precipEvent.end ? `, tapering around ${formatHour(precipEvent.end.time)}` : "";
+          const stop = precipEvent.end ? ` Rain may ease ${narrativeTimingLabel(precipEvent.end.time, offset)}.` : "";
           return {
-            title: "Storms continuing overnight",
-            detail: `Storms continue from the previous day with about ${total} expected${stop}.`
+            title: `Storms continuing ${formatNarrativeWhen(stormFirst.time, offset, daily)}`,
+            detail: `Storms carry over from the previous night into ${formatNarrativeWhen(stormFirst.time, offset, daily)}, with ${total}.${stop}`
           };
         }
         return {
           title: `Thunderstorms ${expected ? "expected" : "possible"} ${formatNarrativeWhen(stormFirst.time, offset, daily)}`,
-          detail: `Storms look most likely around ${formatHour(stormFirst.time)} with about ${total} expected.`
+          detail: `Storms are possible ${narrativeTimingLabel(stormFirst.time, offset)}, with ${total}.`
         };
       }
       if (meaningfulPrecipEvent) {
         const when = formatNarrativeWhen(precipEvent.start.time, offset, daily);
-        const total = formatRainAmount(precipEvent.total);
+        const total = narrativeRainExpectation(precipEvent.total);
         const type = precipTypeLabel(precipEvent.code);
-        const continuing = offset > 0 && precipEvent.startIndex === 0 && precipEvent.start.time.getHours() === 0;
+        const continuing = offset > 0 && isContinuingMidnightPrecip(hourly, precipEvent);
         if (continuing) {
-          const stop = precipEvent.end ? `, tapering around ${formatHour(precipEvent.end.time)}` : "";
+          const stop = precipEvent.end ? ` Rain may ease ${narrativeTimingLabel(precipEvent.end.time, offset)}.` : "";
           const label = type === "storms" ? "Storms" : type === "snow" ? "Snow" : type === "ice" ? "Ice" : "Rain";
-          return { title: `${label} continuing overnight`, detail: `${label} continues from the previous day with about ${total} expected${stop}.` };
+          return { title: `${label} continuing ${when}`, detail: `${label} carries over from the previous night into ${when}, with ${total}.${stop}` };
         }
-        if (precipEvent.total >= 0.5 || precipEvent.peakProb >= 75) return { title: `Rain likely ${when}`, detail: `The wettest window starts around ${formatHour(precipEvent.start.time)} with about ${total} expected.` };
-        if (precipEvent.total >= 0.1 || precipEvent.peakProb >= 45) return { title: `Showers possible ${when}`, detail: `Best rain chance is around ${formatHour(precipEvent.start.time)} with about ${total} expected.` };
-        return { title: `Small rain chance ${when}`, detail: `Only trace to light rain is showing, mainly near ${formatHour(precipEvent.start.time)}.` };
+        if (precipEvent.total >= 0.5 || precipEvent.peakProb >= 75) return { title: `Rain likely ${when}`, detail: `Rain is likely ${narrativeTimingLabel(precipEvent.start.time, offset)}, with ${total}.` };
+        if (precipEvent.total >= 0.1 || precipEvent.peakProb >= 45) return { title: `Showers possible ${when}`, detail: `Showers are possible ${narrativeTimingLabel(precipEvent.start.time, offset)}, with ${total}.` };
+        return { title: `Small rain chance ${when}`, detail: `Light rain is possible ${narrativeTimingLabel(precipEvent.start.time, offset)}. Little accumulation is expected.` };
       }
-      if (fogFirst) return { title: `Foggy ${formatNarrativeWhen(fogFirst.time, offset, daily)}`, detail: `Fog may reduce visibility early; otherwise ${sky} with highs near ${Math.round(high)}°.` };
+      if (fogFirst) return { title: `Fog possible ${formatNarrativeWhen(fogFirst.time, offset, daily)}`, detail: `Fog may reduce visibility ${narrativeTimingLabel(fogFirst.time, offset)}. Otherwise ${sky}, with a high near ${Math.round(high)}°.` };
       if (maxRainChance >= 15) return { title: "Small rain chance", detail: `Most of ${dayWord} looks dry, but a slight chance shows up in the forecast.` };
       if (maxWind >= 30) return { title: `Gusty and ${sky}`, detail: `Gusts may reach around ${Math.round(maxWind)} mph with temperatures from about ${Math.round(low)}° to ${Math.round(high)}°.` };
       if (Number.isFinite(high) && high >= 92) return { title: `Hot and ${sky}`, detail: `Highs should reach the low to mid ${Math.round(high / 5) * 5}s, with temperatures starting near ${Math.round(low)}°.` };
@@ -1871,6 +1895,8 @@
       return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][date.getDay()] || "Soon";
     }
     function futureEventWhenLabel(date) {
+      if (date.getHours() < 6) return `early ${weekdayName(date)} morning`;
+      if (date.getHours() >= 21) return `late ${weekdayName(date)} night`;
       return `${weekdayName(date)} ${genericDayPart(date)}`;
     }
     function titleCaseWeatherType(type) {
@@ -1879,30 +1905,30 @@
     function summarizeFutureSignificantEvent(event) {
       const type = precipTypeLabel(event.code);
       const when = futureEventWhenLabel(event.start.time);
-      const amount = formatRainAmount(event.total);
+      const amount = narrativeRainExpectation(event.total);
       const label = titleCaseWeatherType(type);
       if (type === "storms") {
         const likely = event.peakProb >= 55 || event.total >= 0.1;
         return {
           title: `${likely ? "Thunderstorms likely" : "Chance of thunderstorms"} ${when}`,
-          detail: `The next notable weather shows up ${when.toLowerCase()}, with peak chances near ${Math.round(event.peakProb)}%.`
+          detail: `Thunderstorms are ${likely ? "likely" : "possible"} ${narrativeTimingLabel(event.start.time)}, with rain chances up to ${Math.round(event.peakProb)}%.`
         };
       }
       if (type === "snow" || type === "ice") {
         return {
           title: `${label} possible ${when}`,
-          detail: `The next notable weather shows up ${when.toLowerCase()}; keep an eye on timing as it gets closer.`
+          detail: `${label} is possible ${narrativeTimingLabel(event.start.time)}. Timing may shift as the day gets closer.`
         };
       }
       if (event.peakProb >= 60 || event.total >= 0.1) {
         return {
           title: `Rain likely ${when}`,
-          detail: `The next notable rain window starts around ${formatHour(event.start.time)}, with about ${amount} expected.`
+          detail: `Rain is likely ${narrativeTimingLabel(event.start.time)}, with ${amount}.`
         };
       }
       return {
         title: `Chance of rain ${when}`,
-        detail: `The next notable rain chance starts around ${formatHour(event.start.time)}, with about ${amount} expected.`
+        detail: `Rain is possible ${narrativeTimingLabel(event.start.time)}, with ${amount}.`
       };
     }
     function summarizeFutureSignificantDay(items) {
@@ -1927,28 +1953,28 @@
       if (fog) {
         return {
           title: `Fog possible ${futureEventWhenLabel(fog.time)}`,
-          detail: `The next notable weather is fog ${futureEventWhenLabel(fog.time).toLowerCase()}.`
+          detail: `Fog may reduce visibility ${narrativeTimingLabel(fog.time)}.`
         };
       }
       if (maxWind >= 30) {
         const wind = items.reduce((best, item) => Math.max(item.wind, item.gust) > Math.max(best.wind, best.gust) ? item : best, items[0]);
         return {
           title: `Gusty ${futureEventWhenLabel(wind.time)}`,
-          detail: `The next notable weather is wind, with gusts near ${Math.round(Math.max(wind.wind, wind.gust))} mph.`
+          detail: `Wind may be strongest ${narrativeTimingLabel(wind.time)}, with gusts near ${Math.round(Math.max(wind.wind, wind.gust))} mph.`
         };
       }
       if (Number.isFinite(high) && high >= 92) {
         const hot = items.find((item) => item.temp === high) || items[0];
         return {
           title: `Hot ${futureEventWhenLabel(hot.time)}`,
-          detail: `The next notable weather is heat, with highs near ${Math.round(high)} degrees.`
+          detail: `Temperatures may reach ${Math.round(high)}° ${narrativeTimingLabel(hot.time)}.`
         };
       }
       if (Number.isFinite(low) && low <= 35) {
         const cold = items.find((item) => item.temp === low) || items[0];
         return {
           title: `Cold ${futureEventWhenLabel(cold.time)}`,
-          detail: `The next notable weather is a chilly low near ${Math.round(low)} degrees.`
+          detail: `Temperatures may fall to ${Math.round(low)}° ${narrativeTimingLabel(cold.time)}.`
         };
       }
       return null;
@@ -1988,16 +2014,16 @@
         options.push({
           type: "forecast",
           title: "Thunderstorms in the forecast",
-          sub: `Most likely around ${formatHour(storm.time)}${precipEvent ? `; about ${formatRainAmount(precipEvent.total)} expected` : ""}.`,
+          sub: `Possible ${narrativeTimingLabel(storm.time, offset)}${precipEvent ? `; about ${formatRainAmount(precipEvent.total)} expected` : ""}.`,
           tag: "Storms"
         });
       }
       if (heavyRain) {
-        const continuing = offset > 0 && precipEvent.startIndex === 0 && precipEvent.start.time.getHours() === 0;
+        const continuing = offset > 0 && isContinuingMidnightPrecip(hourly, precipEvent);
         options.push({
           type: "forecast",
-          title: continuing ? "Rain already underway" : "Heavier rain window",
-          sub: `${continuing ? "Continues overnight" : `Starts around ${formatHour(precipEvent.start.time)}`}${precipEvent.end ? `; tapering around ${formatHour(precipEvent.end.time)}` : ""}. Peak chances near ${Math.round(precipEvent.peakProb)}%.`,
+          title: continuing ? "Rain continuing from the previous night" : "Heavier rain window",
+          sub: `${continuing ? `Continues into ${formatNarrativeWhen(precipEvent.start.time, offset, daily)}` : `Rain possible ${narrativeTimingLabel(precipEvent.start.time, offset)}`}${precipEvent.end ? `; easing ${narrativeTimingLabel(precipEvent.end.time, offset)}` : ""}. Rain chances up to ${Math.round(precipEvent.peakProb)}%.`,
           tag: "Rain"
         });
       }
