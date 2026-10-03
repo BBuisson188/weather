@@ -1,6 +1,9 @@
 # Weather App Handoff
 
 ## What changed
+- iPhone popup safety: main-page location, rainfall/source, and daily-detail overlays share a page scroll lock that preserves/restores the scroll position and stays locked until all overlays close. The ocean beach picker also locks/restores page scrolling. Location and beach-picker headers stay fixed while their content scrolls; button sizes are unchanged.
+- Daily tile animations stop the continuous frame loop when no tiles are in the visibility region and resume on return. Hidden-tab pauses preserve the observer; complete re-renders clean it up. These locally drawn graphics do not consume API/network bandwidth.
+- Hero titles own the weather condition and daypart. Supporting explanations add precipitation amount, precise clock time, easing time, temperatures, or practical impact rather than restating the title. This applies to Today, Tomorrow, and Next; forecast selection and API/cache behavior are unchanged.
 - Today/Tomorrow/Next hero text names the daypart before the clock time: "early Sunday morning, around midnight" versus "late Sunday night." Rain, storm, snow/ice, fog, wind, heat/cold, and supporting hazard-card wording follow this convention.
 - Midnight precipitation is described as continuing from the previous night only when the preceding forecast hour is wet; continuing storms also require storms in that preceding hour.
 - Rain recap now automatically fills saved-history gaps only when actually visible, with a six-hour collection cooldown per location, shared request locking, and a daily record allowance. The manual rainfall fill button was removed.
@@ -76,6 +79,8 @@
 - Follow the Testing and Publishing Workflow above for standing authorization and local-versus-live testing.
 
 ## Next Recommended Steps
+- User decision (phase three): keep current horizontal touch/scroll behavior exactly as-is. Consider vertical page swipes over horizontal strips only if the user later reports a problem; do not implement proactively.
+- User decision (phase three): no tap-area/button-size changes approved. Identify the exact controls and discuss before changing them; user currently finds them easy to tap.
 - Extract shared alert helpers if alert behavior needs to evolve on both `index.html` and `radar.html`.
 - Test the new hero section in-browser with a location that has active flood/severe alerts.
 - Verify mobile layout with 0, 1, and multiple alert cards.
@@ -91,5 +96,6 @@
 - `isContinuingMidnightPrecip()` checks tomorrow's midnight start against the preceding forecast hour; midnight alone is not evidence of carryover.
 - Offline hero wording checks: `node tests/hero-wording.cjs`. No live provider requests are made.
 - Offline location/cache checks: `node tests/location-cache.cjs`. Covers immediate/stale cache display, A/B/A switches, late failures, concurrent cache writes, request sharing, five-location eviction, and core-only refresh; no live provider requests.
+- Offline popup/animation checks: `node tests/iphone-ui.cjs`. No live provider requests; actual iPhone Safari/keyboard behavior still needs user verification.
 - Thunderstorm detection comes from normalized weather codes `95`, `96`, and `99`.
 - Keep edits targeted; this is a single-file app with tightly coupled UI/data logic.

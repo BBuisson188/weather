@@ -332,6 +332,9 @@
     .onboarding-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(3, 7, 14, 0.62); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 40; overflow-y: auto; overscroll-behavior: contain; }
     .onboarding-card { width: min(100%, 360px); max-height: calc(100dvh - 44px); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; background: linear-gradient(180deg, rgba(12, 22, 37, 0.98), rgba(9, 17, 30, 0.96)); border: 1px solid var(--line); border-radius: 26px; box-shadow: var(--shadow); padding: 18px; text-align: center; }
     .onboarding-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+    .onboarding-card { display: flex; flex-direction: column; overflow: hidden; }
+    .onboarding-top { flex-shrink: 0; }
+    .onboarding-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
     .onboarding-heading { flex: 1; min-width: 0; }
     .onboarding-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
     .onboarding-copy { color: var(--muted); font-size: 13px; line-height: 1.45; font-weight: 600; margin-bottom: 14px; }
@@ -538,6 +541,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
       </div>
+      <div class="onboarding-body">
       <div class="onboarding-actions">
         <button class="input-btn" id="startLocateBtn" type="button">Use My Location</button>
         <input class="onboarding-input" id="startZipInput" inputmode="search" placeholder="Enter city or ZIP" />
@@ -550,6 +554,7 @@
       <div class="recent-wrap hidden" id="recentWrap">
         <div class="recent-title">Recent Locations</div>
         <div class="recent-list" id="recentList"></div>
+      </div>
       </div>
     </div>
   </div>
@@ -761,8 +766,22 @@
     }
     function saveLocation(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); saveRecentLocation(data); updateRadarLink(data); hideOnboarding(); }
     function loadSavedLocation() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; } }
-    function showOnboarding(message = "") { if (!els.onboardingOverlay) return; renderRecentLocations(); clearSearchResults(); els.onboardingOverlay.classList.remove("hidden"); els.onboardingNote.textContent = message; }
-    function hideOnboarding() { if (!els.onboardingOverlay) return; els.onboardingOverlay.classList.add("hidden"); els.onboardingNote.textContent = ""; els.onboardingNote.style.color = ""; clearSearchResults(); }
+    let modalScrollPosition = null;
+    function syncModalScrollLock() {
+      const open = [els.onboardingOverlay, els.sourceOverlay, els.dailyDetailOverlay].some((overlay) => overlay && !overlay.classList.contains("hidden"));
+      document.body.classList.toggle("has-modal", open);
+      if (open && modalScrollPosition === null) {
+        modalScrollPosition = window.scrollY;
+        Object.assign(document.body.style, { position: "fixed", top: `-${modalScrollPosition}px`, left: "0", right: "0", width: "100%" });
+      } else if (!open && modalScrollPosition !== null) {
+        const scrollPosition = modalScrollPosition;
+        modalScrollPosition = null;
+        Object.assign(document.body.style, { position: "", top: "", left: "", right: "", width: "" });
+        window.scrollTo(0, scrollPosition);
+      }
+    }
+    function showOnboarding(message = "") { if (!els.onboardingOverlay) return; renderRecentLocations(); clearSearchResults(); els.onboardingOverlay.classList.remove("hidden"); els.onboardingNote.textContent = message; syncModalScrollLock(); }
+    function hideOnboarding() { if (!els.onboardingOverlay) return; els.onboardingOverlay.classList.add("hidden"); els.onboardingNote.textContent = ""; els.onboardingNote.style.color = ""; clearSearchResults(); syncModalScrollLock(); }
     function formatTemp(n) { return `${Math.round(n)}\u00B0`; }
     function formatHour(dateStr) { return new Date(dateStr).toLocaleTimeString([], { hour: "numeric" }); }
     function formatShortTime(dateLike) { return new Date(dateLike).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
@@ -789,9 +808,11 @@
       els.sourceActionBtn.dataset.hours = action?.hours || "";
       els.sourceActionNote.textContent = action?.note || "";
       els.sourceOverlay.classList.remove("hidden");
+      syncModalScrollLock();
     }
     function hideSourceDetail() {
       if (els.sourceOverlay) els.sourceOverlay.classList.add("hidden");
+      syncModalScrollLock();
     }
     function unavailableSource(title, source, reason) {
       return {
@@ -1833,6 +1854,15 @@
       if (total < 0.1) return "less than 0.1 inch expected";
       return `about ${formatRainAmount(total)} expected`;
     }
+    function narrativePrecipDetail(event, offset = null, continuing = false) {
+      const amount = narrativeRainExpectation(event.total);
+      const expectation = amount.charAt(0).toUpperCase() + amount.slice(1);
+      if (continuing) {
+        const stop = event.end ? ` Rain may ease ${narrativeTimingLabel(event.end.time, offset)}.` : "";
+        return `${expectation} during this window.${stop}`;
+      }
+      return `${expectation}, starting around ${narrativeClockLabel(event.start.time)}.`;
+    }
     function isContinuingMidnightPrecip(hourly, event, type = "rain") {
       if (!event || event.startIndex !== 0 || event.start.time.getHours() !== 0) return false;
       const priorTime = event.start.time.getTime() - 60 * 60 * 1000;
@@ -1860,51 +1890,49 @@
       const snowFirst = snowItems[0];
       const iceFirst = iceItems[0];
       if (iceFirst) {
-        return { title: "Icy weather possible", detail: `Freezing rain is possible ${narrativeTimingLabel(iceFirst.time, offset)}. Check roads before heading out.` };
+        return { title: "Icy weather possible", detail: `Slippery roads are a concern ${narrativeTimingLabel(iceFirst.time, offset)}. Check conditions before heading out.` };
       }
       if (snowFirst) {
         const snowTime = formatNarrativeWhen(snowFirst.time, offset, daily);
-        return { title: `Snow possible ${snowTime}`, detail: `Snow is possible ${narrativeTimingLabel(snowFirst.time, offset)}. High near ${Math.round(high)}°.` };
+        return { title: `Snow possible ${snowTime}`, detail: `The first window starts around ${narrativeClockLabel(snowFirst.time)}. High near ${Math.round(high)}°.` };
       }
       if (fogFirst && meaningfulPrecipEvent && precipEvent.start.time > fogFirst.time) {
         return { title: "Fog first, rain later", detail: `Fog is possible ${formatNarrativeWhen(fogFirst.time, offset, daily)}. Rain chances build ${narrativeTimingLabel(precipEvent.start.time, offset)}.` };
       }
       if (stormFirst) {
-        const total = meaningfulPrecipEvent ? narrativeRainExpectation(precipEvent.total) : "some rain possible";
+        const detail = meaningfulPrecipEvent ? narrativePrecipDetail(precipEvent, offset) : `Rain chances reach ${Math.round(stormFirst.prob)}%, with a high near ${Math.round(high)}°.`;
         const expected = stormFirst.prob >= 50 || precipEvent?.peakProb >= 60 || precipEvent?.total >= 0.1;
         const continuing = offset > 0 && isContinuingMidnightPrecip(hourly, precipEvent, "storms") && stormFirst.time.getTime() === precipEvent.start.time.getTime();
         if (continuing) {
-          const stop = precipEvent.end ? ` Rain may ease ${narrativeTimingLabel(precipEvent.end.time, offset)}.` : "";
           return {
             title: `Storms continuing ${formatNarrativeWhen(stormFirst.time, offset, daily)}`,
-            detail: `Storms carry over from the previous night into ${formatNarrativeWhen(stormFirst.time, offset, daily)}, with ${total}.${stop}`
+            detail: narrativePrecipDetail(precipEvent, offset, true)
           };
         }
         return {
           title: `Thunderstorms ${expected ? "expected" : "possible"} ${formatNarrativeWhen(stormFirst.time, offset, daily)}`,
-          detail: `Storms are possible ${narrativeTimingLabel(stormFirst.time, offset)}, with ${total}.`
+          detail
         };
       }
       if (meaningfulPrecipEvent) {
         const when = formatNarrativeWhen(precipEvent.start.time, offset, daily);
-        const total = narrativeRainExpectation(precipEvent.total);
+        const detail = narrativePrecipDetail(precipEvent, offset);
         const type = precipTypeLabel(precipEvent.code);
         const continuing = offset > 0 && isContinuingMidnightPrecip(hourly, precipEvent);
         if (continuing) {
-          const stop = precipEvent.end ? ` Rain may ease ${narrativeTimingLabel(precipEvent.end.time, offset)}.` : "";
           const label = type === "storms" ? "Storms" : type === "snow" ? "Snow" : type === "ice" ? "Ice" : "Rain";
-          return { title: `${label} continuing ${when}`, detail: `${label} carries over from the previous night into ${when}, with ${total}.${stop}` };
+          return { title: `${label} continuing ${when}`, detail: narrativePrecipDetail(precipEvent, offset, true) };
         }
-        if (precipEvent.total >= 0.5 || precipEvent.peakProb >= 75) return { title: `Rain likely ${when}`, detail: `Rain is likely ${narrativeTimingLabel(precipEvent.start.time, offset)}, with ${total}.` };
-        if (precipEvent.total >= 0.1 || precipEvent.peakProb >= 45) return { title: `Showers possible ${when}`, detail: `Showers are possible ${narrativeTimingLabel(precipEvent.start.time, offset)}, with ${total}.` };
-        return { title: `Small rain chance ${when}`, detail: `Light rain is possible ${narrativeTimingLabel(precipEvent.start.time, offset)}. Little accumulation is expected.` };
+        if (precipEvent.total >= 0.5 || precipEvent.peakProb >= 75) return { title: `Rain likely ${when}`, detail };
+        if (precipEvent.total >= 0.1 || precipEvent.peakProb >= 45) return { title: `Showers possible ${when}`, detail };
+        return { title: `Small rain chance ${when}`, detail };
       }
-      if (fogFirst) return { title: `Fog possible ${formatNarrativeWhen(fogFirst.time, offset, daily)}`, detail: `Fog may reduce visibility ${narrativeTimingLabel(fogFirst.time, offset)}. Otherwise ${sky}, with a high near ${Math.round(high)}°.` };
+      if (fogFirst) return { title: `Fog possible ${formatNarrativeWhen(fogFirst.time, offset, daily)}`, detail: `Visibility may be reduced. Otherwise ${sky}, with a high near ${Math.round(high)}°.` };
       if (maxRainChance >= 15) return { title: "Small rain chance", detail: `Most of ${dayWord} looks dry, but a slight chance shows up in the forecast.` };
       if (maxWind >= 30) return { title: `Gusty and ${sky}`, detail: `Gusts may reach around ${Math.round(maxWind)} mph with temperatures from about ${Math.round(low)}° to ${Math.round(high)}°.` };
       if (Number.isFinite(high) && high >= 92) return { title: `Hot and ${sky}`, detail: `Highs should reach the low to mid ${Math.round(high / 5) * 5}s, with temperatures starting near ${Math.round(low)}°.` };
       if (Number.isFinite(low) && low <= 35) return { title: `Cold start, ${sky} later`, detail: `Lows near ${Math.round(low)}° with highs near ${Math.round(high)}°.` };
-      if (sky === "cloudy") return { title: "Cloudy but dry", detail: `Rain does not look likely; temperatures run from about ${Math.round(low)}° to ${Math.round(high)}°.` };
+      if (sky === "cloudy") return { title: "Cloudy but dry", detail: `Temperatures run from about ${Math.round(low)}° to ${Math.round(high)}°.` };
       if (sky === "partly cloudy") return { title: "Partly cloudy skies", detail: `Temperatures run from about ${Math.round(low)}° to ${Math.round(high)}°.` };
       return { title: "Clear skies", detail: `Temperatures run from about ${Math.round(low)}° to ${Math.round(high)}°.` };
     }
@@ -1942,30 +1970,29 @@
     function summarizeFutureSignificantEvent(event) {
       const type = precipTypeLabel(event.code);
       const when = futureEventWhenLabel(event.start.time);
-      const amount = narrativeRainExpectation(event.total);
       const label = titleCaseWeatherType(type);
       if (type === "storms") {
         const likely = event.peakProb >= 55 || event.total >= 0.1;
         return {
           title: `${likely ? "Thunderstorms likely" : "Chance of thunderstorms"} ${when}`,
-          detail: `Thunderstorms are ${likely ? "likely" : "possible"} ${narrativeTimingLabel(event.start.time)}, with rain chances up to ${Math.round(event.peakProb)}%.`
+          detail: `${narrativePrecipDetail(event)} Rain chances peak near ${Math.round(event.peakProb)}%.`
         };
       }
       if (type === "snow" || type === "ice") {
         return {
           title: `${label} possible ${when}`,
-          detail: `${label} is possible ${narrativeTimingLabel(event.start.time)}. Timing may shift as the day gets closer.`
+          detail: `The first window starts around ${narrativeClockLabel(event.start.time)}. Timing may shift as the day gets closer.`
         };
       }
       if (event.peakProb >= 60 || event.total >= 0.1) {
         return {
           title: `Rain likely ${when}`,
-          detail: `Rain is likely ${narrativeTimingLabel(event.start.time)}, with ${amount}.`
+          detail: narrativePrecipDetail(event)
         };
       }
       return {
         title: `Chance of rain ${when}`,
-        detail: `Rain is possible ${narrativeTimingLabel(event.start.time)}, with ${amount}.`
+        detail: narrativePrecipDetail(event)
       };
     }
     function summarizeFutureSignificantDay(items) {
@@ -1990,28 +2017,28 @@
       if (fog) {
         return {
           title: `Fog possible ${futureEventWhenLabel(fog.time)}`,
-          detail: `Fog may reduce visibility ${narrativeTimingLabel(fog.time)}.`
+          detail: "Visibility may be reduced. Allow extra time if traveling."
         };
       }
       if (maxWind >= 30) {
         const wind = items.reduce((best, item) => Math.max(item.wind, item.gust) > Math.max(best.wind, best.gust) ? item : best, items[0]);
         return {
           title: `Gusty ${futureEventWhenLabel(wind.time)}`,
-          detail: `Wind may be strongest ${narrativeTimingLabel(wind.time)}, with gusts near ${Math.round(Math.max(wind.wind, wind.gust))} mph.`
+          detail: `Gusts may reach ${Math.round(Math.max(wind.wind, wind.gust))} mph. Secure loose outdoor items.`
         };
       }
       if (Number.isFinite(high) && high >= 92) {
         const hot = items.find((item) => item.temp === high) || items[0];
         return {
           title: `Hot ${futureEventWhenLabel(hot.time)}`,
-          detail: `Temperatures may reach ${Math.round(high)}° ${narrativeTimingLabel(hot.time)}.`
+          detail: `Temperatures may reach ${Math.round(high)}°. Plan for shade and water if spending time outside.`
         };
       }
       if (Number.isFinite(low) && low <= 35) {
         const cold = items.find((item) => item.temp === low) || items[0];
         return {
           title: `Cold ${futureEventWhenLabel(cold.time)}`,
-          detail: `Temperatures may fall to ${Math.round(low)}° ${narrativeTimingLabel(cold.time)}.`
+          detail: `Temperatures may fall to ${Math.round(low)}°. Dress warmly if heading out.`
         };
       }
       return null;
@@ -2713,12 +2740,14 @@
     function stopDailyOutlookAnimations(clearScenes = true) {
       if (dailyOutlookAnimationState.frame) cancelAnimationFrame(dailyOutlookAnimationState.frame);
       dailyOutlookAnimationState.frame = 0;
-      dailyOutlookAnimationState.observer?.disconnect();
-      dailyOutlookAnimationState.observer = null;
-      if (clearScenes) dailyOutlookAnimationState.scenes = [];
+      if (clearScenes) {
+        dailyOutlookAnimationState.observer?.disconnect();
+        dailyOutlookAnimationState.observer = null;
+        dailyOutlookAnimationState.scenes = [];
+      }
     }
     function runDailyOutlookAnimations(now) {
-      if (document.hidden || dailyOutlookAnimationState.reducedMotion) {
+      if (document.hidden || dailyOutlookAnimationState.reducedMotion || !dailyOutlookAnimationState.scenes.some((scene) => scene.visible)) {
         dailyOutlookAnimationState.frame = 0;
         return;
       }
@@ -2726,7 +2755,7 @@
       dailyOutlookAnimationState.frame = requestAnimationFrame(runDailyOutlookAnimations);
     }
     function startDailyOutlookAnimationLoop() {
-      if (dailyOutlookAnimationState.frame || document.hidden || dailyOutlookAnimationState.reducedMotion || !dailyOutlookAnimationState.scenes.length) return;
+      if (dailyOutlookAnimationState.frame || document.hidden || dailyOutlookAnimationState.reducedMotion || !dailyOutlookAnimationState.scenes.some((scene) => scene.visible)) return;
       dailyOutlookAnimationState.frame = requestAnimationFrame(runDailyOutlookAnimations);
     }
     function initDailyOutlookAnimations() {
@@ -2739,12 +2768,13 @@
             const scene = dailyOutlookAnimationState.scenes.find((item) => item.canvas === entry.target);
             if (scene) scene.visible = entry.isIntersecting;
           });
+          startDailyOutlookAnimationLoop();
         }, { rootMargin: "120px" });
       }
       canvases.forEach((canvas, index) => {
         const random = dailyAnimationRandom(dailyAnimationHash(`${canvas.dataset.weather}-${index}`));
         const particles = Array.from({ length: 66 }, () => ({ x: random(), y: random(), size: 0.45 + random() * 2.2, speed: 0.15 + random() * 0.9, alpha: 0.25 + random() * 0.65, phase: random() * Math.PI * 2 }));
-        const scene = { canvas, ctx: canvas.getContext("2d"), weather: canvas.dataset.weather || "clear", particles, visible: true };
+        const scene = { canvas, ctx: canvas.getContext("2d"), weather: canvas.dataset.weather || "clear", particles, visible: !dailyOutlookAnimationState.observer };
         dailyOutlookAnimationState.scenes.push(scene);
         dailyOutlookAnimationState.observer?.observe(canvas);
       });
@@ -2793,13 +2823,13 @@
       els.dailyDetailMeta.innerHTML = `<span>${escapeHtml(sourceText)}</span><span>Updated ${escapeHtml(updatedLabel)}</span>`;
       dailyDetailReturnFocus = trigger || document.activeElement;
       els.dailyDetailOverlay.classList.remove("hidden");
-      document.body.classList.add("has-modal");
+      syncModalScrollLock();
       els.dailyDetailCloseBtn.focus();
     }
     function hideDailyDetail() {
       if (!els.dailyDetailOverlay || els.dailyDetailOverlay.classList.contains("hidden")) return;
       els.dailyDetailOverlay.classList.add("hidden");
-      document.body.classList.remove("has-modal");
+      syncModalScrollLock();
       dailyDetailReturnFocus?.focus?.();
       dailyDetailReturnFocus = null;
     }

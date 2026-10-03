@@ -194,6 +194,11 @@
     .modal-title { font-size: 20px; font-weight: 850; letter-spacing: -0.02em; margin-bottom: 5px; }
     .modal-copy { color: var(--muted); font-size: 13px; line-height: 1.45; font-weight: 650; }
     .modal-close { width: 32px; min-width: 32px; height: 32px; padding: 0; }
+    .overlay { padding-top: max(22px, env(safe-area-inset-top)); padding-bottom: max(22px, env(safe-area-inset-bottom)); }
+    .modal { max-height: min(calc(100dvh - 44px), 720px); display: flex; flex-direction: column; overflow: hidden; }
+    .modal-top { flex-shrink: 0; }
+    .modal-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+    body.has-modal { overflow: hidden; }
     .search-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
     .modal-actions { display: grid; gap: 10px; margin-top: 10px; }
     .results { display: grid; gap: 8px; margin-top: 12px; }
@@ -273,6 +278,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
       </div>
+      <div class="modal-body">
       <div class="search-row">
         <input id="beachSearchInput" placeholder="Search beach or place" />
         <button class="input-btn" id="searchBeachBtn" type="button">Search</button>
@@ -288,6 +294,7 @@
         <button class="input-btn" id="saveBeachBtn" type="button">Save Beach</button>
       </div>
       <div class="status" id="modalStatus"></div>
+      </div>
     </div>
   </div>
 
@@ -324,6 +331,20 @@
       els.modalStatus.textContent = message || "";
       els.modalStatus.className = `status ${type}`.trim();
     }
+    let overlayScrollPosition = null;
+    function syncOverlayScrollLock() {
+      const open = !els.beachOverlay.classList.contains("hidden");
+      document.body.classList.toggle("has-modal", open);
+      if (open && overlayScrollPosition === null) {
+        overlayScrollPosition = window.scrollY;
+        Object.assign(document.body.style, { position: "fixed", top: `-${overlayScrollPosition}px`, left: "0", right: "0", width: "100%" });
+      } else if (!open && overlayScrollPosition !== null) {
+        const scrollPosition = overlayScrollPosition;
+        overlayScrollPosition = null;
+        Object.assign(document.body.style, { position: "", top: "", left: "", right: "", width: "" });
+        window.scrollTo(0, scrollPosition);
+      }
+    }
     function showOverlay(message = "") {
       selectedBeach = null;
       els.beachSearchInput.value = "";
@@ -333,10 +354,12 @@
       els.sourcePreview.textContent = "";
       setModalStatus(message);
       els.beachOverlay.classList.remove("hidden");
+      syncOverlayScrollLock();
       setTimeout(() => els.beachSearchInput.focus(), 40);
     }
     function hideOverlay() {
       els.beachOverlay.classList.add("hidden");
+      syncOverlayScrollLock();
     }
     function placeLabel(item) {
       return [item.admin1, item.country].filter(Boolean).join(", ");
