@@ -10,7 +10,7 @@
 - Active NWS alerts now appear as formatted items below the hero narrative, prioritized by severity.
 - Added support for Flood Watch, Flash Flood Warning, Severe Thunderstorm Watch/Warning, Tornado Watch/Warning, general warnings, watches, and advisories.
 - Added forecast hazard items for thunderstorms, heavier rain windows, and gusty periods.
-- Fixed tomorrow/midnight wording: rain or storms at `12 AM` are treated as continuing from the prior day, with taper/stop timing when available.
+- Fixed tomorrow/midnight wording: early-morning rain is clearly distinguished from late-night rain, with carryover described only when the preceding forecast hour supports it.
 - Added HTML escaping for source-detail rows and today-option rendering.
 - Replaced the Next 12 Hours strip with a compact 15-day daily outlook beginning tomorrow.
 - Daily outlook tiles are now buttons that open a scrollable, mobile-safe forecast detail sheet with a plain-English summary, precipitation timing, amount, wind, and forecast source.
@@ -34,9 +34,13 @@
 - Daily outlook source order is Google for days 1-9, Visual Crossing for days 10-14, and Open-Meteo for day 15, with per-day fallback where available.
 
 ## Cache and Provider Policy
+- Phase two: switching locations immediately restores only that location's cached core forecast, same-calendar-day daily tiles, and recap. Uncached locations show placeholders, never the previous location's weather. Saved forecasts remain visible while updating, with a small update/status line in the hero.
+- Every screen load has a request guard, and every location view has its own generation. Late successes/failures cannot change a different view, including rapid A → B → A switches. In-flight core, daily, pollen, and history requests are shared per location; completed cache writes merge with the latest storage map so concurrent locations cannot overwrite one another.
+- Pending responses for evicted locations cannot resurrect core/daily/pollen/history caches. Rain collection skips queued evicted locations and prunes all location caches again after completion.
+- NWS alerts are checked on each location load/refresh and are not persistently cached. Core weather renders without waiting for NWS; a failed alert check is marked unavailable rather than reported as no active alerts.
 - All location-specific caches retain only the five locations shown in Recent Locations; adding a sixth evicts the oldest location and its cached data.
 - Current conditions and the detailed 10-day graph share one forecast response cached for 30 minutes.
-- The top Refresh button refreshes that core forecast, with a two-minute guard against repeated network requests; it does not invalidate the daily-outlook cache.
+- The top Refresh button refreshes only the selected location's core forecast, with a two-minute guard against repeated network requests; it does not launch daily-outlook or quick-recap downloads or clear any other location's cache. It is disabled while that core request is pending.
 - The 15-day daily outlook is cached for six hours and is invalidated when the local calendar day changes.
 - Opening a daily detail sheet never makes a network request; it reads compact detail already stored with the daily-outlook cache.
 - Google hourly detail is limited to the first 96 forecast hours (four 24-record pages) and is used only for days 1-3. Google day/night summaries cover later Google days. Visual Crossing and Open-Meteo detail reuses their already-downloaded hourly data.
@@ -54,13 +58,22 @@
 - NWS alerts are intentionally not persistently cached.
 - These caches live in browser `localStorage`; clearing site data or using another browser/device starts a separate history.
 
+## Testing and Publishing Workflow (User Preference)
+- Beau tests Google API behavior on the live GitHub Pages site; local Google API testing is not useful for his setup.
+- When implementing requested changes that affect Google API requests or depend on Google data to verify, perform offline checks (syntax checks and mocked tests), then commit and push directly to GitHub `main` for live testing. This is standing user authorization for that workflow; do not stop to request another publishing confirmation.
+- Do not make live Google API calls locally just to test a change. Keep checks quota-free whenever possible.
+- Purely visual UI changes can be previewed and tested locally first. Publish them when the user requests it; the Google-dependent publishing rule does not automatically apply to visual-only changes.
+- Mixed UI and Google API changes follow the live-testing workflow after offline validation.
+- Publish to the main site, not a PR or separate GitHub testing environment. Verify GitHub Pages deployment and report any deployment failure.
+- These preferences apply to implementing requested changes; review-only requests remain read-only.
+
 ## Unresolved Issues
 - Main page and radar page duplicate some NWS alert logic; they could drift over time.
 - Weather alert cards show active alerts for today only; tomorrow view remains forecast-only.
 - Alert cards are concise and do not show the full NWS headline unless it is used as fallback text.
 - No automated browser/UI regression test exists; offline rainfall integration checks are available with `node tests/rain-history.cjs` from the repo folder (fake responses only, no quota usage).
 - No bundled build step or package manager; validation is mostly syntax checks and manual browser testing.
-- GitHub publishing should avoid local `git push` unless explicitly requested by the user.
+- Follow the Testing and Publishing Workflow above for standing authorization and local-versus-live testing.
 
 ## Next Recommended Steps
 - Extract shared alert helpers if alert behavior needs to evolve on both `index.html` and `radar.html`.
@@ -77,5 +90,6 @@
 - `buildNextPrecipEvent()` now returns `start`, `end`, `startIndex`, `endIndex`, and `lastActiveIndex`.
 - `isContinuingMidnightPrecip()` checks tomorrow's midnight start against the preceding forecast hour; midnight alone is not evidence of carryover.
 - Offline hero wording checks: `node tests/hero-wording.cjs`. No live provider requests are made.
+- Offline location/cache checks: `node tests/location-cache.cjs`. Covers immediate/stale cache display, A/B/A switches, late failures, concurrent cache writes, request sharing, five-location eviction, and core-only refresh; no live provider requests.
 - Thunderstorm detection comes from normalized weather codes `95`, `96`, and `99`.
 - Keep edits targeted; this is a single-file app with tightly coupled UI/data logic.

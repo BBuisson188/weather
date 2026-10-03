@@ -189,6 +189,7 @@
     .weather-glyph { width: 32px; height: 32px; flex-shrink: 0; }
     .current-temp { font-size: clamp(64px, 18vw, 84px); line-height: 0.9; letter-spacing: -0.07em; font-weight: 800; text-shadow: 0 0 22px rgba(125, 174, 255, 0.08); }
     .current-tools { display: inline-flex; align-items: center; gap: 10px; padding: 2px 0; }
+    .forecast-status { color: var(--muted); font-size: 11px; min-height: 14px; margin: 3px 0 0; }
     .condition { font-size: 16px; color: var(--muted); font-weight: 600; letter-spacing: -0.01em; }
     .precip-line {
       margin-top: 8px;
@@ -434,6 +435,7 @@
             </button>
           </div>
         </div>
+        <div class="forecast-status" id="forecastStatus" role="status" aria-live="polite"></div>
         <div class="temp-block">
           <div class="current-row">
             <div id="currentGlyph" class="weather-glyph"></div>
@@ -599,7 +601,7 @@
       highValue: $("highValue"), highSub: $("highSub"), lowValue: $("lowValue"), lowSub: $("lowSub"),
       rainLine: $("rainLine"), todayOptions: $("todayOptions"), lightLine: $("lightLine"), dailyStrip: $("dailyStrip"), dailyOutlookSection: $("dailyOutlookSection"), quickRecapSection: $("quickRecapSection"), outlookChart: $("outlookChart"), outlookShell: $("outlookShell"), outlookLegend: $("outlookLegend"),
       rain24: $("rain24"), rain3d: $("rain3d"), rain7d: $("rain7d"), freezeHours: $("freezeHours"),
-      locateBtn: $("locateBtn"), refreshBtn: $("refreshBtn"), radarLink: $("radarLink"), longRangeLink: $("longRangeLink"),
+      locateBtn: $("locateBtn"), refreshBtn: $("refreshBtn"), forecastStatus: $("forecastStatus"), radarLink: $("radarLink"), longRangeLink: $("longRangeLink"),
       sourceOverlay: $("sourceOverlay"), sourceTitle: $("sourceTitle"), sourceCopy: $("sourceCopy"), sourceRows: $("sourceRows"), sourceCloseBtn: $("sourceCloseBtn"), sourceActionBtn: $("sourceActionBtn"), sourceActionNote: $("sourceActionNote"), sourceOkBtn: $("sourceOkBtn"),
       dailyDetailOverlay: $("dailyDetailOverlay"), dailyDetailDate: $("dailyDetailDate"), dailyDetailTitle: $("dailyDetailTitle"), dailyDetailCopy: $("dailyDetailCopy"), dailyDetailGrid: $("dailyDetailGrid"), dailyDetailChange: $("dailyDetailChange"), dailyDetailChangeCopy: $("dailyDetailChangeCopy"), dailyDetailMeta: $("dailyDetailMeta"), dailyDetailCloseBtn: $("dailyDetailCloseBtn"),
       onboardingOverlay: $("onboardingOverlay"), startLocateBtn: $("startLocateBtn"), startZipInput: $("startZipInput"), onboardingNote: $("onboardingNote"),
@@ -634,6 +636,9 @@
     const METERS_PER_MILE = 1609.344;
     const MM_PER_INCH = 25.4;
     let activeLocation = null;
+    let weatherLoadSequence = 0;
+    let locationViewSequence = 0;
+    const locationRequests = new Map();
     let outlookInteraction = null;
     let latestOutlookData = null;
     let latestSourceDetails = {};
@@ -695,6 +700,25 @@
     }
     function saveStorageMap(key, value) {
       try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+    }
+    function saveLocationCacheEntry(storageKey, locationKey, entry) {
+      const recent = loadRecentLocations();
+      if (recent.length && !recent.some((item) => googleRainLocationKey(item.lat, item.lon) === locationKey)) return;
+      saveStorageMap(storageKey, { ...loadStorageMap(storageKey), [locationKey]: entry });
+    }
+    function sharedLocationRequest(kind, lat, lon, load) {
+      const key = kind + ":" + googleRainLocationKey(lat, lon);
+      if (locationRequests.has(key)) return locationRequests.get(key);
+      const pending = Promise.resolve().then(load);
+      locationRequests.set(key, pending);
+      const cleanup = () => { if (locationRequests.get(key) === pending) locationRequests.delete(key); };
+      pending.then(cleanup, cleanup);
+      return pending;
+    }
+    function setForecastStatus(message, busy = false) {
+      els.forecastStatus.textContent = message;
+      els.refreshBtn.disabled = busy;
+      els.refreshBtn.setAttribute("aria-busy", String(busy));
     }
     function pruneLocationCaches(recent) {
       const keep = new Set((recent || []).slice(0, CACHE_LOCATION_LIMIT).map((item) => googleRainLocationKey(item.lat, item.lon)));
@@ -900,7 +924,10 @@
       data.source = "open-meteo";
       return data;
     }
-    async function getForecast(lat, lon, forceFresh = false) {
+    function getForecast(lat, lon, forceFresh = false) {
+      return sharedLocationRequest("core", lat, lon, () => fetchCoreForecast(lat, lon, forceFresh));
+    }
+    async function fetchCoreForecast(lat, lon, forceFresh = false) {
       const now = new Date();
       const cache = loadStorageMap(FORECAST_CACHE_KEY);
       const locationKey = googleRainLocationKey(lat, lon);
@@ -908,7 +935,7 @@
       const age = now.getTime() - new Date(cached?.updatedAt || 0).getTime();
       const freshEnough = age >= 0 && age < CORE_FORECAST_TTL_MS;
       const guardedRefresh = forceFresh && age >= 0 && age < MANUAL_REFRESH_GUARD_MS;
-      if (cached?.value && ((!forceFresh && freshEnough) || guardedRefresh)) return cached.value;
+      if (cached?.value && ((!forceFresh && freshEnough) || guardedRefresh)) return { ...cached.value, forecastUpdatedAt: cached.updatedAt };
       try {
         let value;
         try {
@@ -917,11 +944,11 @@
           console.warn(error);
           value = await getOpenMeteoForecast(lat, lon);
         }
-        cache[locationKey] = { value, updatedAt: now.toISOString() };
-        saveStorageMap(FORECAST_CACHE_KEY, cache);
-        return value;
+        const updatedAt = new Date().toISOString();
+        saveLocationCacheEntry(FORECAST_CACHE_KEY, locationKey, { value, updatedAt });
+        return { ...value, forecastUpdatedAt: updatedAt };
       } catch (error) {
-        if (cached?.value) return { ...cached.value, stale: true };
+        if (cached?.value) return { ...cached.value, stale: true, forecastUpdatedAt: cached.updatedAt };
         throw error;
       }
     }
@@ -1052,7 +1079,10 @@
       return GOOGLE_POLLEN_API_KEY || localStorage.getItem(POLLEN_API_KEY_STORAGE) || "";
     }
     function weatherApiKey() { return GOOGLE_WEATHER_API_KEY || pollenApiKey(); }
-    async function getPollenForecast(lat, lon) {
+    function getPollenForecast(lat, lon) {
+      return sharedLocationRequest("pollen", lat, lon, () => fetchPollenForecast(lat, lon));
+    }
+    async function fetchPollenForecast(lat, lon) {
       const key = pollenApiKey();
       if (!key) return { status: "not-configured", message: "No Google Pollen API key is configured." };
       const now = new Date();
@@ -1068,8 +1098,7 @@
         const res = await fetch(`https://pollen.googleapis.com/v1/forecast:lookup?${params.toString()}`);
         if (res.ok === false) throw await providerResponseError(res, "Google Pollen");
         const value = summarizePollen(await res.json());
-        cache[locationKey] = { value, updatedAt: now.toISOString() };
-        saveStorageMap(POLLEN_CACHE_KEY, cache);
+        saveLocationCacheEntry(POLLEN_CACHE_KEY, locationKey, { value, updatedAt: now.toISOString() });
         return value;
       } catch (error) {
         if (cached?.value) return { ...cached.value, stale: true };
@@ -1140,7 +1169,10 @@
     function saveVisualCrossingHistoryCache(cache) {
       try { localStorage.setItem(VISUAL_CROSSING_HISTORY_CACHE_KEY, JSON.stringify(cache)); } catch {}
     }
-    async function getVisualCrossingHistory(lat, lon) {
+    function getVisualCrossingHistory(lat, lon) {
+      return sharedLocationRequest("history", lat, lon, () => fetchVisualCrossingHistory(lat, lon));
+    }
+    async function fetchVisualCrossingHistory(lat, lon) {
       if (!VISUAL_CROSSING_API_KEY) throw new Error("Visual Crossing key missing");
       const today = new Date();
       const cache = loadVisualCrossingHistoryCache();
@@ -1154,8 +1186,7 @@
       const res = await fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(visualCrossingLocation(lat, lon))}/${ymd(start)}/${ymd(today)}?${params.toString()}`);
       if (res.ok === false) throw await providerResponseError(res, "Visual Crossing history");
       const result = normalizeVisualCrossingHistory(await res.json());
-      cache[locationKey] = { value: result, updatedAt: today.toISOString() };
-      saveVisualCrossingHistoryCache(cache);
+      saveLocationCacheEntry(VISUAL_CROSSING_HISTORY_CACHE_KEY, locationKey, { value: result, updatedAt: today.toISOString() });
       return result;
     }
     function milesFromMeters(value) {
@@ -1594,6 +1625,10 @@
       const now = new Date();
       pruneRainHistory(now);
       const locationKey = googleRainLocationKey(lat, lon);
+      const recent = loadRecentLocations();
+      if (recent.length && !recent.some((item) => googleRainLocationKey(item.lat, item.lon) === locationKey)) {
+        return summarizeSavedRain(lat, lon, { rainAsOf: now.toISOString(), rainCollectionNote: "Location is no longer in Recent Locations; downloads skipped." });
+      }
       const collection = loadStorageMap(RAIN_COLLECTION_CACHE_KEY)[locationKey];
       const age = now.getTime() - new Date(collection?.attemptedAt || 0).getTime();
       if (age >= 0 && age < RAIN_COLLECTION_TTL_MS) {
@@ -1640,6 +1675,8 @@
       const cache = loadStorageMap(RAIN_COLLECTION_CACHE_KEY);
       cache[locationKey] = { attemptedAt: now.toISOString(), rainAsOf: summary.rainAsOf, value: { ...summary, googleRainRecords: undefined } };
       saveStorageMap(RAIN_COLLECTION_CACHE_KEY, cache);
+      const retained = loadRecentLocations();
+      if (retained.length) pruneLocationCaches(retained);
       return summary;
     }
     function summarizeSavedRain(lat, lon, metadata = {}) {
@@ -2392,7 +2429,10 @@
       if (Math.abs(temperatureChange) >= 3) return `The forecast high moved ${temperatureChange > 0 ? "warmer" : "cooler"} from ${Math.round(previous.high)}° to ${Math.round(item.high)}°.`;
       return "No meaningful change since the previous saved outlook.";
     }
-    async function getDailyOutlook(lat, lon, coreForecast) {
+    function getDailyOutlook(lat, lon, coreForecast) {
+      return sharedLocationRequest("daily", lat, lon, () => fetchDailyOutlook(lat, lon, coreForecast));
+    }
+    async function fetchDailyOutlook(lat, lon, coreForecast) {
       const now = new Date();
       const todayKey = localDateKey(now);
       const cache = loadStorageMap(DAILY_OUTLOOK_CACHE_KEY);
@@ -2436,11 +2476,10 @@
         value.push(nextItem);
       }
       if (value.some((item) => Number.isFinite(item.high))) {
-        cache[locationKey] = { value, updatedAt: now.toISOString(), localDate: todayKey, detailVersion: 1 };
-        saveStorageMap(DAILY_OUTLOOK_CACHE_KEY, cache);
+        saveLocationCacheEntry(DAILY_OUTLOOK_CACHE_KEY, locationKey, { value, updatedAt: now.toISOString(), localDate: todayKey, detailVersion: 1 });
         return value;
       }
-      if (cached?.value) return cached.value;
+      if (cached?.value && cached.localDate === todayKey) return cached.value;
       return value;
     }
     const dailyOutlookAnimationState = {
@@ -3185,8 +3224,9 @@
       const loadKey = locationKey + ":" + Math.floor(Date.now() / RAIN_COLLECTION_TTL_MS);
       if (recapLoadKey === loadKey) return;
       recapLoadKey = loadKey;
-      const isCurrent = () => activeLocationMatches(location) && recapLoadKey === loadKey;
-      recapState = { observedRain: null, pollen: { status: "loading" }, rainLoading: true };
+      const viewSequence = locationViewSequence;
+      const isCurrent = () => viewSequence === locationViewSequence && activeLocationMatches(location) && recapLoadKey === loadKey;
+      recapState = { observedRain: recapState.observedRain, pollen: recapState.pollen?.status === "idle" ? { status: "loading" } : recapState.pollen, rainLoading: !recapState.observedRain };
       renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, recapState.rainLoading);
       getHistory(location.lat, location.lon).then((history) => {
         if (!isCurrent()) return;
@@ -3220,53 +3260,81 @@
       if (rect && rect.top < window.innerHeight && rect.bottom > 0) loadSupplementalData();
     }
     async function loadWeather(location, forceFresh = false) {
+      if (!Number.isFinite(location?.lat) || !Number.isFinite(location?.lon)) { setStatus("Use your location or enter a ZIP to get started."); showOnboarding(); return; }
+      const requestSequence = ++weatherLoadSequence;
+      const isCurrent = () => requestSequence === weatherLoadSequence && activeLocationMatches(location);
       try {
-        if (!location?.lat || !location?.lon) { setStatus("Use your location or enter a ZIP to get started."); showOnboarding(); return; }
         const previousKey = activeLocation ? googleRainLocationKey(activeLocation.lat, activeLocation.lon) : "";
         const nextKey = googleRainLocationKey(location.lat, location.lon);
         if (previousKey !== nextKey) {
+          locationViewSequence++;
           recapLoadKey = "";
-          recapState = { observedRain: null, pollen: { status: "idle", message: "Pollen loads when this section is viewed." }, rainLoading: false };
-          latestHistoryData = null;
+          latestForecastData = null;
+          latestOutlookData = null;
+          latestAlertsData = null;
+          latestSourceDetails = {};
+          outlookInteraction = null;
+          narrativeDayOffset = null;
+          hideSourceDetail();
+          seedDemo();
+          els.currentGlyph.innerHTML = "";
+          els.highSub.textContent = "";
+          els.lowSub.textContent = "";
+          els.outlookChart.innerHTML = "";
+          els.outlookShell.querySelectorAll('.outlook-axis-label,.outlook-day-overlay,.outlook-readout').forEach((el) => el.remove());
+          latestHistoryData = loadStorageMap(VISUAL_CROSSING_HISTORY_CACHE_KEY)[nextKey]?.value || null;
+          recapState = {
+            observedRain: loadStorageMap(RAIN_COLLECTION_CACHE_KEY)[nextKey]?.value || null,
+            pollen: loadStorageMap(POLLEN_CACHE_KEY)[nextKey]?.value || { status: "idle", message: "Pollen loads when this section is viewed." },
+            rainLoading: false
+          };
           latestDailyOutlookItems = [];
           hideDailyDetail();
-          stopDailyOutlookAnimations(); els.dailyStrip.innerHTML = Array.from({ length: 6 }, () => `<div class="day-card"><div class="day-name">---</div><div class="day-icon">${glyph(1, true, 26)}</div><div class="day-temp">--/--</div><div class="day-rain">--%</div></div>`).join("");
+          const savedDaily = loadStorageMap(DAILY_OUTLOOK_CACHE_KEY)[nextKey];
+          if (savedDaily?.detailVersion === 1 && savedDaily.localDate === localDateKey(new Date()) && savedDaily.value) renderDailyOutlook(savedDaily.value);
         }
         activeLocation = location;
         updateRadarLink(location);
         setStatus(forceFresh ? "Refreshing weather…" : "Updating weather…");
         els.placeName.textContent = location.label || "Loading…";
-        latestAlertsData = null;
-        const [forecast, alerts] = await Promise.all([
-          getForecast(location.lat, location.lon, forceFresh),
-          getWeatherAlerts(location.lat, location.lon).catch((error) => {
-            console.warn(error);
-            return [];
-          })
-        ]);
-        if (!activeLocationMatches(location)) return;
-        latestAlertsData = alerts;
+        const savedCore = loadStorageMap(FORECAST_CACHE_KEY)[nextKey];
+        if (previousKey !== nextKey && savedCore?.value) renderForecast(savedCore.value, location.label);
+        if (!latestForecastData) els.currentCondition.textContent = "Loading weather…";
+        setForecastStatus(savedCore?.value ? "Updating… · Showing saved forecast" : "Updating…", true);
+        renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, recapState.rainLoading);
+        sharedLocationRequest("alerts", location.lat, location.lon, () => getWeatherAlerts(location.lat, location.lon)).then((alerts) => {
+          if (!isCurrent()) return;
+          latestAlertsData = alerts;
+          latestSourceDetails.alerts = alerts.length ? {
+            title: "NWS alerts", copy: "Active watches, warnings, and advisories for the selected point.",
+            rows: [sourceRow("Source", "National Weather Service active alerts API"), sourceRow("Top alert", alerts[0].event), sourceRow("Active alerts", String(alerts.length))]
+          } : unavailableSource("NWS alerts", "National Weather Service active alerts API", "No active alerts were returned for this point.");
+          if (latestForecastData) renderHeroNarrative(latestForecastData, narrativeDayOffset ?? narrativeDefaultOffset());
+        }).catch((error) => {
+          console.warn(error);
+          if (isCurrent()) latestSourceDetails.alerts = unavailableSource("NWS alerts", "National Weather Service active alerts API", "Could not check alerts. Try refreshing.");
+        });
+        const forecast = await getForecast(location.lat, location.lon, forceFresh);
+        if (!isCurrent()) return;
         renderForecast(forecast, location.label || `Near ${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}`);
-        latestSourceDetails.alerts = alerts.length ? {
-          title: "NWS alerts",
-          copy: "Active watches, warnings, and advisories for the saved point.",
-          rows: [
-            sourceRow("Source", "National Weather Service active alerts API"),
-            sourceRow("Top alert", alerts[0].event),
-            sourceRow("Active alerts", String(alerts.length)),
-            sourceRow("Accuracy", "Official NWS alert polygons and point matching; always follow local emergency guidance.")
-          ]
-        } : unavailableSource("NWS alerts", "National Weather Service active alerts API", "No active alerts were returned for this point.");
         renderHistory(latestHistoryData || {}, recapState.observedRain, recapState.pollen, recapState.rainLoading);
         setStatus(forceFresh ? "Refreshed" : "Updated", "ok");
-        getDailyOutlook(location.lat, location.lon, forecast).then((items) => {
-          if (activeLocationMatches(location)) renderDailyOutlook(items);
-        }).catch((error) => console.warn(error));
-        loadSupplementalIfNear();
+        const updated = forecast.forecastUpdatedAt ? new Date(forecast.forecastUpdatedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+        setForecastStatus(forecast.stale ? "Using saved forecast · Couldn’t update" : `Updated${updated ? " " + updated : ""}`);
+        // The refresh button updates the core forecast only, not daily or recap providers.
+        if (!forceFresh) {
+          const dailyViewSequence = locationViewSequence;
+          getDailyOutlook(location.lat, location.lon, forecast).then((items) => {
+            if (dailyViewSequence === locationViewSequence && activeLocationMatches(location)) renderDailyOutlook(items);
+          }).catch((error) => console.warn(error));
+          loadSupplementalIfNear();
+        }
       } catch (error) {
         console.error(error);
+        if (!isCurrent()) return;
         setStatus("Could not load weather data.", "error");
-        els.currentCondition.textContent = "Weather unavailable";
+        setForecastStatus(latestForecastData ? "Using saved forecast · Couldn’t update" : "Couldn’t load weather · Tap refresh to retry");
+        if (!latestForecastData) els.currentCondition.textContent = "Weather unavailable";
       }
     }
     async function refreshCurrentWeather() { const saved = activeLocation || loadSavedLocation(); if (!saved?.lat || !saved?.lon) { setStatus("No saved location yet.", "error"); showOnboarding(); return; } resetPanels(); await loadWeather(saved, true); }

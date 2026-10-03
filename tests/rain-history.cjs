@@ -43,10 +43,11 @@ function environment(storage = new Map()) {
     VISUAL_CROSSING_API_KEY: 'fake', MM_PER_INCH: 25.4, rainCollectionRequests: new Map(),
     rainCollectionQueue: Promise.resolve(), weatherApiKey: () => 'fake',
     providerResponseError: async (_, label) => new Error(label + ' unavailable'),
-    activeLocation: { lat: 33.8, lon: -84.4 }, recapLoadKey: '', recapState: {}, latestHistoryData: null,
+    activeLocation: { lat: 33.8, lon: -84.4 }, locationViewSequence: 0, recapLoadKey: '', recapState: {}, latestHistoryData: null,
     document: { hidden: false }, window: { innerHeight: 800 },
     els: { quickRecapSection: { getBoundingClientRect: () => state.rect } },
     renderHistory: (...args) => state.renders.push(args),
+    loadRecentLocations: () => [], pruneLocationCaches() {},
     getHistory: async () => ({}), getPollenForecast: async () => ({ status: 'available' }),
     fetch: async raw => {
       const url = new URL(raw);
