@@ -33,7 +33,7 @@
     for (let index = 1; index < matches.length && matches[index].time - end.time === HOUR; index++) end = matches[index];
     return { value, start, end };
   }
-  function analyze(all, { start, end, now = start, today = false }) {
+  function analyze(all, { start, end, now = start, today = false, hourOf = date => date.getHours() }) {
     const day = all.filter(item => item.time >= start && item.time < end);
     const upcoming = day.filter(item => !today || item.time.getTime() + HOUR > now.getTime());
     const byHour = new Map(all.map(item => [item.time.getTime(), item]));
@@ -132,8 +132,8 @@
       high, low: lowItem, feels, sky: sky(upcoming), events, primary, secondary,
       significance: Math.max(0, ...events.map(event => event.significance)),
       earlierRain: today && day.some(item => item.time.getTime() + HOUR <= now.getTime() && item.prob !== null && item.prob >= 40),
-      morningSky: sky(upcoming.filter(item => item.time.getHours() >= 6 && item.time.getHours() < 12)),
-      afternoonSky: sky(upcoming.filter(item => item.time.getHours() >= 12 && item.time.getHours() < 18)) };
+      morningSky: sky(upcoming.filter(item => hourOf(item.time) >= 6 && hourOf(item.time) < 12)),
+      afternoonSky: sky(upcoming.filter(item => hourOf(item.time) >= 12 && hourOf(item.time) < 18)) };
   }
   function describe(model, { when, clock, amount, precise = true, dayLabel = 'this day' }) {
     const time = date => precise ? clock(date) : when(date);

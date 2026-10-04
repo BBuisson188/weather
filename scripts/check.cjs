@@ -10,6 +10,7 @@ for (const file of ['index.html', 'radar.html', 'ocean.html', 'longrange.html'])
 JSON.parse(fs.readFileSync(path.join(root, 'site.webmanifest'), 'utf8'));
 new vm.Script(fs.readFileSync(path.join(root, 'weather-summary.js'), 'utf8'), { filename: 'weather-summary.js' });
 new vm.Script(fs.readFileSync(path.join(root, 'nws-alerts.js'), 'utf8'), { filename: 'nws-alerts.js' });
+new vm.Script(fs.readFileSync(path.join(root, 'daily-outlook-summary.js'), 'utf8'), { filename: 'daily-outlook-summary.js' });
 const whitespace = spawnSync('git', ['diff', '--check', 'HEAD'], { cwd: root, stdio: 'inherit' });
 if (whitespace.error || whitespace.status !== 0) process.exit(1);
 const committedWhitespace = spawnSync('git', ['show', '--format=', '--check', 'HEAD'], { cwd: root, stdio: 'inherit' });

@@ -385,6 +385,7 @@
     .daily-detail-summary { padding: 14px; border-radius: 20px; background: linear-gradient(145deg, rgba(85,149,230,0.15), rgba(255,255,255,0.045)); border: 1px solid rgba(184,205,255,0.14); }
     .daily-detail-title { font-size: 19px; line-height: 1.15; font-weight: 850; letter-spacing: -0.025em; }
     .daily-detail-copy { color: #d2deef; font-size: 14px; line-height: 1.48; font-weight: 650; margin-top: 7px; }
+    .daily-detail-copy:empty { display: none; }
     .daily-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 11px; }
     .daily-detail-stat { min-width: 0; padding: 11px 12px; border-radius: 17px; background: rgba(255,255,255,0.05); border: 1px solid rgba(184,205,255,0.11); }
     .daily-detail-stat-label { color: var(--muted); font-size: 10px; font-weight: 850; letter-spacing: 0.095em; text-transform: uppercase; }
@@ -609,6 +610,7 @@
   </div>
 
   <script src="weather-summary.js"></script>
+  <script src="daily-outlook-summary.js"></script>
   <script src="nws-alerts.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
@@ -1015,6 +1017,7 @@
       const currentTime = current.datetimeEpoch ? new Date(current.datetimeEpoch * 1000) : new Date();
       const hourly = {
         time: hours.map(({ day, hour }) => combineVisualCrossingDate(day, hour.datetime)),
+        popupMissing: Object.fromEntries(Object.entries({ prob: 'precipprob', amount: 'precip', wind: 'windspeed', gust: 'windgust' }).map(([field, key]) => [field, hours.flatMap(({ hour }, index) => DailyOutlookSummary.number(hour[key]) === null ? [index] : [])]).concat([['code', hours.flatMap(({ hour }, index) => !hour.icon && !hour.conditions ? [index] : [])]])),
         temperature_2m: hours.map(({ hour }) => Number(hour.temp)),
         apparent_temperature: hours.map(({ hour }) => Number(hour.feelslike ?? hour.temp)),
         relative_humidity_2m: hours.map(({ hour }) => Number(hour.humidity) || 0),
@@ -1038,6 +1041,7 @@
           temperature_2m_max: days.map((day) => Number(day.tempmax ?? day.temp)),
           temperature_2m_min: days.map((day) => Number(day.tempmin ?? day.temp)),
           precipitation_probability_max: days.map((day) => Number(day.precipprob) || 0),
+          popupChanceKnown: days.map(day => DailyOutlookSummary.number(day.precipprob) !== null),
           sunrise: days.map((day) => combineVisualCrossingDate(day, day.sunrise)).filter(Boolean),
           sunset: days.map((day) => combineVisualCrossingDate(day, day.sunset)).filter(Boolean)
         },
@@ -2075,27 +2079,28 @@
         high: Number(daily.temperature_2m_max?.[index]),
         low: Number(daily.temperature_2m_min?.[index]),
         precipProb: Number(daily.precipitation_probability_max?.[index]) || 0,
+        dailyChanceKnown: daily.popupChanceKnown?.[index] ?? (DailyOutlookSummary.number(daily.precipitation_probability_max?.[index]) !== null),
         code: Number(daily.weather_code?.[index]) || 0,
         source: data.source || "open-meteo"
       })).filter((item) => item.date && Number.isFinite(item.high) && Number.isFinite(item.low));
     }
     function precipitationInches(precipitation) {
       const qpf = precipitation?.qpf || precipitation;
-      const quantity = Number(qpf?.quantity);
-      if (!Number.isFinite(quantity)) return 0;
+      const quantity = DailyOutlookSummary.number(qpf?.quantity);
+      if (quantity === null) return null;
       return String(qpf?.unit || "").toUpperCase().includes("MILLIMETER") ? quantity / MM_PER_INCH : quantity;
     }
     function googleDayPartDetails(part) {
-      const probability = Number(part?.precipitation?.probability?.percent);
+      const probability = DailyOutlookSummary.number(part?.precipitation?.probability?.percent);
       return {
-        probability: Number.isFinite(probability) ? probability : 0,
+        probability,
         amount: precipitationInches(part?.precipitation),
         condition: part?.weatherCondition?.description?.text || codeToLabel(visualCrossingCode(String(part?.weatherCondition?.type || "").replaceAll("_", " "))),
         code: visualCrossingCode(String(part?.weatherCondition?.type || "").replaceAll("_", " ")),
         humidity: Number(part?.relativeHumidity) || 0,
-        thunder: Number(part?.thunderstormProbability) || 0,
-        wind: Number(part?.wind?.speed?.value) || 0,
-        gust: Number(part?.wind?.gust?.value) || 0
+        thunder: DailyOutlookSummary.number(part?.thunderstormProbability),
+        wind: DailyOutlookSummary.number(part?.wind?.speed?.value),
+        gust: DailyOutlookSummary.number(part?.wind?.gust?.value)
       };
     }
     function googleDailyCode(day) {
@@ -2121,6 +2126,7 @@
           high: Number(day.maxTemperature?.degrees),
           low: Number(day.minTemperature?.degrees),
           precipProb: Math.max(Number.isFinite(dayProb) ? dayProb : 0, Number.isFinite(nightProb) ? nightProb : 0),
+          dailyChanceKnown: DailyOutlookSummary.number(day.daytimeForecast?.precipitation?.probability?.percent) !== null && DailyOutlookSummary.number(day.nighttimeForecast?.precipitation?.probability?.percent) !== null,
           code: googleDailyCode(day),
           source: "google",
           dayParts: {
@@ -2162,11 +2168,11 @@
             temp: Number(hour.temperature?.degrees),
             feels: Number(hour.feelsLikeTemperature?.degrees ?? hour.temperature?.degrees),
             humidity: Number(hour.relativeHumidity) || 0,
-            prob: Number(hour.precipitation?.probability?.percent) || 0,
+            prob: DailyOutlookSummary.number(hour.precipitation?.probability?.percent),
             amount: precipitationInches(hour.precipitation),
-            code: visualCrossingCode(String(hour.weatherCondition?.type || "").replaceAll("_", " ")),
-            wind: Number(hour.wind?.speed?.value) || 0,
-            gust: Number(hour.wind?.gust?.value) || 0,
+            code: hour.weatherCondition?.type ? visualCrossingCode(String(hour.weatherCondition.type).replaceAll("_", " ")) : null,
+            wind: DailyOutlookSummary.number(hour.wind?.speed?.value),
+            gust: DailyOutlookSummary.number(hour.wind?.gust?.value),
             thunder: Number(hour.thunderstormProbability) || 0
           });
         });
@@ -2175,8 +2181,12 @@
       }
       return records;
     }
-    function hourlyRecordsForDate(data, date) {
+    function hourlyRecordsForDate(data, date, includeAdjacent = false) {
       const hourly = data?.hourly || {};
+      const adjacent = new Date(`${date}T00:00:00Z`);
+      const prior = new Date(adjacent.getTime() - 86400000).toISOString().slice(0, 10);
+      const next = new Date(adjacent.getTime() + 86400000).toISOString().slice(0, 10);
+      const value = (field, index, array) => (data.source === "visual-crossing" && !hourly.popupMissing) || hourly.popupMissing?.[field]?.includes(index) ? null : DailyOutlookSummary.number(array?.[index]);
       return (hourly.time || []).map((time, index) => {
         const text = String(time);
         const hour = Number(text.slice(11, 13));
@@ -2184,151 +2194,34 @@
           date: text.slice(0, 10),
           hour: Number.isFinite(hour) ? hour : new Date(time).getHours(),
           time: new Date(time),
-          temp: Number(hourly.temperature_2m?.[index]),
-          feels: Number(hourly.apparent_temperature?.[index] ?? hourly.temperature_2m?.[index]),
+          temp: DailyOutlookSummary.number(hourly.temperature_2m?.[index]),
+          feels: DailyOutlookSummary.number(hourly.apparent_temperature?.[index] ?? hourly.temperature_2m?.[index]),
           humidity: Number(hourly.relative_humidity_2m?.[index]) || 0,
-          prob: Number(hourly.precipitation_probability?.[index]) || 0,
-          amount: Number(hourly.precipitation?.[index]) || 0,
-          code: Number(hourly.weather_code?.[index]) || 0,
-          wind: Number(hourly.wind_speed_10m?.[index]) || 0,
-          gust: Number(hourly.wind_gusts_10m?.[index]) || 0
+          prob: value('prob', index, hourly.precipitation_probability),
+          amount: value('amount', index, hourly.precipitation),
+          code: value('code', index, hourly.weather_code),
+          wind: value('wind', index, hourly.wind_speed_10m),
+          gust: value('gust', index, hourly.wind_gusts_10m)
         };
-      }).filter((record) => record.date === date && Number.isFinite(record.time.getTime()));
-    }
-    function forecastDayPart(hour) {
-      if (hour < 6) return { label: "overnight", rank: 0 };
-      if (hour < 12) return { label: "morning", rank: 1 };
-      if (hour < 17) return { label: "afternoon", rank: 2 };
-      if (hour < 21) return { label: "evening", rank: 3 };
-      return { label: "late night", rank: 4 };
-    }
-    function forecastHourLabel(hour) {
-      const normalized = ((Number(hour) || 0) + 24) % 24;
-      if (normalized === 0) return "midnight";
-      if (normalized === 12) return "noon";
-      return `${normalized % 12} ${normalized < 12 ? "AM" : "PM"}`;
-    }
-    function forecastWindowLabel(event, offset) {
-      if (!event) return "No meaningful rain window";
-      const startHour = Number(event.start?.hour);
-      const endHour = Number(event.end?.hour);
-      const part = forecastDayPart(startHour);
-      if (offset <= 3) return Number.isFinite(endHour) && endHour !== startHour
-        ? `${forecastHourLabel(startHour)}–${forecastHourLabel(endHour)}`
-        : `Around ${forecastHourLabel(startHour)}`;
-      return `Most likely ${part.label}`;
-    }
-    function normalizedDailyWeatherKind(code) {
-      const kind = dailyWeatherKind(code);
-      if (kind === "storm") return "storms";
-      if (kind === "drizzle") return "rain";
-      if (kind === "partly") return "partly cloudy";
-      return kind;
-    }
-    function dailyWeatherKindFromRecords(records, fallbackCode) {
-      const codes = records.map((record) => record.code);
-      if (codes.some((code) => [95,96,99].includes(code))) return "storms";
-      if (codes.some((code) => [71,73,75,77,85,86].includes(code))) return "snow";
-      if (codes.some((code) => [56,57,66,67].includes(code))) return "ice";
-      if (codes.some((code) => [51,53,55,61,63,65,80,81,82].includes(code))) return "rain";
-      if (codes.some((code) => [45,48].includes(code))) return "fog";
-      if (codes.filter((code) => code === 3).length >= Math.max(2, records.length * 0.45)) return "cloudy";
-      if (codes.some((code) => code === 2 || code === 3)) return "partly cloudy";
-      return normalizedDailyWeatherKind(fallbackCode);
-    }
-    function temperatureWord(high) {
-      if (high >= 92) return "Hot";
-      if (high >= 80) return "Warm";
-      if (high <= 40) return "Cold";
-      if (high <= 57) return "Cool";
-      return "Mild";
-    }
-    function dailySummaryTitle(item, weatherKind, timingLabel) {
-      const temperature = temperatureWord(Number(item.high));
-      if (weatherKind === "storms") return `${temperature} with thunderstorms`;
-      if (weatherKind === "snow") return `${temperature} with snow possible`;
-      if (weatherKind === "ice") return "Icy weather possible";
-      if (weatherKind === "rain") return `${temperature} with ${timingLabel || "periods of rain"}`;
-      if (weatherKind === "fog") return `${temperature} with some fog`;
-      if (weatherKind === "cloudy") return `${temperature} and cloudy`;
-      if (weatherKind === "partly cloudy") return `${temperature} with partial cloud cover`;
-      return `${temperature} with mostly clear skies`;
+      }).filter(record => Number.isFinite(record.time.getTime()) && (record.date === date || includeAdjacent && ((record.date === prior && record.hour === 23) || (record.date === next && record.hour < 2))));
     }
     function dailyDetailFromHourly(records, item, offset, source) {
-      if (!records.length) return null;
-      const ordered = [...records].sort((a, b) => a.hour - b.hour);
-      const event = buildNextPrecipEvent(ordered);
-      const peak = ordered.reduce((best, record) => record.prob > best.prob ? record : best, ordered[0]);
-      const weatherKind = dailyWeatherKindFromRecords(ordered, item.code);
-      const timing = event ? forecastDayPart(event.start.hour) : null;
-      const total = ordered.reduce((sum, record) => sum + record.amount, 0);
-      const maxWind = Math.max(...ordered.map((record) => Math.max(record.wind, record.gust)), 0);
-      const windowLabel = forecastWindowLabel(event, offset);
-      const horizonCopy = offset <= 3
-        ? (event ? `Rain chances are focused from ${windowLabel}, peaking near ${forecastHourLabel(peak.hour)}.` : "No meaningful rain window is showing right now.")
-        : (event ? `Current guidance favors precipitation during the ${timing.label}. Expect the timing to shift as the date gets closer.` : "Current guidance keeps the day mostly dry, though details can still change.");
-      const skyCopy = weatherKind === "rain" || weatherKind === "storms" || weatherKind === "snow" || weatherKind === "ice"
-        ? horizonCopy
-        : `${codeToLabel(item.code)} conditions are favored. ${horizonCopy}`;
-      return {
-        title: dailySummaryTitle(item, weatherKind, event ? `${timing.label} ${weatherKind === "storms" ? "storms" : "showers"}` : ""),
-        copy: `${skyCopy} The forecast high is near ${Math.round(item.high)}° with a low near ${Math.round(item.low)}°.`,
-        rainTiming: windowLabel,
-        peakChance: `${Math.round(Math.max(Number(item.precipProb) || 0, peak.prob || 0))}%${event ? ` near ${offset <= 3 ? forecastHourLabel(peak.hour) : timing.label}` : ""}`,
-        expectedRain: total > 0 ? formatRainAmount(total) : "Little or none",
-        wind: maxWind >= 1 ? `Up to ${Math.round(maxWind)} mph` : "Light",
-        timingLabel: timing?.label || "dry",
-        timingRank: timing?.rank ?? null,
-        peakProb: Math.max(Number(item.precipProb) || 0, peak.prob || 0),
-        rainTotal: total,
-        maxWind,
-        weatherKind,
-        source,
-        guidance: offset <= 3 ? "Detailed timing" : offset <= 7 ? "General timing" : "Broad guidance"
-      };
+      return DailyOutlookSummary.hourly(records, item, offset, source, formatRainAmount);
     }
     function dailyDetailFromGoogleParts(item, offset) {
-      const daytime = item.dayParts?.daytime || {};
-      const nighttime = item.dayParts?.nighttime || {};
-      const wetPart = daytime.probability >= nighttime.probability ? { ...daytime, label: "daytime", rank: 2 } : { ...nighttime, label: "overnight", rank: 4 };
-      const peakProb = Math.max(daytime.probability || 0, nighttime.probability || 0, Number(item.precipProb) || 0);
-      const total = (daytime.amount || 0) + (nighttime.amount || 0);
-      const maxWind = Math.max(daytime.wind || 0, daytime.gust || 0, nighttime.wind || 0, nighttime.gust || 0);
-      const weatherKind = Math.max(daytime.thunder || 0, nighttime.thunder || 0) >= 20 ? "storms" : normalizedDailyWeatherKind(item.code);
-      const hasRain = peakProb >= 20 || total >= 0.01 || ["rain","storms","snow","ice"].includes(weatherKind);
-      const timingLabel = hasRain ? wetPart.label : "dry";
-      const dayCondition = daytime.condition || codeToLabel(item.code);
-      const nightCondition = nighttime.condition || dayCondition;
-      const timingCopy = hasRain
-        ? `Google currently favors the ${wetPart.label} for the higher precipitation chance. Timing should become more specific as the day gets closer.`
-        : "Google does not show a meaningful precipitation signal for this day right now.";
-      return {
-        title: dailySummaryTitle(item, weatherKind, hasRain ? `${wetPart.label} ${weatherKind === "storms" ? "storms" : "showers"}` : ""),
-        copy: `${dayCondition} during the day and ${nightCondition.toLowerCase()} overnight. ${timingCopy} High near ${Math.round(item.high)}°, low near ${Math.round(item.low)}°.`,
-        rainTiming: hasRain ? (wetPart.label === "daytime" ? "Daytime (7 AM–7 PM)" : "Overnight") : "No meaningful rain window",
-        peakChance: `${Math.round(peakProb)}%${hasRain ? ` ${wetPart.label}` : ""}`,
-        expectedRain: total > 0 ? formatRainAmount(total) : "Little or none",
-        wind: maxWind >= 1 ? `Up to ${Math.round(maxWind)} mph` : "Light",
-        timingLabel,
-        timingRank: hasRain ? wetPart.rank : null,
-        peakProb,
-        rainTotal: total,
-        maxWind,
-        weatherKind,
-        source: "google",
-        guidance: offset <= 7 ? "General timing" : "Broad guidance"
-      };
+      return DailyOutlookSummary.googleParts(item, offset, formatRainAmount);
     }
     function forecastChangeText(item, previous) {
       const current = item?.detail;
       const prior = previous?.detail;
       if (!current || !prior) return "This is the first saved outlook for this day.";
+      if (current.summaryVersion !== prior.summaryVersion) return "Popup analysis was updated; forecast-change comparisons resume with the next saved outlook.";
       if (current.source !== prior.source) return `The detail source changed from ${dailySourceLabel(prior.source)} to ${dailySourceLabel(current.source)}, so some differences may come from the provider change.`;
-      if (current.timingLabel !== "dry" && prior.timingLabel !== "dry" && current.timingLabel !== prior.timingLabel) {
+      if (!["dry", "unknown"].includes(current.timingLabel) && !["dry", "unknown"].includes(prior.timingLabel) && current.timingLabel !== prior.timingLabel) {
         return `The favored precipitation timing shifted from ${prior.timingLabel} toward ${current.timingLabel}.`;
       }
       const chanceChange = Math.round(current.peakProb - prior.peakProb);
-      if (Math.abs(chanceChange) >= 10) return `The precipitation chance ${chanceChange > 0 ? "increased" : "decreased"} from about ${Math.round(prior.peakProb)}% to ${Math.round(current.peakProb)}%.`;
+      if (Number.isFinite(current.peakProb) && Number.isFinite(prior.peakProb) && Math.abs(chanceChange) >= 10) return `The precipitation chance ${chanceChange > 0 ? "increased" : "decreased"} from about ${Math.round(prior.peakProb)}% to ${Math.round(current.peakProb)}%.`;
       if (current.weatherKind !== prior.weatherKind) return `The overall signal changed from ${prior.weatherKind} toward ${current.weatherKind}.`;
       const temperatureChange = Math.round(Number(item.high) - Number(previous.high));
       if (Math.abs(temperatureChange) >= 3) return `The forecast high moved ${temperatureChange > 0 ? "warmer" : "cooler"} from ${Math.round(previous.high)}° to ${Math.round(item.high)}°.`;
@@ -2363,17 +2256,17 @@
         const item = preferred || { date, high: null, low: null, precipProb: null, code: 0, source: "unavailable" };
         let detail = null;
         if (item.source === "google") {
-          const googleRecords = googleHourly.filter((record) => record.date === date);
+          const googleRecords = googleHourly;
           detail = offset <= 3 ? dailyDetailFromHourly(googleRecords, item, offset, "google") : null;
           detail ||= dailyDetailFromGoogleParts(item, offset);
         } else if (item.source === "visual-crossing") {
-          detail = dailyDetailFromHourly(hourlyRecordsForDate(coreForecast, date), item, offset, "visual-crossing");
+          detail = dailyDetailFromHourly(hourlyRecordsForDate(coreForecast, date, true), item, offset, "visual-crossing");
         } else if (item.source === "open-meteo") {
-          detail = dailyDetailFromHourly(hourlyRecordsForDate(openMeteoForecast, date), item, offset, "open-meteo");
+          detail = dailyDetailFromHourly(hourlyRecordsForDate(openMeteoForecast, date, true), item, offset, "open-meteo");
         }
         if (!detail) {
           const fallbackData = coreForecast?.source === "visual-crossing" ? coreForecast : openMeteoForecast;
-          detail = dailyDetailFromHourly(hourlyRecordsForDate(fallbackData, date), item, offset, fallbackData?.source || "open-meteo");
+          detail = dailyDetailFromHourly(hourlyRecordsForDate(fallbackData, date, true), item, offset, fallbackData?.source || "open-meteo");
         }
         const previous = (cached?.value || []).find((record) => record.date === date);
         const nextItem = { ...item, dayParts: undefined, detail, updatedAt: now.toISOString() };
@@ -2673,23 +2566,27 @@
     function showDailyDetail(item, trigger) {
       if (!item || !els.dailyDetailOverlay) return;
       const date = new Date(`${item.date}T12:00:00`);
-      const detail = item.detail || {
+      const detail = item.detail?.summaryVersion === 2 ? item.detail : {
         title: "Forecast details unavailable",
-        copy: "The daily high, low, and precipitation chance are available, but the supporting timing data was not returned.",
-        rainTiming: "Unavailable", peakChance: Number.isFinite(item.precipProb) ? `${Math.round(item.precipProb)}%` : "Unavailable",
+        copy: item.detail ? "Saved popup analysis will update with the next normal outlook refresh. No extra download is needed." : "Supporting timing data was not returned for this day.",
+        dailyChance: item.dailyChanceKnown !== false && Number.isFinite(item.precipProb) && (item.dailyChanceKnown === true || item.precipProb > 0) ? `${Math.round(item.precipProb)}%` : "Unavailable",
+        rainTiming: "Unavailable", peakChance: "Unavailable", peakChanceLabel: "Peak hourly chance",
         expectedRain: "Unavailable", wind: "Unavailable", guidance: "Daily summary", source: item.source
       };
       els.dailyDetailDate.textContent = date.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
       els.dailyDetailTitle.textContent = detail.title;
       els.dailyDetailCopy.textContent = detail.copy;
       const stats = [
-        ["Temperature", Number.isFinite(item.high) ? `${Math.round(item.high)}° / ${Math.round(item.low)}°` : "Unavailable"],
-        ["Rain timing", detail.rainTiming],
-        ["Highest chance", detail.peakChance],
-        ["Expected rain", detail.expectedRain],
+        ["Temperature", Number.isFinite(item.high) && Number.isFinite(item.low) ? `${Math.round(item.high)}° / ${Math.round(item.low)}°` : "Unavailable"],
+        [detail.timingFieldLabel || "Precipitation timing", detail.rainTiming],
+        ["Daily chance", detail.dailyChance || "Unavailable"],
+        [detail.peakChanceLabel || "Peak hourly chance", detail.peakChance],
+        [detail.amountLabel || "Expected precipitation", detail.expectedRain],
         ["Wind", detail.wind],
         ["Forecast detail", detail.guidance]
       ];
+      if (detail.windTiming) stats.push(["Wind timing", detail.windTiming]);
+      if (detail.accumulationNote) stats.push(["Winter accumulation", detail.accumulationNote]);
       els.dailyDetailGrid.innerHTML = stats.map(([label, value]) => `<div class="daily-detail-stat"><div class="daily-detail-stat-label">${escapeHtml(label)}</div><div class="daily-detail-stat-value">${escapeHtml(value || "Unavailable")}</div></div>`).join("");
       els.dailyDetailChangeCopy.textContent = item.change || "This is the first saved outlook for this day.";
       els.dailyDetailChange.classList.toggle("hidden", !item.change);
@@ -2698,7 +2595,7 @@
       const updated = new Date(item.updatedAt || "");
       const updatedLabel = Number.isFinite(updated.getTime()) ? updated.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "recently";
       const sourceText = summarySource === detailSource ? `Source: ${summarySource}` : `Daily: ${summarySource} · Detail: ${detailSource}`;
-      els.dailyDetailMeta.innerHTML = `<span>${escapeHtml(sourceText)}</span><span>Updated ${escapeHtml(updatedLabel)}</span>`;
+      els.dailyDetailMeta.innerHTML = `<span>${escapeHtml(sourceText)}</span><span>Updated ${escapeHtml(updatedLabel)}</span>${detail.periodNote ? `<span>${escapeHtml(detail.periodNote)}</span>` : ""}`;
       dailyDetailReturnFocus = trigger || document.activeElement;
       els.dailyDetailOverlay.classList.remove("hidden");
       syncModalScrollLock();
