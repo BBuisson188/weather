@@ -8,6 +8,8 @@
   <link rel="icon" type="image/png" href="favicon.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <style>
+    /* Suppress accidental double-tap zoom, preserving scrolling and pinch zoom. */
+    html { touch-action: manipulation; }
     :root {
       --bg1: #050a13;
       --bg2: #0b1526;
@@ -502,7 +504,7 @@
     const locationData = getLocation();
 
     const STADIA_API_KEY = "9871d525-26da-467e-9eda-430ce733d4f4";
-    const map = L.map("map", { zoomControl: false, attributionControl: false, tap: false }).setView([locationData.lat, locationData.lon], 7);
+    const map = L.map("map", { zoomControl: false, attributionControl: false, tap: false, doubleClickZoom: false }).setView([locationData.lat, locationData.lon], 7);
     map.createPane('radarPane');
     map.getPane('radarPane').style.zIndex = 450;
     map.createPane('windPane');

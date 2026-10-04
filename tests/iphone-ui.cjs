@@ -4,6 +4,18 @@ const path = require('node:path');
 const vm = require('node:vm');
 const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 const main = read('index.html'), ocean = read('ocean.html');
+for (const page of ['index.html', 'radar.html', 'longrange.html', 'ocean.html']) {
+  const html = read(page);
+  assert(html.includes('html { touch-action: manipulation; }'), page + ' suppresses double-tap zoom without blocking scrolling/pinch');
+  const viewport = html.match(/<meta name="viewport"[^>]+>/)[0];
+  assert(!/user-scalable|maximum-scale|minimum-scale/.test(viewport), page + ' retains accessible pinch zoom');
+  assert(!/addEventListener\(["']touch(?:start|move|end)["']/.test(html), page + ' does not cancel touch events or normal taps');
+}
+const radar = read('radar.html');
+assert(radar.includes('doubleClickZoom: false'), 'Leaflet cannot separately double-tap zoom the map');
+assert(!radar.includes('touchZoom: false') && !radar.includes('dragging: false'), 'map pinch zoom and panning remain enabled');
+assert(/\.daily-strip \{[^}]*touch-action: pan-x;/.test(main), 'daily horizontal swipe behavior remains unchanged');
+assert(/\.outlook-scroll \{[^}]*touch-action: pan-x;/.test(main), 'chart horizontal swipe behavior remains unchanged');
 for (const html of [main, ocean]) for (const [, script] of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) new vm.Script(script);
 function extract(html, name) {
   const start = html.search(new RegExp('^    (?:async )?function ' + name + '\\(', 'm'));
@@ -67,4 +79,4 @@ c.document.hidden = false; listeners.visibilitychange(); assert(c.dailyOutlookAn
 c.stopDailyOutlookAnimations(); assert.equal(disconnected, 1); assert.equal(c.dailyOutlookAnimationState.scenes.length, 0);
 c.dailyOutlookAnimationState.reducedMotion = true; c.dailyOutlookAnimationState.scenes = [{ visible: true }];
 c.startDailyOutlookAnimationLoop(); assert.equal(c.dailyOutlookAnimationState.frame, 0);
-console.log('iPhone UI checks passed: popup scroll locks/restore, overlapping popups, pinned-header structure, offscreen animation pause/resume, tab visibility, observer cleanup, and reduced motion. No API requests.');
+console.log('iPhone UI checks passed: double-tap zoom disabled without blocking scroll/pinch, unchanged horizontal swipes, popup scroll locks/restore, overlapping popups, pinned-header structure, offscreen animation pause/resume, tab visibility, observer cleanup, and reduced motion. No API requests.');

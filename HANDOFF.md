@@ -1,6 +1,7 @@
 # Weather App Handoff
 
 ## What changed
+- Double-tap zoom is suppressed across the four pages with root `touch-action: manipulation`; normal taps, page scrolling, existing horizontal swipe rules, and pinch zoom are preserved. Radar also disables Leaflet's independent double-click/double-tap zoom; map panning and pinch zoom remain enabled. No viewport scaling restrictions or touch-event cancellation handlers were added. Verify actual gestures on iPhone Safari; offline checks guard the configuration.
 - Official NWS notices now persist below the hero narrative regardless of Today/Tomorrow/Next. The two highest-priority notices are shown; View all retains every remaining notice. Warnings precede watches/advisories, with tornado/severe-thunderstorm/flash-flood warnings first. Tapping opens the full official description, affected area, timing, and instructions in the existing scrollable sheet.
 - Radar alerts default to enabled. Regional alert requests cover the selected location's state (explicitly labeled); point-only fallback is labeled when state lookup fails. Flood watches/warnings are included in the Severe filter, with flood areas blue, other warnings red, and watches yellow. Missing alert polygons use NWS affected-zone boundaries, labeled as alert areas rather than observed inundation.
 - Shared `nws-alerts.js` keeps updated notices, excludes canceled/expired/test notices, shares sorting and safe boundary lookup rules. Alert failures are visible, never silently treated as no alerts. Radar removes old coverage on request failure.
