@@ -8,6 +8,7 @@ for (const file of ['index.html', 'radar.html', 'ocean.html', 'longrange.html'])
   for (const [, script] of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) new vm.Script(script, { filename: file });
 }
 JSON.parse(fs.readFileSync(path.join(root, 'site.webmanifest'), 'utf8'));
+new vm.Script(fs.readFileSync(path.join(root, 'weather-summary.js'), 'utf8'), { filename: 'weather-summary.js' });
 const whitespace = spawnSync('git', ['diff', '--check', 'HEAD'], { cwd: root, stdio: 'inherit' });
 if (whitespace.error || whitespace.status !== 0) process.exit(1);
 const committedWhitespace = spawnSync('git', ['show', '--format=', '--check', 'HEAD'], { cwd: root, stdio: 'inherit' });

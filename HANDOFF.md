@@ -1,11 +1,13 @@
 # Weather App Handoff
 
 ## What changed
+- Today/Tomorrow/Next and their supporting forecast cards now use the pure `weather-summary.js` engine. It evaluates the full day's precipitation peak, meaningful onset, separate windows, and a conservative final easing time; Today distinguishes elapsed weather from the remaining forecast. Rain, storms, winter precipitation, wind, heat/feels-like temperature, freezing/cold temperatures, fog, and cloud transitions have separate rules. No API, cache, or refresh policy changes.
+- Headlines cover at most two distinct impactful event types, ordered by time after impact-based selection. Rain is not repeated as a second headline alongside storms/snow/ice; official NWS alert cards remain separately prioritized. Missing hours/probabilities are unknown, not dry. Numeric rain probability is never called thunderstorm probability; liquid precipitation is not converted into snow accumulation.
 - iPhone popup safety: main-page location, rainfall/source, and daily-detail overlays share a page scroll lock that preserves/restores the scroll position and stays locked until all overlays close. The ocean beach picker also locks/restores page scrolling. Location and beach-picker headers stay fixed while their content scrolls; button sizes are unchanged.
 - Daily tile animations stop the continuous frame loop when no tiles are in the visibility region and resume on return. Hidden-tab pauses preserve the observer; complete re-renders clean it up. These locally drawn graphics do not consume API/network bandwidth.
 - Hero titles own the weather condition and daypart. Supporting explanations add precipitation amount, precise clock time, easing time, temperatures, or practical impact rather than restating the title. This applies to Today, Tomorrow, and Next; forecast selection and API/cache behavior are unchanged.
 - Today/Tomorrow/Next hero text names the daypart before the clock time: "early Sunday morning, around midnight" versus "late Sunday night." Rain, storm, snow/ice, fog, wind, heat/cold, and supporting hazard-card wording follow this convention.
-- Midnight precipitation is described as continuing from the previous night only when the preceding forecast hour is wet; continuing storms also require storms in that preceding hour.
+- Midnight carryover requires the preceding hour to support the same event; continuing storms require a preceding storm code. Separate later precipitation windows prevent a midday break from being described as the day's final ending.
 - Rain recap fills saved-history gaps only when actually visible, with hourly-completeness checks, a 40-minute incomplete/failure cooldown, shared request locking, and a daily record allowance. Missing/stale totals offer a guarded "Retry missing hours" action using the same efficient collector, not the old full-history download path.
 - The detailed 10-day chart keeps weekday labels in their original position and adds the day-of-month beneath the fourth visible daytime label onward; the first three remain weekday-only.
 - Added a richer `Today` hero section in `index.html`.
@@ -97,10 +99,14 @@
 - `getWeatherAlerts()` calls `https://api.weather.gov/alerts/active` with `point=lat,lon`.
 - `alertPriority()` controls display priority for warning/watch/advisory ordering.
 - `buildNextPrecipEvent()` now returns `start`, `end`, `startIndex`, `endIndex`, and `lastActiveIndex`.
-- `isContinuingMidnightPrecip()` checks tomorrow's midnight start against the preceding forecast hour; midnight alone is not evidence of carryover.
+- `weather-summary.js` owns hero event analysis, peak selection, carryover, wording, and forecast supporting cards. Legacy first-window hero helpers were removed; `buildNextPrecipEvent()` remains for existing detailed daily-outlook parsing and the independent rain line helper.
+- Hero precipitation onset: at least two adjacent hours at 40%+, or one at 60%+; precipitation type/amount can support an event when probability is unavailable. Easing requires two known hours below 30% (without forecast accumulation), no later return, and known coverage through two hours after midnight. These are app heuristics, not meteorological guarantees. Tied contiguous peak hours are described as a range.
+- Wind uses 20 mph sustained / 30 mph gust thresholds; heat uses 92°F actual / 100°F feels-like; freezing is 32°F or below, cold is 35°F or below. Forecast codes independently identify storms, snow, icy precipitation, and fog. These thresholds can be adjusted after user testing.
+- For Next beyond day three, clock times become general dayparts. Daily-outlook provider/detail/cache behavior remains unchanged.
 - Offline hero wording checks: `node tests/hero-wording.cjs`. No live provider requests are made.
 - Offline location/cache checks: `node tests/location-cache.cjs`. Covers immediate/stale cache display, A/B/A switches, late failures, concurrent cache writes, request sharing, five-location eviction, and core-only refresh; no live provider requests.
 - Offline popup/animation checks: `node tests/iphone-ui.cjs`. No live provider requests; actual iPhone Safari/keyboard behavior still needs user verification.
 - Offline provider-timeout checks: `node tests/provider-timeout.cjs` covers connection and response-body stalls, abort/cleanup, and error-response preservation.
+- Offline weather analysis checks: `node tests/weather-summary.cjs` covers true day peaks, onset/easing, repeated windows, missing data, carryover, mixed event priority, winter safety distinctions, wind/heat/cold/fog, and cloud transitions.
 - Thunderstorm detection comes from normalized weather codes `95`, `96`, and `99`.
 - Keep edits targeted; this is a single-file app with tightly coupled UI/data logic.
