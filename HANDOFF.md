@@ -1,6 +1,9 @@
 # Weather App Handoff
 
 ## What changed
+- Official NWS notices now persist below the hero narrative regardless of Today/Tomorrow/Next. The two highest-priority notices are shown; View all retains every remaining notice. Warnings precede watches/advisories, with tornado/severe-thunderstorm/flash-flood warnings first. Tapping opens the full official description, affected area, timing, and instructions in the existing scrollable sheet.
+- Radar alerts default to enabled. Regional alert requests cover the selected location's state (explicitly labeled); point-only fallback is labeled when state lookup fails. Flood watches/warnings are included in the Severe filter, with flood areas blue, other warnings red, and watches yellow. Missing alert polygons use NWS affected-zone boundaries, labeled as alert areas rather than observed inundation.
+- Shared `nws-alerts.js` keeps updated notices, excludes canceled/expired/test notices, shares sorting and safe boundary lookup rules. Alert failures are visible, never silently treated as no alerts. Radar removes old coverage on request failure.
 - Today/Tomorrow/Next and their supporting forecast cards now use the pure `weather-summary.js` engine. It evaluates the full day's precipitation peak, meaningful onset, separate windows, and a conservative final easing time; Today distinguishes elapsed weather from the remaining forecast. Rain, storms, winter precipitation, wind, heat/feels-like temperature, freezing/cold temperatures, fog, and cloud transitions have separate rules. No API, cache, or refresh policy changes.
 - Headlines cover at most two distinct impactful event types, ordered by time after impact-based selection. Rain is not repeated as a second headline alongside storms/snow/ice; official NWS alert cards remain separately prioritized. Missing hours/probabilities are unknown, not dry. Numeric rain probability is never called thunderstorm probability; liquid precipitation is not converted into snow accumulation.
 - iPhone popup safety: main-page location, rainfall/source, and daily-detail overlays share a page scroll lock that preserves/restores the scroll position and stays locked until all overlays close. The ocean beach picker also locks/restores page scrolling. Location and beach-picker headers stay fixed while their content scrolls; button sizes are unchanged.
@@ -42,7 +45,8 @@
 - Phase two: switching locations immediately restores only that location's cached core forecast, same-calendar-day daily tiles, and recap. Uncached locations show placeholders, never the previous location's weather. Saved forecasts remain visible while updating, with a small update/status line in the hero.
 - Every screen load has a request guard, and every location view has its own generation. Late successes/failures cannot change a different view, including rapid A → B → A switches. In-flight core, daily, pollen, and history requests are shared per location; completed cache writes merge with the latest storage map so concurrent locations cannot overwrite one another.
 - Pending responses for evicted locations cannot resurrect core/daily/pollen/history caches. Rain collection skips queued evicted locations and prunes all location caches again after completion.
-- NWS alerts are checked on each location load/refresh and are not persistently cached. Core weather renders without waiting for NWS; a failed alert check is marked unavailable rather than reported as no active alerts.
+- NWS alerts are checked independently on each location load/refresh and every five minutes only while the page is visible, including an aged check on return. These checks never trigger Google, Visual Crossing, rainfall, or forecast downloads. Main alerts are not persistently cached; retained notices after a failure are explicitly marked previously received.
+- Radar reuses its five-minute in-memory alert snapshot when changing filters; manual radar Refresh bypasses that snapshot. State lookup is reused for the session. Static NWS zone outlines are cached for seven days, capped at 100 entries; each mapping pass makes at most 12 unique missing-boundary requests, stops starting requests after 18 seconds, and each request has a 12-second timeout. Incomplete coverage is visibly reported and Refresh retries missing outlines. No Google/Visual Crossing quota is used.
 - All location-specific caches retain only the five locations shown in Recent Locations; adding a sixth evicts the oldest location and its cached data.
 - Current conditions and the detailed 10-day graph share one forecast response cached for 30 minutes.
 - The top Refresh button refreshes only the selected location's core forecast, with a two-minute guard against repeated network requests; it does not launch daily-outlook or quick-recap downloads or clear any other location's cache. It is disabled while that core request is pending.
@@ -77,9 +81,7 @@
 - These preferences apply to implementing requested changes; review-only requests remain read-only.
 
 ## Unresolved Issues
-- Main page and radar page duplicate some NWS alert logic; they could drift over time.
-- Weather alert cards show active alerts for today only; tomorrow view remains forecast-only.
-- Alert cards are concise and do not show the full NWS headline unless it is used as fallback text.
+- Radar regional coverage is limited to the selected location's state, not all states visible when panning. Missing boundaries may need another explicit Refresh after the bounded lookup allowance; the status reports incomplete coverage.
 - No automated browser/UI regression test exists; offline rainfall integration checks are available with `node tests/rain-history.cjs` from the repo folder (fake responses only, no quota usage).
 - No bundled build step or package manager; validation is mostly syntax checks and manual browser testing.
 - Follow the Testing and Publishing Workflow above for standing authorization and local-versus-live testing.
@@ -87,7 +89,6 @@
 ## Next Recommended Steps
 - User decision (phase three): keep current horizontal touch/scroll behavior exactly as-is. Consider vertical page swipes over horizontal strips only if the user later reports a problem; do not implement proactively.
 - User decision (phase three): no tap-area/button-size changes approved. Identify the exact controls and discuss before changing them; user currently finds them easy to tap.
-- Extract shared alert helpers if alert behavior needs to evolve on both `index.html` and `radar.html`.
 - Test the new hero section in-browser with a location that has active flood/severe alerts.
 - Verify mobile layout with 0, 1, and multiple alert cards.
 - Consider making forecast hazard cards tappable with source details, similar to alert cards.
@@ -95,7 +96,7 @@
 
 ## Important Implementation Notes
 - `renderHeroNarrative()` should remain forecast-led; do not let official alert text replace the main headline.
-- `renderTodayOptions()` owns the alert/hazard cards below the hero narrative.
+- `renderTodayOptions()` owns forecast-only supporting cards. `renderPersistentAlerts()` owns independent official alert cards and their full details.
 - `getWeatherAlerts()` calls `https://api.weather.gov/alerts/active` with `point=lat,lon`.
 - `alertPriority()` controls display priority for warning/watch/advisory ordering.
 - `buildNextPrecipEvent()` now returns `start`, `end`, `startIndex`, `endIndex`, and `lastActiveIndex`.
@@ -108,5 +109,6 @@
 - Offline popup/animation checks: `node tests/iphone-ui.cjs`. No live provider requests; actual iPhone Safari/keyboard behavior still needs user verification.
 - Offline provider-timeout checks: `node tests/provider-timeout.cjs` covers connection and response-body stalls, abort/cleanup, and error-response preservation.
 - Offline weather analysis checks: `node tests/weather-summary.cjs` covers true day peaks, onset/easing, repeated windows, missing data, carryover, mixed event priority, winter safety distinctions, wind/heat/cold/fog, and cloud transitions.
+- Offline NWS checks: `node tests/nws-alerts.cjs` covers persistent cross-tab notices, priority/overflow, full details, updates/cancellations/expiry, visible failures, late-location guards, foreground checks, missing polygon zone resolution, and safe popup text. No live provider calls.
 - Thunderstorm detection comes from normalized weather codes `95`, `96`, and `99`.
 - Keep edits targeted; this is a single-file app with tightly coupled UI/data logic.

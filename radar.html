@@ -395,6 +395,7 @@
           </button>
         </div>
       </div>
+      <div class="timeline-caption" id="alertMapStatus" aria-live="polite" style="padding: 8px 0; line-height: 1.4">Checking NWS alert areas…</div>
       <div class="timeline"><input id="timeline" type="range" min="0" max="0" value="0" step="1" /></div>
       <div class="timeline-meta">
         <div class="timeline-caption" id="timelineHint">Use the scrubber or play controls to step through frames.</div>
@@ -436,6 +437,7 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="nws-alerts.js"></script>
   <script>
     const STORAGE_KEY = "weather-location-v3";
     const DEFAULT_LOCATION = { lat: 33.95, lon: -84.55, label: "Marietta, GA" };
@@ -526,7 +528,14 @@
     let windVisible = false;
     let smoothRadar = false;
     let snowColors = false;
-    let alertMode = "none";
+    let alertMode = "all";
+    let alertLoadToken = 0;
+    let alertSnapshot = null;
+    let alertSnapshotPending = null;
+    let alertPointInfo = null;
+    let alertPointPending = null;
+    let zoneBoundaries = {};
+    try { zoneBoundaries = JSON.parse(localStorage.getItem("weather-nws-zone-boundaries-v1") || "{}"); } catch { /* Storage is optional. */ }
     let windRefreshToken = 0;
     let windSamplePoints = [];
     let windSampleData = null;
@@ -874,16 +883,19 @@
     }
 
     function filterAlertFeatures(features, mode) {
-      if (mode === 'all') return features.filter((feature) => feature?.geometry);
+      if (mode === 'all') return NWSAlerts.activeFeatures(features);
       if (mode !== 'severe') return [];
       const severeEvents = new Set([
         'Tornado Warning',
         'Severe Thunderstorm Warning',
         'Tornado Watch',
         'Severe Thunderstorm Watch',
-        'Flash Flood Warning'
+        'Flash Flood Warning',
+        'Flood Warning',
+        'Flood Watch',
+        'Flash Flood Watch'
       ]);
-      return features.filter((feature) => severeEvents.has(feature?.properties?.event) && feature?.geometry);
+      return NWSAlerts.activeFeatures(features).filter((feature) => severeEvents.has(feature?.properties?.event));
     }
 
     function alertStyle(feature) {
@@ -891,20 +903,75 @@
       if (/Tornado Warning/i.test(event)) return { color: '#ff5b5b', fillColor: '#ff5b5b' };
       if (/Severe Thunderstorm Warning/i.test(event)) return { color: '#ff9c42', fillColor: '#ff9c42' };
       if (/Flash Flood Warning/i.test(event)) return { color: '#48b7ff', fillColor: '#48b7ff' };
+      if (/Flood/i.test(event)) return { color: '#48b7ff', fillColor: '#48b7ff' };
+      if (/Warning/i.test(event)) return { color: '#ff5b5b', fillColor: '#ff5b5b' };
       if (/Watch/i.test(event)) return { color: '#ffd157', fillColor: '#ffd157' };
       return { color: '#c0d5ff', fillColor: '#c0d5ff' };
     }
 
-    async function loadAlerts() {
+    function alertEscape(value) {
+      return String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    }
+    async function alertJSON(url) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12000);
       try {
+        const res = await fetch(url, { headers: { Accept: 'application/geo+json' }, cache: 'no-store', signal: controller.signal });
+        if (!res.ok) throw new Error('NWS request failed');
+        return await res.json();
+      } finally { clearTimeout(timer); }
+    }
+    async function radarAlertSnapshot(force = false) {
+      if (alertSnapshotPending) return alertSnapshotPending;
+      if (!force && alertSnapshot && Date.now() - alertSnapshot.time < 300000) return alertSnapshot;
+      alertSnapshotPending = (async () => {
         const point = `${locationData.lat},${locationData.lon}`;
-        const res = await fetch(`https://api.weather.gov/alerts/active?status=actual&message_type=alert&point=${encodeURIComponent(point)}`, {
-          headers: { 'Accept': 'application/geo+json' },
-          cache: 'no-store'
+        if (!alertPointInfo) {
+          if (!alertPointPending) alertPointPending = alertJSON(`https://api.weather.gov/points/${point}`).then(data => data.properties).finally(() => { alertPointPending = null; });
+          try { alertPointInfo = await alertPointPending; } catch { /* Fall back to point alerts when regional lookup fails. */ }
+        }
+        const state = alertPointInfo?.relativeLocation?.properties?.state;
+        const regional = /^[A-Z]{2}$/.test(state || '');
+        const query = regional ? `area=${state}` : `point=${encodeURIComponent(point)}`;
+        const data = await alertJSON(`https://api.weather.gov/alerts/active?status=actual&${query}`);
+        alertSnapshot = { features: data.features || [], time: Date.now(), region: regional ? `${state} statewide` : 'Selected location only' };
+        return alertSnapshot;
+      })().finally(() => { alertSnapshotPending = null; });
+      return alertSnapshotPending;
+    }
+    async function loadAlerts(force = false) {
+      const token = ++alertLoadToken;
+      const status = document.getElementById('alertMapStatus');
+      if (alertMode === 'none') return;
+      status.textContent = 'Checking NWS alert areas…';
+      try {
+        const snapshot = await radarAlertSnapshot(force);
+        if (token !== alertLoadToken || alertMode === 'none') return;
+        const selected = filterAlertFeatures(snapshot.features, alertMode);
+        const preferred = [alertPointInfo?.forecastZone, alertPointInfo?.county].filter(Boolean);
+        const ordered = selected.map(feature => ({ ...feature, properties: { ...feature.properties,
+          affectedZones: [...(feature.properties?.affectedZones || [])].sort((a, b) => Number(preferred.includes(b)) - Number(preferred.includes(a)))
+        } }));
+        let requests = 0;
+        const attempted = new Map();
+        const deadline = Date.now() + 18000;
+        const mapped = await NWSAlerts.mapFeatures(ordered, async url => {
+          const saved = zoneBoundaries[url];
+          if (saved?.geometry && Date.now() - saved.time < 604800000) return saved.geometry;
+          if (attempted.has(url)) return attempted.get(url);
+          if (token !== alertLoadToken || requests >= 12 || Date.now() >= deadline) return null;
+          requests++;
+          const promise = alertJSON(url).then(data => {
+            if (data.geometry) zoneBoundaries[url] = { geometry: data.geometry, time: Date.now() };
+            return data.geometry;
+          }).catch(() => null);
+          attempted.set(url, promise);
+          return promise;
         });
-        if (!res.ok) throw new Error('Alerts API unavailable');
-        const data = await res.json();
-        const features = filterAlertFeatures(data.features || [], alertMode);
+        if (token !== alertLoadToken || alertMode === 'none') return;
+        zoneBoundaries = Object.fromEntries(Object.entries(zoneBoundaries).filter(([, value]) => Date.now() - value.time < 604800000).sort((a, b) => b[1].time - a[1].time).slice(0, 100));
+        try { localStorage.setItem('weather-nws-zone-boundaries-v1', JSON.stringify(zoneBoundaries)); } catch { /* Keep in-memory boundaries if storage is full. */ }
+        const features = mapped.features.slice().reverse(); // Draw highest-priority warning outlines last, above watches.
         if (alertsLayer) {
           map.removeLayer(alertsLayer);
           alertsLayer = null;
@@ -918,24 +985,30 @@
               weight: 2,
               opacity: 0.95,
               fillColor: colors.fillColor,
-              fillOpacity: 0.08
+              fillOpacity: 0.14
             };
           },
           onEachFeature: (feature, layer) => {
             const props = feature.properties || {};
             const title = props.event || 'Alert';
             const headline = props.headline || '';
-            const ends = props.ends ? new Date(props.ends).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : '';
-            layer.bindPopup(`<strong>${title}</strong>${headline ? `<br>${headline}` : ''}${ends ? `<br>Ends ${ends}` : ''}`);
+            const ends = props.ends || props.expires;
+            const endLabel = ends ? new Date(ends).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : '';
+            layer.bindPopup(`<div style="max-height:45vh;overflow-y:auto"><strong>${alertEscape(title)}</strong>${headline ? `<br>${alertEscape(headline)}` : ''}${endLabel ? `<br>Ends ${alertEscape(endLabel)}` : ''}${props.boundarySource ? `<br>${alertEscape(props.boundarySource)} — alert area, not observed flooding.` : ''}<br><span style="white-space:pre-line">${alertEscape(props.description)}\n\n${alertEscape(props.instruction)}</span></div>`);
           }
         });
         if (alertMode !== 'none' && features.length) alertsLayer.addTo(map);
-        SEVERE_ALERTS_BTN.textContent = features.length && alertMode === 'severe' ? `Severe alerts (${features.length})` : 'Severe alerts';
-        ALL_ALERTS_BTN.textContent = features.length && alertMode === 'all' ? `All NWS alerts (${features.length})` : 'All NWS alerts';
+        const count = selected.length;
+        SEVERE_ALERTS_BTN.textContent = count && alertMode === 'severe' ? `Severe alerts (${count})` : 'Severe alerts';
+        ALL_ALERTS_BTN.textContent = count && alertMode === 'all' ? `All NWS alerts (${count})` : 'All NWS alerts';
+        status.textContent = `${snapshot.region}: ${count ? `${count} active alert${count === 1 ? '' : 's'}` : 'No active alerts'} · Red/orange: warnings · Yellow: watches · Blue: flood alerts.${mapped.missingCount ? ` ${mapped.missingCount} alert area${mapped.missingCount === 1 ? '' : 's'} not fully mapped; tap Refresh to retry missing boundaries.` : ''}`;
       } catch (error) {
         console.error(error);
+        if (token !== alertLoadToken || alertMode === 'none') return;
         SEVERE_ALERTS_BTN.textContent = 'Severe alerts';
         ALL_ALERTS_BTN.textContent = 'All NWS alerts';
+        if (alertsLayer) { map.removeLayer(alertsLayer); alertsLayer = null; }
+        status.textContent = 'Could not update NWS alert areas. Tap Refresh to retry; no current coverage confirmed.';
       }
       updateAlertButtons();
     }
@@ -943,9 +1016,11 @@
     function setAlertMode(mode) {
       alertMode = alertMode === mode ? 'none' : mode;
       if (alertMode === 'none') {
+        alertLoadToken++;
         if (alertsLayer && map.hasLayer(alertsLayer)) map.removeLayer(alertsLayer);
         SEVERE_ALERTS_BTN.textContent = 'Severe alerts';
         ALL_ALERTS_BTN.textContent = 'All NWS alerts';
+        document.getElementById('alertMapStatus').textContent = 'NWS alert areas hidden. Enable All NWS alerts to show watches, warnings, and flood areas.';
       } else {
         loadAlerts();
       }
@@ -1028,7 +1103,7 @@
     PREV_BTN.addEventListener("click", () => { stopLoop(); renderFrame(animationIndex - 1); });
     NEXT_BTN.addEventListener("click", () => { stopLoop(); renderFrame(animationIndex + 1); });
     LATEST_BTN.addEventListener("click", () => { stopLoop(); renderFrame(frames.length - 1); });
-    REFRESH_BTN.addEventListener("click", async () => { await loadRadarFrames(); if (alertMode !== 'none') await loadAlerts(); });
+    REFRESH_BTN.addEventListener("click", async () => { if (alertMode !== 'none') loadAlerts(true); await loadRadarFrames(); });
     MAP_TOGGLE_BTN.addEventListener("click", () => {
       setBasemap(activeBasemap === 'stadia' ? 'osm' : 'stadia');
     });
@@ -1061,6 +1136,9 @@
     updateAppearanceButtons();
     updateRadarOpacityControl();
     updateAlertButtons();
+    loadAlerts();
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && alertMode !== 'none') loadAlerts(); });
+    setInterval(() => { if (!document.hidden && alertMode !== 'none') loadAlerts(); }, 300000);
     loadRadarFrames();
   </script>
 </body>

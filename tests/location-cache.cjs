@@ -33,6 +33,7 @@ function environment() {
     renderDailyOutlook: items => { c.latestDailyOutlookItems = items; },
     sourceRow: (...args) => args, unavailableSource: (...args) => args,
     getWeatherAlerts: async () => { calls.push('alerts'); return []; },
+    checkWeatherAlerts: async (location, isCurrent) => { const alerts = await c.getWeatherAlerts(location.lat, location.lon); if (isCurrent()) c.latestAlertsData = alerts; },
     getDailyOutlook: async () => { calls.push('daily'); return []; },
     loadSupplementalIfNear: () => calls.push('recap'),
     getVisualCrossingForecast: async (lat, lon) => {
