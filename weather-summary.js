@@ -170,21 +170,24 @@
     }
     function detail(event) {
       const first = event.windows[0];
-      const startText = first.underway || first.continuing ? 'The window is already in progress.' : precise ? `The window begins around ${time(event.start.time)}.` : '';
+      const startText = first.underway || first.continuing ? 'Window already underway.' : `Starts around ${time(event.start.time)}.`;
       const finish = ending(event);
       let parts;
       if (event.kind === 'rain') {
-        parts = [event.timingUncertain ? 'The start time is uncertain.' : first.underway || first.continuing ? 'Chances remain elevated.' : precise ? `Chances increase around ${time(event.start.time)}.` : '',
+        parts = [event.timingUncertain ? 'Start time uncertain.' : first.underway || first.continuing ? '' : `Chances increase around ${time(event.start.time)}.`,
           peakText(event.peak, model.today ? 'Highest remaining hourly chance' : 'Highest hourly chance')];
         if (event.windows.length > 1) parts.push(`Another window develops around ${time(event.windows[event.windows.length - 1].start.time)}.`);
         if (finish) parts.push(finish);
         if (event.total !== null) parts.push(amount(event.total).replace(/^./, letter => letter.toUpperCase()) + (model.today ? ' in the remaining forecast window.' : '.'));
       } else if (['storm', 'snow', 'ice'].includes(event.kind)) {
         parts = [startText];
-        if (event.kind === 'storm') parts.push(peakText(model.rainPeak, model.today ? 'Highest remaining rain chance' : 'Highest rain chance'));
+        if (event.kind === 'storm') {
+          parts.push(peakText(model.rainPeak, model.today ? 'Highest remaining hourly rain chance' : 'Highest hourly rain chance'));
+          if (model.total !== null && !model.events.some(other => ['snow', 'ice'].includes(other.kind))) parts.push(amount(model.total).replace(/^./, letter => letter.toUpperCase()) + (model.today ? ' in the remaining forecast window.' : '.'));
+        }
         else {
           if (model.low) parts.push(`Low near ${Math.round(model.low.temp)}°.`);
-          parts.push(event.kind === 'snow' ? 'Snow accumulation is not available in this forecast.' : 'Freezing precipitation may affect travel.');
+          parts.push(event.kind === 'snow' ? 'Snow accumulation is not available in this forecast.' : 'Ice accumulation is not available in this forecast.');
         }
         if (event.windows.length > 1) parts.push(`Another window develops around ${time(event.windows[event.windows.length - 1].start.time)}.`);
         if (finish) parts.push(finish);
@@ -209,6 +212,44 @@
       return parts.filter(Boolean).join(' ');
     }
     const selected = [model.primary, model.secondary].filter(Boolean).sort((a, b) => a.start.time - b.start.time);
+    function overview() {
+      if (selected.length > 1) {
+        const [first, second] = selected;
+        if (selected.some(event => event.timingUncertain || event.windows.some(window => window.gap))) return 'Incomplete timing data limits how these weather periods can be compared.';
+        const names = { rain: 'rain', storm: 'storm', snow: 'snow', ice: 'icy precipitation', wind: 'wind', fog: 'fog', heat: 'heat', freeze: 'freezing temperatures', cold: 'cold' };
+        const overlap = first.windows.some(a => second.windows.some(b => a.start.time < new Date(b.last.time.getTime() + HOUR) && b.start.time < new Date(a.last.time.getTime() + HOUR)));
+        if (overlap) return `The ${names[first.kind]} and ${names[second.kind]} periods overlap${first.windows.length > 1 || second.windows.length > 1 ? ' during part of the forecast' : ''}.`;
+        const before = first.windows.every(window => window.last.time.getTime() + HOUR <= second.start.time.getTime());
+        if (before) return `The ${names[first.kind]} period comes before the ${names[second.kind]} period.`;
+        return 'These conditions develop in separate periods across the forecast.';
+      }
+      const event = selected[0], first = event.windows[0], last = event.windows[event.windows.length - 1];
+      if (event.timingUncertain) return 'Hourly chances do not establish a clear starting window.';
+      if (event.windows.length > 1) return event.kind === 'rain' ? 'A lower-chance break separates the main windows.' : 'Activity returns after a break, rather than lasting continuously.';
+      if (first.gap) return 'Gaps in the hourly forecast limit confidence in when conditions improve.';
+      if (event.kind === 'rain') {
+        const peakLater = event.peak && event.peak.start.time.getTime() >= Math.max(first.start.time.getTime(), model.today ? model.now.getTime() : first.start.time.getTime()) + 2 * HOUR;
+        if (peakLater) return last.end ? 'The best chance comes later in the window, followed by lower chances.' : 'The best chance comes later in the window; an ending is not yet clear.';
+        if (last.end) return 'Lower chances follow the main window, with no later return indicated.';
+        const prior = model.upcoming.filter(item => item.time < first.start.time);
+        if (prior.length && prior.every(item => item.prob !== null && item.prob < 30 && item.amount !== null && item.amount < 0.01)) return 'Earlier hours look mostly dry before chances increase.';
+        return '';
+      }
+      if (['freeze', 'cold'].includes(event.kind) && last.end) return 'Temperatures recover after the coldest part of the forecast.';
+      if (event.kind === 'heat' && last.end) return 'Temperatures ease after the hottest part of the forecast.';
+      if (event.kind === 'wind') {
+        const strongest = event.gust?.value >= 30 ? event.gust : event.wind;
+        if (strongest && strongest.start.time.getTime() >= Math.max(first.start.time.getTime(), model.today ? model.now.getTime() : first.start.time.getTime()) + 2 * HOUR) return 'The strongest winds come later in the window.';
+        if (last.last.time - first.start.time >= 7 * HOUR) return 'Elevated winds extend across much of the forecast.';
+      }
+      if (event.kind === 'storm' && last.end) {
+        const later = model.upcoming.filter(item => item.time >= last.end.time);
+        if (later.length && later.every(item => item.prob !== null && item.prob < 30 && item.amount !== null && item.amount < 0.01)) return 'The later forecast is mostly dry.';
+        if (later.some(item => item.amount !== null && item.amount >= 0.01)) return 'Rain may continue after the thunderstorm period.';
+      }
+      // Do not invent another sentence when the heading and measurements already cover the event.
+      return '';
+    }
     if (!model.upcoming.length) return { title: 'Forecast unavailable', detail: 'Hourly forecast data is missing for this period.', options: [] };
     const range = model.high && model.low ? `Temperatures from about ${Math.round(model.low.temp)}° to ${Math.round(model.high.value)}°.` : 'Temperature details are unavailable.';
     if (!selected.length) {
@@ -217,15 +258,12 @@
       return { title: model.earlierRain && quiet ? 'Mostly dry for the rest of today' : transition ? 'Cloudy morning, brighter afternoon' : model.sky === 'unknown' ? 'Forecast details limited' : model.sky === 'cloudy' ? (quiet ? 'Cloudy but dry' : 'Cloudy skies') : model.sky === 'partly cloudy' ? 'Partly cloudy skies' : model.sky === 'mixed conditions' ? 'Mixed conditions' : 'Mostly clear skies',
         detail: `${model.earlierRain && quiet ? 'Earlier rain chances have eased. ' : ''}${range}${!model.probComplete ? ' Some precipitation timing data is missing.' : ''}`, options: [] };
     }
-    const options = model.events.filter(event => event.significance >= 3).sort((a, b) => b.priority - a.priority)
+    const boxTitles = { rain: 'Timing and rainfall', storm: 'Storm timing and rain chance', ice: 'Timing and temperature', snow: 'Timing and temperature', wind: 'Wind speeds and timing', fog: 'Visibility and timing', heat: 'Temperature and feels-like', freeze: 'Temperature and timing', cold: 'Temperature and timing' };
+    const options = model.events.filter(event => event.significance >= 3 || selected.includes(event)).sort((a, b) => b.priority - a.priority)
       .filter(event => !(event.kind === 'rain' && model.events.some(other => ['storm', 'snow', 'ice'].includes(other.kind))))
-      .slice(0, 3).map(event => ({ type: 'forecast', title: title(event), sub: detail(event), tag: { rain: 'Rain', storm: 'Storms', ice: 'Ice', snow: 'Snow', wind: 'Wind', fog: 'Fog', heat: 'Heat', freeze: 'Freeze', cold: 'Cold' }[event.kind] }));
-    return { title: selected.map(title).join('; '), detail: selected.map(event => {
-      const text = detail(event);
-      if (selected.length === 1 || event === model.primary) return text;
-      if (event.kind === 'wind') return text.replace(/^The window (?:begins[^.]*|is already in progress)\.\s*/, '');
-      return text;
-    }).join(' '), options };
+      .filter(event => !(event.kind === 'freeze' && model.events.some(other => ['snow', 'ice'].includes(other.kind))))
+      .slice(0, 3).map(event => ({ type: 'forecast', title: boxTitles[event.kind], sub: detail(event), tag: { rain: 'Rain', storm: 'Storms', ice: 'Ice', snow: 'Snow', wind: 'Wind', fog: 'Fog', heat: 'Heat', freeze: 'Freeze', cold: 'Cold' }[event.kind] }));
+    return { title: selected.map(title).join('; '), detail: overview(), options };
   }
   const api = { records, analyze, describe };
   root.WeatherSummary = api;
